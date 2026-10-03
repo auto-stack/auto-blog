@@ -1,0 +1,317 @@
+{
+  "repository": "auto-blog",
+  "date": "2026-10-03",
+  "sources": [
+    {
+      "repo": "auto-lang",
+      "commit": "17292c07e792e80d4e4da5495fc3fc2917e8aa1e",
+      "path": "examples/ui/023-realworld",
+      "primary": true,
+      "fileCount": 39,
+      "pacFields": {
+        "name": "realworld",
+        "version": "1.0.0",
+        "scene": "ui",
+        "render": "vue",
+        "title": "RealWorld",
+        "title_zh": "RealWorld",
+        "api": "rust",
+        "front_port": "3023",
+        "back_port": "8023"
+      },
+      "files": [
+        {
+          "sourcePath": "examples/ui/023-realworld/.gitignore",
+          "path": ".gitignore",
+          "sha256": "81c76c3601a0252ed3e09bec839cd7b22760f9a059bfe2d0f68dd6758e4559cb"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/README.md",
+          "path": "README.md",
+          "sha256": "8ade1ada5ff0a554f0a7e4122a049b4b7f2da604cd8e64356b430cf9fb448ca2"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/pac.at",
+          "path": "pac.at",
+          "sha256": "5c5cb1b0f8b0c7e27ee182c583b4a6482c3c8b70393835cbbbb4b2d2dd2eaa98"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/back/api.at",
+          "path": "src/back/api.at",
+          "sha256": "4c3311a1dd14717d921d098a12b7831f25fe190dee4bb0bad3fef03a3e449d4e"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/back/db.at",
+          "path": "src/back/db.at",
+          "sha256": "aee03706ed6f4b516a40d916b785f5b01170b7b89b5f49c83fdc6425d41767ac"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/app.at",
+          "path": "src/front/app.at",
+          "sha256": "371dd9abe7ed1a4cee22ad98c2d1ddb6b3f32b486aa0765c54b2d828e172a1d3"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/article_store.at",
+          "path": "src/front/article_store.at",
+          "sha256": "71c1f67013c5a7c775fdb16838cf54a209b5e6511174a04a4939003d0895c9d2"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/auth_store.at",
+          "path": "src/front/auth_store.at",
+          "sha256": "4c7cf169c12bfd794deac68f4b52791f0c492198c45281de0458727d4bd9e858"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/pages/article_detail.at",
+          "path": "src/front/pages/article_detail.at",
+          "sha256": "6fe9d139396dea4ee68ae2bb374d215a31b25fb262eef87d2b9b0bb7e8ae078c"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/pages/editor.at",
+          "path": "src/front/pages/editor.at",
+          "sha256": "a9c38dcd282c8b8c995862b526e4b9cb47bc8c9f53b4cfb9f339729b2d28200b"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/pages/home.at",
+          "path": "src/front/pages/home.at",
+          "sha256": "eda0b8a6c482601f281075f9b4c7ca992facf5a7668f3cb335e14281de823616"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/pages/login.at",
+          "path": "src/front/pages/login.at",
+          "sha256": "a7a37bcbdc3a6fe2865416d237eef4947b272e64ca21ba3fe330c3d07bcbd41d"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/pages/profile.at",
+          "path": "src/front/pages/profile.at",
+          "sha256": "e80589a51f84037fc662307a76b5a674b3af21976b998d14da43bd88396e61dd"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/pages/register.at",
+          "path": "src/front/pages/register.at",
+          "sha256": "a2661e16ade1cce1584c4ed17017a8e4b51a918b5f2dfa6ca009780810b6f315"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/src/front/pages/settings.at",
+          "path": "src/front/pages/settings.at",
+          "sha256": "153b211acb354cf64ac262fada555e826b02d4131658b6310e2d61b3d2568f6e"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/tests/acceptance.atd",
+          "path": "tests/acceptance.atd",
+          "sha256": "d24a76fddbc6f94ebb371f1a78f5fdf0ce20b029fb80a4d39fa0a0908f81dd19"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/tests/package.json",
+          "path": "tests/package.json",
+          "sha256": "0c1147687c1b5a21c5af701013598777024e4f03b641e4670fa38d2074c5acac"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/tests/playwright.config.ts",
+          "path": "tests/playwright.config.ts",
+          "sha256": "b83a7aa1515784cc9baa0f0f74e664a61d3ac7ae6a85d1ba997ce9c2e8817750"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/tests/smoke.spec.ts",
+          "path": "tests/smoke.spec.ts",
+          "sha256": "1d663de865d0f5784839a308108fd4567a45bee737a4e33a048fd6f84846e70d"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/.gitignore",
+          "path": "vue-ref/.gitignore",
+          "sha256": "e8bc935ce727f1809c792f4c5d26c5fc75ba2b7df7fc9390c56c8892f6a6007f"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/index.html",
+          "path": "vue-ref/index.html",
+          "sha256": "c2cf6e2fe3b969ce4fcf9991e709c105b2557e64065527b1e4e6049e3ace3a5f"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/pnpm-lock.yaml",
+          "path": "vue-ref/pnpm-lock.yaml",
+          "sha256": "06c6a032b7b2a3df3221fdabb243d8b066e6a6d54c8654e08319ad93c86a100f"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/pnpm-workspace.yaml",
+          "path": "vue-ref/pnpm-workspace.yaml",
+          "sha256": "d6d0c24446d91ef762d37c6ba801bb516e65d7055aa9f8027fcd457409a97ce1"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/postcss.config.js",
+          "path": "vue-ref/postcss.config.js",
+          "sha256": "f291af35aed970d241227c61b79861d3ff8f08705babd56649fd8fe8776c360b"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/App.vue",
+          "path": "vue-ref/src/App.vue",
+          "sha256": "34d3a62c01a19a18abc2766b4c365a2d855d8262863b7de8dc3b3ed530998731"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/api/articles.ts",
+          "path": "vue-ref/src/api/articles.ts",
+          "sha256": "85d50005563534d5e246167ba2fc1cd1fb8967289a7c44a90c94ee31cfa7896b"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/api/mock.ts",
+          "path": "vue-ref/src/api/mock.ts",
+          "sha256": "562280fd0edc85b007e58c83bd97e38055cfb5d46be2b05bc10de6947655a5e2"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/components/ArticleCard.vue",
+          "path": "vue-ref/src/components/ArticleCard.vue",
+          "sha256": "a2854002164e283b9de36eaa03c8326b0b90b9f9493454434e9acbce0c3ed21a"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/main.ts",
+          "path": "vue-ref/src/main.ts",
+          "sha256": "966dff8965c4fac174af0c9d02bf5e4102d30cbfd10ab7b96ebeb35af686570d"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/shims.d.ts",
+          "path": "vue-ref/src/shims.d.ts",
+          "sha256": "2b49c7b89df266152fc2442faa620c9938150a7a6393bc50d62a49a1e0ef65af"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/stores/auth.ts",
+          "path": "vue-ref/src/stores/auth.ts",
+          "sha256": "035efdf5fe9b14a0e01bb5ccc252f246babd56def54f4e9d9d5e3ac0ea107dea"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/style.css",
+          "path": "vue-ref/src/style.css",
+          "sha256": "4a352d53d8e1e185a4923f78abb8c4232dba260c09abb6955f8045323288de5d"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/views/ArticleDetail.vue",
+          "path": "vue-ref/src/views/ArticleDetail.vue",
+          "sha256": "1d03f4aedb5e6112f9d7793b39d227fc7589504693908cd1057740666a940e33"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/views/Home.vue",
+          "path": "vue-ref/src/views/Home.vue",
+          "sha256": "3041205600f1c40c21b579921dd28d74ad02499dc3bc6bb89d160c61a4e8bb4d"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/views/Login.vue",
+          "path": "vue-ref/src/views/Login.vue",
+          "sha256": "161c38776ce364c2c8896e818a21da385598b01c13f34d09acf7810824f082a8"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/views/Register.vue",
+          "path": "vue-ref/src/views/Register.vue",
+          "sha256": "b1385301b391a1572f872ea19a1e3e167f8ad69970dbc5b77c5797c76f81c691"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/src/views/Settings.vue",
+          "path": "vue-ref/src/views/Settings.vue",
+          "sha256": "bb05459e36f8fb292b6254ba20a57e6f40ae2ef7f3276dc7edba407a4eb1b667"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/tailwind.config.js",
+          "path": "vue-ref/tailwind.config.js",
+          "sha256": "94666393c63a2ab4153f38bebbcf9e643c5639cbb9b0193c2ae90fadf5884be8"
+        },
+        {
+          "sourcePath": "examples/ui/023-realworld/vue-ref/vite.config.ts",
+          "path": "vue-ref/vite.config.ts",
+          "sha256": "216a37d0104a99064d4914794e10e4f1215846ae55900376717e559ca036b44e"
+        }
+      ]
+    },
+    {
+      "repo": "auto-lang",
+      "commit": "17292c07e792e80d4e4da5495fc3fc2917e8aa1e",
+      "path": "examples/ui/021-blog-viewer",
+      "primary": false,
+      "fileCount": 15,
+      "pacFields": {
+        "name": "blog-viewer",
+        "version": "1.0.0",
+        "scene": "ui",
+        "render": "vue",
+        "title": "Blog Viewer",
+        "title_zh": "博客阅读器",
+        "api": "rust",
+        "front_port": "3021",
+        "back_port": "8421"
+      },
+      "files": [
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/.gitignore",
+          "path": "references/021-blog-viewer/.gitignore",
+          "sha256": "2d520e4c08e73e11c3d922ebae0f938742e93da9b1ecb2611646a60486e74c56"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/README.md",
+          "path": "references/021-blog-viewer/README.md",
+          "sha256": "b07f900d2813420918160a160fbe61adbfc4c01ead3c11c9faf88f59fa022d92"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/pac.at",
+          "path": "references/021-blog-viewer/pac.at",
+          "sha256": "74569f3e8e46efe1453e2f03baf048839bacc0528c249803d7515f0bbb9d825c"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/src/back/api.at",
+          "path": "references/021-blog-viewer/src/back/api.at",
+          "sha256": "afab875118e0b3a2d833c9f918e5eb7d781bbc0edcbe94fc5d1c0ace050340a6"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/src/back/db.at",
+          "path": "references/021-blog-viewer/src/back/db.at",
+          "sha256": "6f7f84800ebef8486563f260ecf20d36e4aa914382d1d155a0f902380fb8c8b4"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/src/front/app.at",
+          "path": "references/021-blog-viewer/src/front/app.at",
+          "sha256": "a6d6c25dd6a1fba70f86595cfa8b4a6768de039b4321088e2cc51282e1a4b839"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/src/front/blog_store.at",
+          "path": "references/021-blog-viewer/src/front/blog_store.at",
+          "sha256": "c5dc9b3005c413323db5376bcf9480e7333ad5db218cf7ac49fbbdeca381e542"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/src/front/pages/detail.at",
+          "path": "references/021-blog-viewer/src/front/pages/detail.at",
+          "sha256": "ebac2e18e441b6b620314e519339bf4c2b896b4e639942d48abf38874b857b1a"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/src/front/pages/editor.at",
+          "path": "references/021-blog-viewer/src/front/pages/editor.at",
+          "sha256": "b265be9a7fc337b5a9b072fc744c5b289cb1f53ec876b77c41fed244d957bd58"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/src/front/pages/home.at",
+          "path": "references/021-blog-viewer/src/front/pages/home.at",
+          "sha256": "78243dcba13fe7a42f6b978c146fcc162cadd3b34763e6c62a1c6550e350f217"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/tests/acceptance.atd",
+          "path": "references/021-blog-viewer/tests/acceptance.atd",
+          "sha256": "3471ffe524e167b9bb28c48c180f0d6fdb8afff5693bfecaa2b1b09856a9fce8"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/tests/package.json",
+          "path": "references/021-blog-viewer/tests/package.json",
+          "sha256": "54fdee9a51e5728eccf5e2cd9302dd7d112dbe76ec5c897dc9b9869eb76adaab"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/tests/playwright.config.ts",
+          "path": "references/021-blog-viewer/tests/playwright.config.ts",
+          "sha256": "dffac300a4ab4f22bf1051aa69467a80e67777a856d2267b69a2c9d08e61ee37"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/tests/pnpm-lock.yaml",
+          "path": "references/021-blog-viewer/tests/pnpm-lock.yaml",
+          "sha256": "cbbe12a5226b3826f365f795dc703deb484d65b3591f1274d5379d9fdd12a76f"
+        },
+        {
+          "sourcePath": "examples/ui/021-blog-viewer/tests/smoke.spec.ts",
+          "path": "references/021-blog-viewer/tests/smoke.spec.ts",
+          "sha256": "44b5ecaa333227d0d761b62f57259700b990ec8ce456f4c79d63c286262d20d7"
+        }
+      ]
+    }
+  ],
+  "note": "Exact committed source snapshots; packaging changes follow in a separate commit. References are not additional installed apps."
+}
