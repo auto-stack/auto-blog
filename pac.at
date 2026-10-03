@@ -2,12 +2,13 @@ name: "realworld"
 version: "1.0.0"
 scene: "ui"
 render: "vue"
-title: "RealWorld"
-title_zh: "RealWorld"
+title: "Blog"
+title_zh: "博客"
 api: "rust"
-front_port: 3023
-back_port: 8023
+front_port: 17826
+back_port: 17827
 
 dep stylekit {
-    path: "../stylekit"
+    path: "vendor/stylekit"
 }
+desktop: "true"
