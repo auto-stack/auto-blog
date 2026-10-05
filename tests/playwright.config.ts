@@ -13,7 +13,7 @@ export default defineConfig({
     // The auto project's vite dev server. `auto run` doesn't read pac.at
     // front_port (port gap, Plan 401), so the actual port varies — set RW_URL
     // to the printed "Local:" URL when running.
-    baseURL: process.env.RW_URL || 'http://localhost:3024',
+    baseURL: process.env.RW_URL || 'http://localhost:17826',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',

@@ -50,15 +50,19 @@
 
 `SaveResult`：`ok, work_id, revision, conflict, error`。冲突时 **不覆盖**，`conflict=true` 且带服务端当前 `revision`。
 
-## 5. 可靠性规则（T-00 实证，必须遵守）
+## 5. 可靠性规则（T-00/Phase 2 实证，必须遵守）
 
 1. **双轨 fs 面**（Vue rust 后端 + VM）：只用 `fs.write_text` / `fs.read_text` / `fs.exists` / `fs.create_dir` / `fs.is_dir` / `fs.file_size`。
-2. **写后 `fs.exists` 校验**：`write_text` 对失败路径可能返回 0（假成功）；UI 只有确认后才能显示「已保存」。
-3. **禁用**：`fs.append_text`（VM `File.open failed`）；`json.stringify`（双轨不可用）；`fs.read_dir` / `fs.join` / `fs.size` / `file.*` 裸前缀（a2r 不映射）；逐字节 `slice(i,i+1)` 拼串（吞中文，用 `replace`）。
-4. **长串返回**：禁止把含长 `body` 的 Work 嵌进另一结构体返回（VM 截断）；`create_draft`/`open_draft` 直接返回 `Work`。
-5. **结构体全量构造**：勿依赖字段赋值（部分路径不稳定；沿 db.at 惯例）。
-6. **崩溃恢复**：同步写 + exists 确认后进程退出/杀进程，数据在盘；重启读回一致。
-7. **条件 revision**：并发双端同旧 rev 保存，后到者得 `conflict=true`，两版都在（服务端当前版在盘，本机版在编辑器），由用户选择 `保留本机` / `加载对方`。
+2. **写后全文回读**（Phase 2 R-01）：`write_confirmed` = write + exists + `read_text == content`。`write_text` 返回码/exists 不足——锁文件会假成功。
+3. **版本指针提交**：新 revision 写入不可变 `revisions/rev-N.{json,body}` 并回读确认，再写 `current.txt` 指针。失败/半写保留上一确认版本；启动只读完整 revision。
+4. **禁用**：`fs.append_text`；`json.stringify`；`fs.read_dir` / `fs.join` / `fs.size` / `file.*` 裸前缀；逐字节 `slice(i,i+1)` 拼串（吞中文）。
+5. **JSON 转义**（R-04）：`json_escape` 用 replace；`json_unescape` 单遍状态机（find+区间 slice），**禁止占位符**（`_BS_` 等会与正文冲突）。`json_field_str` 允许冒号后空白（pretty JSON）。
+6. **长串返回**：禁止把含长 `body` 的 Work 嵌进另一结构体返回；直接返回 `Work`。
+7. **结构体全量构造**：勿依赖字段赋值。
+8. **条件 revision**：并发同旧 rev → `conflict=true`，两版可恢复（保留本机 / 加载对方）。
+9. **迁移事务**（R-05）：先写 `pending-migrate.json` journal（可重试复用同 ID），再 work files，最后 `slug-map.json`（write_confirmed）。映射未确认不计成功；失败备份旧 map。括号扫描必须跳过字符串。
+10. **前端缓冲**（R-02/06）：保存串行化 + `edit_seq` 快照；回执仅当序号未变才清 dirty；切稿/新建前保存，失败则不切换并保留本机版；`try/catch` 捕获网络异常，禁止停在 saving 或标虚假 saved；`has_current` 守卫空 Work（codegen 初值为 null）。
+11. **唯一默认入口**（R-03/07）：`/` 唯一作者路由（勿同时注册 `/author`）；Demo 固定 `/demo`。
 
 ## 6. 迁移（旧 Article → Work）
 

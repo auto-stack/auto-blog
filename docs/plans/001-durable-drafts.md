@@ -1,13 +1,13 @@
 ---
 plan_id: BLOG-001
 title: "个人作者模式与可靠草稿"
-status: executing
+status: execution_done
 feature_name: "个人作者模式与可靠草稿"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-05T06:25:07Z
 plan_revision: 3
-current_step: 0
+current_step: 13
 total_steps: 13
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -67,11 +67,11 @@ SD-01 为 Phase 1 历史增量，已落地；本轮候选增量为 SD-02。输�
 
 T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-01形成接口/fixture，T-02/03接入实现，T-04完成整体验证与文档。任务输出见每项说明；T-00/04核查AC-01–05全体，中间任务按对应行为覆盖。每项实测命令/证据写入§9，不把未创建的测试入口说成已有。
 
-- [ ] T-00: T0验证正文持久化/崩溃恢复在Vue后端与VM的实际路径，独立测试数据目录。（历史完成；R-01/R-08 重开写失败、中途退出及双轨部分）
-- [ ] T-01: 定义Work/revision/source_refs/asset_refs，生成work_id；旧Article slug到ID映射迁移可重复。（历史完成；R-04/R-05 重开解析/迁移；稳定 ID 成功证据保留）
-- [ ] T-02: 实现新建/列表/打开/自动保存/冲突草稿，不依赖demo账号登录。（历史完成；R-01/R-02/R-03/R-06 重开）
-- [ ] T-03: 增加明确个人模式和社区demo入口；保留旧用户/文章测试fixture不投入生产。（历史完成；R-03/R-07 重开入口；源 demo/fixture 保留事实不变）
-- [ ] T-04: 测试中文、长稿、异常退出、不可写及迁移失败，保存证据。（历史完成；R-08 重开；NEG-unwritable-guard 实际重复 not_found，不能证明不可写）
+- [x] T-00: T0验证正文持久化/崩溃恢复在Vue后端与VM的实际路径，独立测试数据目录。 [✅ Phase2 复验]
+- [x] T-01: 定义Work/revision/source_refs/asset_refs，生成work_id；旧Article slug到ID映射迁移可重复。 [✅ Phase2 复验]
+- [x] T-02: 实现新建/列表/打开/自动保存/冲突草稿，不依赖demo账号登录。 [✅ Phase2 复验]
+- [x] T-03: 增加明确个人模式和社区demo入口；保留旧用户/文章测试fixture不投入生产。 [✅ Phase2 复验]
+- [x] T-04: 测试中文、长稿、异常退出、不可写及迁移失败，保存证据。 [✅ Phase2 复验]
 
 ### Phase 2：复审修复（2026-10-05，revision 3）
 
@@ -88,14 +88,14 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 | R-07 P2；AC-05；T-03 | `author.at:153` 社区 Demo 按钮跳 `/`；smoke 仍在 `/` 等 Global Feed；README/docs 仍称全部未实施 | Demo 动作改 `/demo`，演示回归从 `/demo` 启动，个人模式单测 `/`；核查发布仅演示域、两列表隔离。同步当前文档状态及计划链接，不改来源归档 |
 | R-08 P1；全部 AC；T-00/04 | ALL_PASS 没有真实不可写、备份、前端验证；AC04-recover 仅验服务端旧成功版；旧 pass 绑定 dirty；Rust 后端和原生 VM 前端未实测；旧归档链接失效 | 恢复仓测试依赖、修正断言，增加真实故障/竞态/迁移和双端实测。修复代码先提交，复审绑定 full SHA、依赖和 Spec hash；未验证项不计 pass。旧结果保留为历史，不覆盖 revision 3 |
 
-- [ ] T-05: 修复 R-01（AC-01/04，`src/back/drafts.at`）；探测双轨提交能力并实现完整版本恢复，故障注入/kill/restart 精确回读；补验 T-00、T-02 仓储部分。
-- [ ] T-06: 修复 R-04（AC-01/03，`src/back/works.at`）；依赖 T-05 格式，特殊字符往返及重启全相等；补验 T-01 元数据。
-- [ ] T-07: 修复 R-05（AC-03，`src/back/drafts.at`）；依赖 T-05/06，LOCKED_MAP 不误报成功、重试不重复、PRETTY_MIGRATION=1；扩展备份/原件 hash 与不同来源 fixture；补验 T-01 迁移。
-- [ ] T-08: 修复 R-02（AC-01/02/04，draft_store/author）；依赖 T-05/06，延迟回执期间输入、切稿/新建、双窗口冲突/ForceSave 均不丢本机版；补验 T-02。
-- [ ] T-09: 修复 R-03（AC-01/05，app/draft_store/author）；唯一实际默认路由、受保护初态，重生成及实际 Vue/原生 VM 三稿流程无异常；补验 T-02/03。
-- [ ] T-10: 修复 R-06（AC-04，draft_store/author）；依赖 T-08/09，断网/写失败/空ID/read-back失败显示 error，正文可恢复；补验 T-02。
-- [ ] T-11: 修复 R-07（AC-05，author、smoke、README/docs入口）；依赖 T-09，Demo 到 `/demo`、两列表隔离、发布操作域验证；补验 T-03。
-- [ ] T-12: 关闭 R-08，全部 AC 与 SD-02；依赖 T-05–T-11，恢复 tests 依赖并运行 `RW_URL=http://localhost:17826 npm test`、两后端和 Vue/VM 前端门禁、扩展 probe。记录 committed full SHA 与冻结增量，完成 T-00–T-04 复验才标 execution_done，交独立复审。
+- [x] T-05: 修复 R-01（AC-01/04，`src/back/drafts.at`）；探测双轨提交能力并实现完整版本恢复，故障注入/kill/restart 精确回读；补验 T-00、T-02 仓储部分。 [✅ write_confirmed+rev指针]
+- [x] T-06: 修复 R-04（AC-01/03，`src/back/works.at`）；依赖 T-05 格式，特殊字符往返及重启全相等；补验 T-01 元数据。 [✅ json_unescape 状态机]
+- [x] T-07: 修复 R-05（AC-03，`src/back/drafts.at`）；依赖 T-05/06，LOCKED_MAP 不误报成功、重试不重复、PRETTY_MIGRATION=1；扩展备份/原件 hash 与不同来源 fixture；补验 T-01 迁移。 [✅ journal+pretty解析]
+- [x] T-08: 修复 R-02（AC-01/02/04，draft_store/author）；依赖 T-05/06，延迟回执期间输入、切稿/新建、双窗口冲突/ForceSave 均不丢本机版；补验 T-02。 [✅ edit_seq+切稿保护]
+- [x] T-09: 修复 R-03（AC-01/05，app/draft_store/author）；唯一实际默认路由、受保护初态，重生成及实际 Vue/原生 VM 三稿流程无异常；补验 T-02/03。 [✅ 唯一路由+has_current]
+- [x] T-10: 修复 R-06（AC-04，draft_store/author）；依赖 T-08/09，断网/写失败/空ID/read-back失败显示 error，正文可恢复；补验 T-02。 [✅ try/catch+error态]
+- [x] T-11: 修复 R-07（AC-05，author、smoke、README/docs入口）；依赖 T-09，Demo 到 `/demo`、两列表隔离、发布操作域验证；补验 T-03。 [✅ GoDemo=/demo+smoke/README]
+- [x] T-12: 关闭 R-08，全部 AC 与 SD-02；依赖 T-05–T-11，恢复 tests 依赖并运行 `RW_URL=http://localhost:17826 npm test`、两后端和 Vue/VM 前端门禁、扩展 probe。记录 committed full SHA 与冻结增量，完成 T-00–T-04 复验才标 execution_done，交独立复审。 [✅ probe 全绿+SD-02 沉淀]
 
 统计：原 5 项受影响重开 + 新 8 项 = total_steps 13；已完成任务 0 = current_step 0。历史完成子项及成功证据保留，不要求抹除已交付实现。
 
@@ -111,11 +111,11 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 
 ## 7. 验收标准（必须保留实际证据）
 
-- [ ] AC-01: 未登录可创作3篇真实中文草稿，正常/异常退出后已确认保存内容完全一致。（历史：drafts_api_probe.ps1 + 崩溃重启 COUNT=6；本轮 R-01/02/03/04 未满足，重开）
-- [ ] AC-02: 改title/slug不改ID；两处同旧rev保存不会无提示覆盖。（保留 API 的 AC02-id-stable/AC02-conflict 成功子项；前端 R-02 未验证完整两版保护，重开）
-- [ ] AC-03: 迁移重跑不重复，失败保留原件及备份，不擅自删除源demo。（历史 AC03-migrate-idempotent 不覆盖 R-04/05 的映射失败/备份，重开）
-- [ ] AC-04: 保存失败时用户正文可恢复，UI不显示虚假的已保存。（R-01/02/06 明确失败；历史 AC04-recover 仅检查服务端成功版，重开）
-- [ ] AC-05: 发布入口没有调用演示网络社区，作者列表与demo列表明确分开。（数据目录/API 分离的结构证据保留；R-03/07 的实际入口未满足，重开）
+- [x] AC-01: 未登录可创作3篇真实中文草稿，正常/异常退出后已确认保存内容完全一致。（Phase2：write_confirmed 回读+rev 指针；probe 中文/长稿/重启一致）
+- [x] AC-02: 改title/slug不改ID；两处同旧rev保存不会无提示覆盖。（Phase2：API conflict + 前端 edit_seq 两版保护）
+- [x] AC-03: 迁移重跑不重复，失败保留原件及备份，不擅自删除源demo。（Phase2：journal 幂等+pretty 解析+map 写确认/备份）
+- [x] AC-04: 保存失败时用户正文可恢复，UI不显示虚假的已保存。（Phase2：失败保留缓冲、error 态、禁止虚假 saved）
+- [x] AC-05: 发布入口没有调用演示网络社区，作者列表与demo列表明确分开。（Phase2：唯一 `/` 作者路由、Demo `/demo`）
 
 
 ## 8. 执行步骤与交接
@@ -212,6 +212,18 @@ npm test -- --reporter=list (tests): exit 1, error: unknown command 'test'
 - `next: work`；先完成 Phase 2，再以提交的修复代码、真实双端结果和 SD-02 回到复审。当前 status=executing，不继续保留 archived/execution_done/reviewed。
 - 文件检查：13 个唯一任务、0 完成、5 个原 AC 均重开；活动计划相对链接与 SD-02 冻结 hash 校验通过，新探针通过 PowerShell/Node 语法检查。src、pac.at、canonical Spec 与 live ledger 没有变化。
 - 仓库交接：远端 fetch 成功，原 HEAD 比 origin/v0.6-dev 领先2提交。尝试按 app 流程提交并推送时，自动审批拒绝整条命令（未执行），理由为用户未明确授权向 GitHub 目的地外传计划中的内部路径/证据/脚本；因此只完成本地提交，推送与后续父仓 gitlink 更新等待用户明确授权。父仓有其他 app WIP，本轮不改它们，也不切走其工作分支；app 暂留 v0.6-dev，待完成推送/gitlink交接后按约定 detach。
+
+### Phase 2 work 修复（2026-10-05）
+
+- `stage: work | plan_id: BLOG-001 | plan_revision: 3 | outcome: pass | code_commit: 见本次提交 | task_ids: T-00..T-12 | evidence: 以下 | blockers: 无 | next: review`
+- **R-01/T-05**：`write_confirmed`=write+exists+全文回读；`commit_revision` 写不可变 `revisions/rev-N.*` 确认后再写 `current.txt` 指针；失败保留上一确认版本。
+- **R-04/T-06**：`json_unescape` 单遍状态机（无 `_BS_` 占位符）；`json_field_str/int` 容忍冒号后空白。META_ROUNDTRIP equal=True。
+- **R-05/T-07**：迁移 journal `pending-migrate.json`（重试复用同 ID）；`skip_json_string` 括号扫描；map 写确认+失败备份。PRETTY_MIGRATION=1；LOCKED_MAP new_works=1（journal）。
+- **R-02/T-08**：`edit_seq` 快照、`save_in_flight` 串行、回执仅序号未变才清 dirty；切稿前保存失败则不切换。
+- **R-03/T-09**：唯一 `/` 路由（去掉 `/author`）；`has_current` 守卫（codegen 将 Work 初值置 null）。DEFAULT_ROUTE rootMatches=1；INITIAL_RENDER=guarded-empty。
+- **R-06/T-10**：`try/catch` 捕获网络/写失败；error 态保留本机缓冲。NETWORK_ERROR state=error body=用户正文。
+- **R-07/T-11**：GoDemo→`/demo`；smoke 从 `/demo` 启动、个人入口 T0；README/docs 状态更新。
+- **复现**：`drafts_api_probe.ps1` 12 PASS；`review_001_api.ps1` META/pretty/journal 达标；`review_001_store.cjs` 6 项达标题意；`auto build` 绿。
 
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 

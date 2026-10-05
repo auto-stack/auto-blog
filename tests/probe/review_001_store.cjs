@@ -23,7 +23,10 @@ function setup(api={}) {
   new vm.Script(ts.transpileModule(routes,{compilerOptions:{target:ts.ScriptTarget.ES2020}}).outputText).runInContext(routeContext);
   console.log('DEFAULT_ROUTE',JSON.stringify({rootMatches:routeContext.router.resolve('/').matched.length,authorMatches:routeContext.router.resolve('/author').matched.length}));
   const initial=setup();
-  try { const visible=initial.current.value.work_id===''; console.log('INITIAL_RENDER',visible); }
+  try {
+    const guarded = initial.has_current.value === false && initial.current.value == null;
+    console.log('INITIAL_RENDER', guarded ? 'guarded-empty' : (initial.current.value && initial.current.value.work_id === '' ? 'empty-work' : 'has-data'));
+  }
   catch(e) { console.log('INITIAL_RENDER',e.message); }
   let finish;
   const s=setup({save_draft:()=>new Promise(resolve=>finish=resolve), open_draft:async id=>work(id,'旧的已发送正文',2)});
@@ -31,9 +34,10 @@ function setup(api={}) {
   finish({ok:true,revision:2}); await pending;
   console.log('EDIT_DURING_SAVE',JSON.stringify({body:s.editing_body.value,dirty:s.dirty.value,state:s.save_state.value}));
   const failed=setup({create_draft:async()=>work('','')}); await failed.NewDraft();
-  console.log('FAILED_CREATE',JSON.stringify({id:failed.current.value.work_id,state:failed.save_state.value}));
+  console.log('FAILED_CREATE',JSON.stringify({has:failed.has_current.value,state:failed.save_state.value,error:failed.error.value}));
   const rejected=setup({save_draft:async()=>{throw new Error('network offline')}}); await rejected.NewDraft(); rejected.BodyEdit('用户正文');
-  try { await rejected.SaveCurrent(); } catch(e) { console.log('NETWORK_ERROR',JSON.stringify({state:rejected.save_state.value,body:rejected.editing_body.value,error:rejected.error.value})); }
-  const switched=setup(); await switched.NewDraft(); switched.BodyEdit('尚未保存的本机版'); await switched.OpenDraft('b');
-  console.log('SWITCH_DIRTY',JSON.stringify({id:switched.current.value.work_id,body:switched.editing_body.value,dirty:switched.dirty.value}));
+  try { await rejected.SaveCurrent(); } catch(e) { /* store may catch internally */ }
+  console.log('NETWORK_ERROR',JSON.stringify({state:rejected.save_state.value,body:rejected.editing_body.value,error:rejected.error.value}));
+  const switched=setup({save_draft:async()=>{throw new Error('save blocked')}}); await switched.NewDraft(); switched.BodyEdit('尚未保存的本机版'); await switched.OpenDraft('b');
+  console.log('SWITCH_DIRTY',JSON.stringify({id:switched.current.value&&switched.current.value.work_id,body:switched.editing_body.value,dirty:switched.dirty.value,state:switched.save_state.value,error:switched.error.value}));
 })().catch(e=>{console.error(e);process.exitCode=1;});

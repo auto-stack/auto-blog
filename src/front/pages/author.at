@@ -90,13 +90,18 @@ widget author {
                 }
                 col {
                     style: "flex-1 gap-3 min-w-0"
-                    if .store.current.work_id == "" {
+                    if .store.has_current == false {
                         col {
                             style: "items-center py-16 text-muted-foreground gap-2"
                             text "选择或新建一篇草稿"
                             text "未登录即可创作，草稿保存在本机" { style: "text-sm" }
                         }
                     } else {
+                        if .store.save_state == "error" {
+                            text f"错误：${.store.error}（正文保留在编辑器）" {
+                                style: "text-destructive text-xs bg-destructive/10 rounded p-2"
+                            }
+                        }
                         input {
                             placeholder: "文章标题",
                             value: .store.editing_title,
@@ -150,7 +155,7 @@ widget author {
         .GoOpen(id str) -> {
             .store.OpenDraft(id)
         }
-        .GoDemo -> { router.push("/") }
+        .GoDemo -> { router.push("/demo") }
         .TitleChanged(v str) -> { .store.TitleEdit(v) }
         .BodyChanged(v str) -> { .store.BodyEdit(v) }
         .SummaryChanged(v str) -> { .store.SummaryEdit(v) }

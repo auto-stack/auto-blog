@@ -64,12 +64,111 @@ fn slug_map_path(root str) str {
     return join_path(root, "slug-map.json")
 }
 
-fn write_checked(path str, content str) bool {
+/// 确认写：写盘后 exists + 全文回读比对（R-01：返回码/exists 不足，锁文件会假成功）。
+fn write_confirmed(path str, content str) bool {
     fs.write_text(path, content)
-    return fs.exists(path)
+    if !fs.exists(path) {
+        return false
+    }
+    let back str = fs.read_text(path)
+    return back == content
 }
 
-// --- index.json：work_id 字符串数组 ---
+fn write_checked(path str, content str) bool {
+    return write_confirmed(path, content)
+}
+
+fn current_ptr_path(root str, work_id str) str {
+    return join_path(work_dir(root, work_id), "current.txt")
+}
+
+/// 读已提交 revision 号；0=无已确认版本。
+fn read_current_rev(root str, work_id str) int {
+    let p str = current_ptr_path(root, work_id)
+    if !fs.exists(p) {
+        return 0
+    }
+    return fs.read_text(p).trim().to_int()
+}
+
+/// 提交新 revision：先写不可变 rev-N 快照并回读，再写 current 指针。
+/// 任一步失败则保留上一确认版本（current 不动）。true=新版本已确认。
+fn commit_revision(root str, w Work) bool {
+    let wd str = work_dir(root, w.work_id)
+    fs.create_dir(wd)
+    fs.create_dir(rev_dir(root, w.work_id))
+    let meta str = work_to_meta_json(w)
+    let rm str = rev_meta_path(root, w.work_id, w.revision)
+    let rb str = rev_body_path(root, w.work_id, w.revision)
+    if !write_confirmed(rm, meta) {
+        return false
+    }
+    if !write_confirmed(rb, w.body) {
+        return false
+    }
+    // current 指针 = 提交点
+    if !write_confirmed(current_ptr_path(root, w.work_id), w.revision.to_string()) {
+        return false
+    }
+    // 便捷副本（best-effort；失败不影响已提交 revision）
+    write_confirmed(meta_path(root, w.work_id), meta)
+    write_confirmed(body_path(root, w.work_id), w.body)
+    return true
+}
+
+/// 按 revision 号装载完整 Work；失败返回 blank。
+fn load_revision(root str, work_id str, rev int) Work {
+    if rev <= 0 {
+        return blank_work("")
+    }
+    let rm str = rev_meta_path(root, work_id, rev)
+    let rb str = rev_body_path(root, work_id, rev)
+    if !fs.exists(rm) {
+        return blank_work("")
+    }
+    let meta str = fs.read_text(rm)
+    if meta == "" {
+        return blank_work("")
+    }
+    var body str = ""
+    if fs.exists(rb) {
+        body = fs.read_text(rb)
+    }
+    return work_from_meta_json(meta, body)
+}
+
+fn load_work(root str, work_id str) Work {
+    let rev int = read_current_rev(root, work_id)
+    if rev > 0 {
+        let w Work = load_revision(root, work_id, rev)
+        if w.work_id != "" {
+            return w
+        }
+    }
+    // 兼容 Phase1 无 current.txt：回退便捷 meta/body
+    let mp str = meta_path(root, work_id)
+    if !fs.exists(mp) {
+        return blank_work("")
+    }
+    let meta str = fs.read_text(mp)
+    if meta == "" {
+        return blank_work("")
+    }
+    var body str = ""
+    let bp str = body_path(root, work_id)
+    if fs.exists(bp) {
+        body = fs.read_text(bp)
+    }
+    return work_from_meta_json(meta, body)
+}
+
+fn write_work_files(root str, w Work) bool {
+    let ok bool = commit_revision(root, w)
+    if ok {
+        return index_add(root, w.work_id)
+    }
+    return false
+}
 
 fn read_index(root str) str {
     let p str = index_path(root)
@@ -152,45 +251,6 @@ fn index_add(root str, work_id str) bool {
     return write_index(root, ids_to_json(ids + work_id + "\n"))
 }
 
-// --- 读写 ---
-
-fn write_work_files(root str, w Work) bool {
-    let wd str = work_dir(root, w.work_id)
-    fs.create_dir(wd)
-    fs.create_dir(rev_dir(root, w.work_id))
-    let meta str = work_to_meta_json(w)
-    if !write_checked(meta_path(root, w.work_id), meta) {
-        return false
-    }
-    if !write_checked(body_path(root, w.work_id), w.body) {
-        return false
-    }
-    if !write_checked(rev_meta_path(root, w.work_id, w.revision), meta) {
-        return false
-    }
-    if !write_checked(rev_body_path(root, w.work_id, w.revision), w.body) {
-        return false
-    }
-    return index_add(root, w.work_id)
-}
-
-fn load_work(root str, work_id str) Work {
-    let mp str = meta_path(root, work_id)
-    if !fs.exists(mp) {
-        return blank_work("")
-    }
-    let meta str = fs.read_text(mp)
-    if meta == "" {
-        return blank_work("")
-    }
-    var body str = ""
-    let bp str = body_path(root, work_id)
-    if fs.exists(bp) {
-        body = fs.read_text(bp)
-    }
-    return work_from_meta_json(meta, body)
-}
-
 // --- 对外 API ---
 
 /// 新建草稿。失败返回 blank_work("")。
@@ -269,11 +329,28 @@ fn read_slug_map(root str) str {
     if !fs.exists(p) {
         return "{}"
     }
-    return fs.read_text(p)
+    let s str = fs.read_text(p)
+    if s == "" {
+        return "{}"
+    }
+    return s
 }
 
 fn write_slug_map(root str, map_json str) bool {
-    return write_checked(slug_map_path(root), map_json)
+    return write_confirmed(slug_map_path(root), map_json)
+}
+
+/// 备份现有文件到 <path>.bak-<ms>；成功返回备份路径，无原文件返回空串。
+fn backup_file(path str) str {
+    if !fs.exists(path) {
+        return ""
+    }
+    let old str = fs.read_text(path)
+    let bak str = path + ".bak-" + time.now_ms().to_string()
+    if write_confirmed(bak, old) {
+        return bak
+    }
+    return ""
 }
 
 pub fn slug_to_work_id(slug str) str {
@@ -282,7 +359,37 @@ pub fn slug_to_work_id(slug str) str {
     return json_field_str(map, slug)
 }
 
-/// 迁移一条旧 Article（幂等）。不删除源 demo 文章。失败返回空串。
+fn pending_map_path(root str) str {
+    return join_path(root, "pending-migrate.json")
+}
+
+fn read_pending_map(root str) str {
+    let p str = pending_map_path(root)
+    if !fs.exists(p) {
+        return "{}"
+    }
+    let s str = fs.read_text(p)
+    if s == "" {
+        return "{}"
+    }
+    return s
+}
+
+fn write_pending_map(root str, map_json str) bool {
+    return write_confirmed(pending_map_path(root), map_json)
+}
+
+/// 向 JSON 对象串插入/替换 key→str 值。
+fn map_put(obj str, key str, val str) str {
+    let stripped str = map_str_strip_close(obj)
+    let entry str = "\"" + json_escape(key) + "\":\"" + json_escape(val) + "\""
+    if stripped == "{" {
+        return "{" + entry + "}"
+    }
+    return stripped + "," + entry + "}"
+}
+
+/// 迁移一条旧 Article（幂等；map 失败可重试复用同 ID）。
 pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_tagList str, p_author str) str {
     let root str = data_root()
     let map str = read_slug_map(root)
@@ -290,22 +397,30 @@ pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_t
     if existing != "" {
         return existing
     }
+    // journal：半成品可重试恢复同 ID
+    let pending str = read_pending_map(root)
+    let pending_id str = json_field_str(pending, slug)
+    var work_id str = pending_id
+    if work_id == "" {
+        work_id = new_work_id()
+        if !write_pending_map(root, map_put(pending, slug, work_id)) {
+            return ""
+        }
+    }
     fs.create_dir(works_dir(root))
-    let work_id str = new_work_id()
     let now int = time.now_sec()
     let w Work = make_work(work_id, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
-    let ok bool = write_work_files(root, w)
-    if !ok {
+    // 若重试已有完整 revision，跳过重建
+    let cur_rev int = read_current_rev(root, work_id)
+    if cur_rev <= 0 {
+        if !write_work_files(root, w) {
+            return ""
+        }
+    }
+    if !write_slug_map(root, map_put(map, slug, work_id)) {
+        backup_file(slug_map_path(root))
         return ""
     }
-    var map2 str = "{}"
-    let stripped str = map_str_strip_close(map)
-    if stripped == "{" {
-        map2 = "{\"" + json_escape(slug) + "\":\"" + json_escape(work_id) + "\"}"
-    } else {
-        map2 = stripped + ",\"" + json_escape(slug) + "\":\"" + json_escape(work_id) + "\"}"
-    }
-    write_slug_map(root, map2)
     return work_id
 }
 
@@ -317,48 +432,80 @@ fn map_str_strip_close(s str) str {
     return s
 }
 
-/// 批量迁移。items_json 为对象数组串。幂等。返回成功数（含已迁移命中）。
+/// 跳过 JSON 字符串（含转义）；返回字符串结束后的下标。
+fn skip_json_string(s str, start int) int {
+    // start 指向开引号之后
+    var j int = start
+    let n int = s.len()
+    while j < n {
+        let c str = s.slice(j, j + 1)
+        if c == "\\" {
+            j = j + 2
+        } else {
+            if c == "\"" {
+                return j + 1
+            } else {
+                j = j + 1
+            }
+        }
+    }
+    return n
+}
+
+/// 批量迁移。items_json 为对象数组串（允许 pretty 空白）。幂等。
 pub fn migrate_articles_batch(items_json str) int {
     var count int = 0
-    var s str = items_json
-    if s.len() > 0 && s.slice(0, 1) == "[" {
+    var s str = items_json.trim()
+    if s.len() >= 2 && s.slice(0, 1) == "[" {
         s = s.slice(1, s.len() - 1)
     }
     var i int = 0
     let n int = s.len()
     while i < n {
         let c str = s.slice(i, i + 1)
-        if c == "{" {
-            var depth int = 1
-            var j int = i + 1
-            while j < n && depth > 0 {
-                let d str = s.slice(j, j + 1)
-                if d == "{" {
-                    depth = depth + 1
-                }
-                if d == "}" {
-                    depth = depth - 1
-                }
-                j = j + 1
-            }
-            let obj str = s.slice(i, j)
-            let slug str = json_field_str(obj, "slug")
-            if slug != "" {
-                let wid str = migrate_article(
-                    slug,
-                    json_field_str(obj, "title"),
-                    json_field_str(obj, "description"),
-                    json_field_str(obj, "body"),
-                    json_field_str(obj, "tagList"),
-                    json_field_str(obj, "author")
-                )
-                if wid != "" {
-                    count = count + 1
-                }
-            }
-            i = j
+        if c == "\"" {
+            i = skip_json_string(s, i + 1)
         } else {
-            i = i + 1
+            if c == "{" {
+                var depth int = 1
+                var j int = i + 1
+                while j < n && depth > 0 {
+                    let d str = s.slice(j, j + 1)
+                    if d == "\"" {
+                        j = skip_json_string(s, j + 1)
+                    } else {
+                        if d == "{" {
+                            depth = depth + 1
+                            j = j + 1
+                        } else {
+                            if d == "}" {
+                                depth = depth - 1
+                                j = j + 1
+                            } else {
+                                j = j + 1
+                            }
+                        }
+                    }
+                }
+                let obj str = s.slice(i, j)
+                let slug str = json_field_str(obj, "slug")
+                if slug != "" {
+                    let wid str = migrate_article(
+                        slug,
+                        json_field_str(obj, "title"),
+                        json_field_str(obj, "description"),
+                        json_field_str(obj, "body"),
+                        json_field_str(obj, "tagList"),
+                        json_field_str(obj, "author")
+                    )
+                    if wid != "" {
+                        count = count + 1
+                    }
+                }
+                i = j
+            } else {
+                i = i + 1
+            }
         }
     }
     return count

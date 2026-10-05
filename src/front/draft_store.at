@@ -1,19 +1,23 @@
 // draft_store.at — BLOG-001 个人作者草稿状态（不依赖 demo 登录）。
-// 消息名与 api 函数名错开（auth_store 惯例，防 codegen 遮蔽）。
-// 注意：返回结构勿嵌套长 body 的 Work（VM 截断坑）；列表 body 为空。
+// Phase 2（R-02/06）：保存串行化、编辑序号防覆盖、失败保留本机缓冲、有效 ID 才标 saved。
 use back.api: create_draft, open_draft, save_draft, list_drafts
 
 store DraftStore {
     model {
         var drafts []Work = []
         var current Work = Work { work_id: "", kind: "article", title: "", summary: "", body_format: "text", body: "", tags: "", cover_asset: "", asset_refs: "[]", source_refs: "[]", revision: 1, status: "draft", created_at: 0, updated_at: 0 }
+        var has_current bool = false
         var dirty bool = false
-        var save_state str = "saved"
+        var save_state str = "idle"
+        // idle / dirty / saving / saved / error / conflict
         var error str = ""
         var editing_title str = ""
         var editing_body str = ""
         var editing_summary str = ""
         var editing_tags str = ""
+        // 编辑序号：保存请求发出时的快照序号；回执仅当序号未变才清 dirty
+        var edit_seq int = 0
+        var save_in_flight bool = false
     }
 
     msg {
@@ -27,86 +31,195 @@ store DraftStore {
             .drafts = list_drafts()
         }
         .NewDraft -> {
-            .current = create_draft("未命名草稿", "")
-            .editing_title = "未命名草稿"
-            .editing_body = ""
-            .editing_summary = ""
-            .editing_tags = ""
-            .dirty = false
-            .save_state = "saved"
-            .error = ""
-            .drafts = list_drafts()
+            // 有未存缓冲先保存（R-02：不丢本机版）
+            if .dirty && .has_current && .current.work_id != "" {
+                try {
+                    let r0 = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
+                    if r0.ok {
+                        .dirty = false
+                    }
+                } catch {
+                    .save_state = "error"
+                    .error = "save_before_switch_failed"
+                }
+            }
+            try {
+                let nw = create_draft("未命名草稿", "")
+                if nw.work_id == "" {
+                    .save_state = "error"
+                    .error = "create_failed"
+                } else {
+                    .current = nw
+                    .has_current = true
+                    .editing_title = "未命名草稿"
+                    .editing_body = ""
+                    .editing_summary = ""
+                    .editing_tags = ""
+                    .dirty = false
+                    .save_state = "saved"
+                    .error = ""
+                    .edit_seq = .edit_seq + 1
+                    .drafts = list_drafts()
+                }
+            } catch {
+                .save_state = "error"
+                .error = "create_failed"
+            }
         }
         .OpenDraft(id str) -> {
-            .current = open_draft(id)
-            .editing_title = .current.title
-            .editing_body = .current.body
-            .editing_summary = .current.summary
-            .editing_tags = .current.tags
-            .dirty = false
-            .save_state = "saved"
-            .error = ""
+            if .dirty && .has_current && .current.work_id != "" && .current.work_id != id {
+                try {
+                    let r0 = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
+                    if r0.ok {
+                        .dirty = false
+                    } else {
+                        // 保存失败：不切换，保留本机版（R-02）
+                        .save_state = "error"
+                        .error = "save_before_switch_failed"
+                    }
+                } catch {
+                    .save_state = "error"
+                    .error = "save_before_switch_failed"
+                }
+            }
+            if .save_state == "error" && .error == "save_before_switch_failed" {
+                // 不切换
+            } else {
+                try {
+                    let w = open_draft(id)
+                    if w.work_id == "" {
+                        .save_state = "error"
+                        .error = "open_failed"
+                    } else {
+                        .current = w
+                        .has_current = true
+                        .editing_title = w.title
+                        .editing_body = w.body
+                        .editing_summary = w.summary
+                        .editing_tags = w.tags
+                        .dirty = false
+                        .save_state = "saved"
+                        .error = ""
+                        .edit_seq = .edit_seq + 1
+                    }
+                } catch {
+                    .save_state = "error"
+                    .error = "open_failed"
+                }
+            }
         }
         .TitleEdit(t str) -> {
             .editing_title = t
             .dirty = true
             .save_state = "dirty"
+            .edit_seq = .edit_seq + 1
         }
         .BodyEdit(b str) -> {
             .editing_body = b
             .dirty = true
             .save_state = "dirty"
+            .edit_seq = .edit_seq + 1
         }
         .SummaryEdit(s str) -> {
             .editing_summary = s
             .dirty = true
             .save_state = "dirty"
+            .edit_seq = .edit_seq + 1
         }
         .TagsEdit(t str) -> {
             .editing_tags = t
             .dirty = true
             .save_state = "dirty"
+            .edit_seq = .edit_seq + 1
         }
         .SaveCurrent -> {
-            if .current.work_id != "" {
-                .save_state = "saving"
-                let r = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
-                if r.ok {
-                    .current = open_draft(.current.work_id)
-                    .editing_title = .current.title
-                    .editing_body = .current.body
-                    .editing_summary = .current.summary
-                    .editing_tags = .current.tags
-                    .dirty = false
-                    .save_state = "saved"
-                    .error = ""
-                    .drafts = list_drafts()
+            if .has_current == false || .current.work_id == "" {
+                .save_state = "error"
+                .error = "no_work"
+            } else {
+                if .save_in_flight {
+                    // 串行化：已在保存中，不叠请求
                 } else {
-                    if r.conflict {
-                        .save_state = "conflict"
-                        .error = "revision conflict: current rev " + r.revision.to_string()
-                    } else {
+                    .save_in_flight = true
+                    .save_state = "saving"
+                    let snap_seq int = .edit_seq
+                    let snap_title str = .editing_title
+                    let snap_body str = .editing_body
+                    let snap_summary str = .editing_summary
+                    let snap_tags str = .editing_tags
+                    let snap_rev int = .current.revision
+                    let snap_id str = .current.work_id
+                    try {
+                        let r = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_rev)
+                        .save_in_flight = false
+                        if r.ok {
+                            if snap_id == .current.work_id {
+                                .current = open_draft(snap_id)
+                                if .edit_seq == snap_seq {
+                                    .editing_title = .current.title
+                                    .editing_body = .current.body
+                                    .editing_summary = .current.summary
+                                    .editing_tags = .current.tags
+                                    .dirty = false
+                                    .save_state = "saved"
+                                    .error = ""
+                                } else {
+                                    .dirty = true
+                                    .save_state = "dirty"
+                                    .error = ""
+                                }
+                                .drafts = list_drafts()
+                            }
+                        } else {
+                            if r.conflict {
+                                .save_state = "conflict"
+                                .error = "conflict rev " + r.revision.to_string()
+                            } else {
+                                .save_state = "error"
+                                .error = r.error
+                            }
+                        }
+                    } catch {
+                        .save_in_flight = false
                         .save_state = "error"
-                        .error = r.error
+                        .error = "network_error"
+                        // 保留本机缓冲
                     }
                 }
             }
         }
         .ForceSave -> {
-            if .current.work_id != "" {
+            if .has_current && .current.work_id != "" {
+                .save_in_flight = true
                 .save_state = "saving"
-                let r = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, 0)
-                if r.ok {
-                    .current = open_draft(.current.work_id)
-                    .editing_title = .current.title
-                    .editing_body = .current.body
-                    .dirty = false
-                    .save_state = "saved"
-                    .error = ""
-                    .drafts = list_drafts()
-                } else {
+                let snap_seq int = .edit_seq
+                let snap_id str = .current.work_id
+                try {
+                    let r = save_draft(snap_id, .editing_title, .editing_summary, .editing_body, .editing_tags, 0)
+                    .save_in_flight = false
+                    if r.ok {
+                        if snap_id == .current.work_id {
+                            .current = open_draft(snap_id)
+                            if .edit_seq == snap_seq {
+                                .editing_title = .current.title
+                                .editing_body = .current.body
+                                .dirty = false
+                                .save_state = "saved"
+                                .error = ""
+                            } else {
+                                .dirty = true
+                                .save_state = "dirty"
+                            }
+                            .drafts = list_drafts()
+                        }
+                    } else {
+                        .save_state = "error"
+                        .error = r.error
+                    }
+                } catch {
+                    .save_in_flight = false
                     .save_state = "error"
-                    .error = r.error
+                    .error = "network_error"
                 }
             }
         }
@@ -114,19 +227,26 @@ store DraftStore {
             .ForceSave()
         }
         .ResolveKeepTheirs -> {
-            if .current.work_id != "" {
-                .current = open_draft(.current.work_id)
-                .editing_title = .current.title
-                .editing_body = .current.body
-                .editing_summary = .current.summary
-                .editing_tags = .current.tags
-                .dirty = false
-                .save_state = "saved"
-                .error = ""
+            if .has_current && .current.work_id != "" {
+                let w = open_draft(.current.work_id)
+                if w.work_id == "" {
+                    .save_state = "error"
+                    .error = "reload_failed"
+                } else {
+                    .current = w
+                    .editing_title = w.title
+                    .editing_body = w.body
+                    .editing_summary = w.summary
+                    .editing_tags = w.tags
+                    .dirty = false
+                    .save_state = "saved"
+                    .error = ""
+                    .edit_seq = .edit_seq + 1
+                }
             }
         }
         .AutosaveTick -> {
-            if .dirty && .current.work_id != "" {
+            if .dirty && .has_current && .current.work_id != "" && .save_in_flight == false {
                 .SaveCurrent()
             }
         }

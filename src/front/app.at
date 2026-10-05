@@ -13,7 +13,6 @@ use draft_store: DraftStore
 widget App {
     routes {
         "/" -> use author
-        "/author" -> use author
         "/demo" -> use home
         "/login" -> use login
         "/register" -> use register

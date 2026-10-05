@@ -1,22 +1,26 @@
 /**
- * 023-realworld 冒烟测试 (Plan 405 阶段1) — 对应 acceptance.atd T1-T8.
- * 前端 vite(auto run 启动, 端口见 RW_URL) + 后端 8023.
- *
- * 端口缺口(Plan 401): auto run 不读 pac.at front_port, vite 端口会变。
- * 测试前先 auto run, 看 "Local:" 行的端口, 设 RW_URL=http://localhost:<port>
- * 再跑 npm test。
+ * 023-realworld 冒烟测试 — demo 社区回归（从 /demo 启动）+ 个人作者入口。
+ * 前端 vite(auto run 启动) + 后端 17827。设 RW_URL=http://localhost:17826。
  */
 import { test, expect } from '@playwright/test'
 
-// 等首页加载: store.Init 异步拉 articles。
-async function waitForHome(page) {
-  await page.goto('/#/')
+// 等社区首页加载: store.Init 异步拉 articles。
+async function waitForDemo(page) {
+  await page.goto('/#/demo')
   await page.locator('text=Global Feed').waitFor({ timeout: 10000 })
   await page.waitForTimeout(1500)
 }
 
-test('T1: 首页 feed 渲染 — 3 篇种子文章', async ({ page }) => {
-  await waitForHome(page)
+test('T0: 个人作者默认入口 /', async ({ page }) => {
+  await page.goto('/#/')
+  await page.locator('text=我的草稿').waitFor({ timeout: 10000 })
+  const body = await page.locator('body').innerText()
+  expect(body).toContain('个人模式')
+  expect(body).toContain('社区 Demo')
+})
+
+test('T1: 社区 feed 渲染 — 3 篇种子文章', async ({ page }) => {
+  await waitForDemo(page)
   const body = await page.locator('body').innerText()
   expect(body).toContain('Understanding React Server Components')
   expect(body).toContain('Building Type-Safe APIs with tRPC')
@@ -24,7 +28,7 @@ test('T1: 首页 feed 渲染 — 3 篇种子文章', async ({ page }) => {
 })
 
 test('T2: 标签过滤 — 点 React 后只显示含 React 的文章', async ({ page }) => {
-  await waitForHome(page)
+  await waitForDemo(page)
   // 点 Popular Tags 里的 React
   await page.locator('text=React').first().click()
   await page.waitForTimeout(800)
@@ -36,7 +40,7 @@ test('T2: 标签过滤 — 点 React 后只显示含 React 的文章', async ({ 
 })
 
 test('T3: 进文章详情 — 正文 + 评论', async ({ page }) => {
-  await waitForHome(page)
+  await waitForDemo(page)
   // 点第一篇文章标题
   await page.locator('text=Understanding React Server Components').first().click()
   await page.waitForTimeout(1200)
@@ -63,7 +67,7 @@ test('T4: 注册 — 成功后 nav 显示用户名', async ({ page }) => {
 test('T5: 登录 — 已知种子用户成功', async ({ page }) => {
   await page.goto('/#/login')
   await page.waitForLoadState('domcontentloaded')
-  // 默认值已是 sarah@vercel.com / password
+  // 默认值已是 sarah@vercel.com / sarah-secret
   await page.locator('button:has-text("Sign in")').click()
   await page.waitForTimeout(1500)
   const body = await page.locator('body').innerText()
@@ -102,7 +106,7 @@ test('T8: 控制台无实质错误', async ({ page }) => {
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())
   })
-  await waitForHome(page)
+  await waitForDemo(page)
   await page.waitForTimeout(1000)
   const real = errors.filter((e) => !e.includes('favicon') && !e.includes('Failed to load resource'))
   expect(real, `console errors: ${real.join('; ')}`).toEqual([])

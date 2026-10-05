@@ -67,29 +67,74 @@ pub fn json_escape(s str) str {
     return out
 }
 
-/// JSON 字符串反转义。占位符 _BS_ 保护已转义反斜杠。
+/// JSON 字符串反转义（单遍状态机，无占位符；对 `\\` / `_BS_` / 控制符无损）。
+/// 用 find+区间 slice，避免逐字节切片吞多字节。
 pub fn json_unescape(s str) str {
-    let ph str = "_BS_"
-    var out str = s.replace("\\", ph)
-    out = out.replace(ph + "n", "\n")
-    out = out.replace(ph + "r", "\r")
-    out = out.replace(ph + "t", "\t")
-    out = out.replace(ph + "\"", "\"")
-    out = out.replace(ph + ph, "\\")
-    out = out.replace(ph, "\\")
+    var out str = ""
+    var i int = 0
+    let n int = s.len()
+    while i < n {
+        let rest str = s.slice(i, n)
+        let bs int = rest.find("\\")
+        if bs < 0 {
+            out = out + rest
+            return out
+        }
+        out = out + rest.slice(0, bs)
+        let pos int = i + bs
+        if pos + 1 >= n {
+            return out
+        }
+        let d str = s.slice(pos + 1, pos + 2)
+        if d == "n" {
+            out = out + "\n"
+        } else {
+            if d == "r" {
+                out = out + "\r"
+            } else {
+                if d == "t" {
+                    out = out + "\t"
+                } else {
+                    if d == "\"" {
+                        out = out + "\""
+                    } else {
+                        if d == "\\" {
+                            out = out + "\\"
+                        } else {
+                            out = out + d
+                        }
+                    }
+                }
+            }
+        }
+        i = pos + 2
+    }
     return out
 }
 
-/// 从 JSON 对象串提取字符串字段（slice 区间切片，不逐字节拼）。
+/// 从 JSON 对象串提取字符串字段（允许冒号后空白；兼容 pretty）。
 pub fn json_field_str(src str, key str) str {
-    let marker str = "\"" + key + "\":\""
-    let i int = src.find(marker)
+    let key_tok str = "\"" + key + "\":"
+    let i int = src.find(key_tok)
     if i < 0 {
         return ""
     }
-    let start int = i + marker.len()
-    var j int = start
+    var j int = i + key_tok.len()
     let n int = src.len()
+    // 跳过空白
+    while j < n {
+        let c str = src.slice(j, j + 1)
+        if c == " " || c == "\t" || c == "\n" || c == "\r" {
+            j = j + 1
+        } else {
+            break
+        }
+    }
+    if j >= n || src.slice(j, j + 1) != "\"" {
+        return ""
+    }
+    j = j + 1
+    let start int = j
     while j < n {
         let c str = src.slice(j, j + 1)
         if c == "\\" {
@@ -105,26 +150,33 @@ pub fn json_field_str(src str, key str) str {
     return ""
 }
 
-/// 从 JSON 对象串提取整型字段。
+/// 从 JSON 对象串提取整型字段（允许冒号后空白）。
 pub fn json_field_int(src str, key str) int {
-    let marker str = "\"" + key + "\":"
-    let i int = src.find(marker)
+    let key_tok str = "\"" + key + "\":"
+    let i int = src.find(key_tok)
     if i < 0 {
         return 0
     }
-    let start int = i + marker.len()
-    var j int = start
+    var j int = i + key_tok.len()
     let n int = src.len()
+    while j < n {
+        let c str = src.slice(j, j + 1)
+        if c == " " || c == "\t" || c == "\n" || c == "\r" {
+            j = j + 1
+        } else {
+            break
+        }
+    }
+    let start int = j
+    if j < n && src.slice(j, j + 1) == "-" {
+        j = j + 1
+    }
     while j < n {
         let c str = src.slice(j, j + 1)
         if c >= "0" && c <= "9" {
             j = j + 1
         } else {
-            if c == "-" && j == start {
-                j = j + 1
-            } else {
-                return src.slice(start, j).to_int()
-            }
+            return src.slice(start, j).to_int()
         }
     }
     return src.slice(start, j).to_int()
