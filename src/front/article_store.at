@@ -16,10 +16,12 @@ store ArticleStore {
         // profile page state (merged here so profile page uses one store)
         var viewed_profile User = User { id: 0, email: "", username: "", bio: "", image: "", token: "" }
         var following []str = []
+        // demo 会话 token（由 App.Init 从 AuthStore 同步；勿用 .me —— 本 store 无 me）
+        var session_token str = ""
     }
 
     msg {
-        Init, LoadFeed, OpenArticle(str), SetTag(str), ClearTag,
+        Init, LoadFeed, SetToken(str), OpenArticle(str), SetTag(str), ClearTag,
         CreateArticle(str, str, str, str, str), UpdateArticle(str, str, str, str),
         DeleteArticle(str), CreateComment(str, str), DeleteComment(int),
         Favorite(str), Unfavorite(str),
@@ -57,6 +59,9 @@ store ArticleStore {
                 }
             }
         }
+        .SetToken(t str) -> {
+            .session_token = t
+        }
         .OpenArticle(slug str) -> {
             .current_article = get_article(slug)
             .comments = list_comments(slug)
@@ -64,7 +69,7 @@ store ArticleStore {
         .SetTag(t str) -> { .active_tag = t }
         .ClearTag -> { .active_tag = "" }
         .CreateArticle(slug str, title str, description str, body str, tagList str) -> {
-            create_article(slug, title, description, body, tagList, "Bearer " + .me.token)
+            create_article(slug, title, description, body, tagList, "Bearer " + .session_token)
             .articles = list_articles()
         }
         .UpdateArticle(slug str, title str, description str, body str) -> {

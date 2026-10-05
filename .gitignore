@@ -31,3 +31,7 @@ __pycache__/
 /tmp/
 /test-results/
 /playwright-report/
+
+# BLOG-001 runtime/test artifacts
+.tmp/
+deps/

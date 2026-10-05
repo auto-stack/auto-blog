@@ -1,0 +1,25 @@
+// drafts_io_probe2.at — 测试 fs. / auto.fs. 前缀在 a2r 转译面的映射。
+
+fn probe_fs_prefix(path str, content str) str {
+    let rc int = fs.write_text(path, content)
+    if !fs.exists(path) {
+        return "FAIL:exists=false rc=" + rc.to_string()
+    }
+    let back str = fs.read_text(path)
+    if back == content {
+        return "OK:fs rc=" + rc.to_string()
+    }
+    return "FAIL:mismatch"
+}
+
+fn probe_auto_fs(path str, content str) str {
+    let rc int = auto.fs.write_text(path, content)
+    if !auto.file.exists(path) {
+        return "FAIL:exists=false rc=" + rc.to_string()
+    }
+    let back str = auto.fs.read_text(path)
+    if back == content {
+        return "OK:auto.fs rc=" + rc.to_string()
+    }
+    return "FAIL:mismatch"
+}

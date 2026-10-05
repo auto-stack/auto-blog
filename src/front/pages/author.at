@@ -1,0 +1,162 @@
+// pages/author.at — BLOG-001 个人作者入口（默认）。
+// 列表 + 写作；不依赖 demo 登录。demo 社区经独立入口。
+use draft_store: DraftStore
+use stylekit.styles: input_field
+
+widget author {
+    msg {
+        Init, AutosaveTick, GoNew, GoOpen(str), TitleChanged(str), BodyChanged(str),
+        SummaryChanged(str), TagsChanged(str), DoSave,
+        KeepMine, KeepTheirs, GoDemo
+    }
+
+    timer {
+        AutosaveTick (every_ms: 3000)
+    }
+
+    view {
+        col {
+            style: "max-w-3xl mx-auto px-4 py-6 gap-4"
+            row {
+                style: "items-center justify-between"
+                row {
+                    style: "items-center gap-2"
+                    text "我的草稿" { style: "text-2xl font-semibold" }
+                    text "个人模式" {
+                        style: "text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground border border-border"
+                    }
+                }
+                row {
+                    style: "gap-3 text-sm items-center"
+                    button "新建草稿" {
+                        onclick: .GoNew,
+                        style: "px-3 py-1.5 rounded bg-brand-green text-white text-sm"
+                    }
+                    text "社区 Demo →" {
+                        onclick: .GoDemo,
+                        style: "text-muted-foreground cursor-pointer hover:underline"
+                    }
+                }
+            }
+
+            if .store.save_state == "dirty" {
+                text "● 未保存" { style: "text-amber-600 text-xs" }
+            }
+            if .store.save_state == "saving" {
+                text "○ 保存中…" { style: "text-muted-foreground text-xs" }
+            }
+            if .store.save_state == "saved" {
+                text "● 已保存" { style: "text-green-600 text-xs" }
+            }
+            if .store.save_state == "error" {
+                text f"保存失败：${.store.error}" {
+                    style: "text-destructive text-xs bg-destructive/10 rounded p-2"
+                }
+            }
+            if .store.save_state == "conflict" {
+                col {
+                    style: "gap-2 border border-amber-400 bg-amber-50 rounded p-3 text-sm"
+                    text f"保存冲突：${.store.error}"
+                    row {
+                        style: "gap-2"
+                        button "保留本机版本" {
+                            onclick: .KeepMine,
+                            style: "px-3 py-1 rounded bg-brand-green text-white text-xs"
+                        }
+                        button "加载对方版本" {
+                            onclick: .KeepTheirs,
+                            style: "px-3 py-1 rounded border border-border text-xs"
+                        }
+                    }
+                }
+            }
+
+            row {
+                style: "gap-6 items-start"
+                col {
+                    style: "w-56 shrink-0 gap-1"
+                    text "草稿" { style: "text-sm font-medium text-muted-foreground mb-1" }
+                    if .store.drafts.len() == 0 {
+                        text "暂无草稿" { style: "text-xs text-muted-foreground" }
+                    }
+                    for d in .store.drafts {
+                        col {
+                            style: "px-2 py-1.5 rounded hover:bg-muted cursor-pointer gap-0.5"
+                            onclick: .GoOpen(d.work_id)
+                            text d.title { style: "text-sm truncate" }
+                            text f"rev ${d.revision}" { style: "text-xs text-muted-foreground" }
+                        }
+                    }
+                }
+                col {
+                    style: "flex-1 gap-3 min-w-0"
+                    if .store.current.work_id == "" {
+                        col {
+                            style: "items-center py-16 text-muted-foreground gap-2"
+                            text "选择或新建一篇草稿"
+                            text "未登录即可创作，草稿保存在本机" { style: "text-sm" }
+                        }
+                    } else {
+                        input {
+                            placeholder: "文章标题",
+                            value: .store.editing_title,
+                            oninput: .TitleChanged($event),
+                            style: "w-full px-3 py-2 border border-border rounded text-xl"
+                        }
+                        input {
+                            placeholder: "摘要（可选）",
+                            value: .store.editing_summary,
+                            oninput: .SummaryChanged($event),
+                            style: input_field
+                        }
+                        textarea {
+                            placeholder: "正文（支持中文、长稿；自动保存）",
+                            value: .store.editing_body,
+                            oninput: .BodyChanged($event),
+                            style: "w-full px-3 py-2 border border-border rounded text-sm min-h-[320px] font-serif"
+                        }
+                        input {
+                            placeholder: "标签（逗号分隔）",
+                            value: .store.editing_tags,
+                            oninput: .TagsChanged($event),
+                            style: input_field
+                        }
+                        row {
+                            style: "justify-between items-center"
+                            text f"ID ${.store.current.work_id} · rev ${.store.current.revision}" {
+                                style: "text-xs text-muted-foreground"
+                            }
+                            button "保存" {
+                                onclick: .DoSave,
+                                style: "px-4 py-1.5 rounded bg-brand-green text-white text-sm"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    on {
+        .Init -> {
+            .store.LoadList()
+        }
+        .AutosaveTick -> {
+            .store.AutosaveTick()
+        }
+        .GoNew -> {
+            .store.NewDraft()
+        }
+        .GoOpen(id str) -> {
+            .store.OpenDraft(id)
+        }
+        .GoDemo -> { router.push("/") }
+        .TitleChanged(v str) -> { .store.TitleEdit(v) }
+        .BodyChanged(v str) -> { .store.BodyEdit(v) }
+        .SummaryChanged(v str) -> { .store.SummaryEdit(v) }
+        .TagsChanged(v str) -> { .store.TagsEdit(v) }
+        .DoSave -> { .store.SaveCurrent() }
+        .KeepMine -> { .store.ResolveKeepMine() }
+        .KeepTheirs -> { .store.ResolveKeepTheirs() }
+    }
+}

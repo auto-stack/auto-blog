@@ -1,0 +1,20 @@
+// drafts_io_probe.at — 伴生模块形态探针：验证 fs/file 在 a2r 转译面是否可达。
+// 对应 BLOG-001 T-00：Vue 后端（rust）与 VM 双轨持久化路径。
+
+fn probe_write_read(path str, content str) str {
+    let rc int = file.write_text(path, content)
+    if !file.exists(path) {
+        return "FAIL:write_rc=" + rc.to_string() + " exists=false"
+    }
+    let back str = file.read_text(path)
+    if back == content {
+        return "OK:write_rc=" + rc.to_string() + " len=" + content.len().to_string()
+    }
+    return "FAIL:mismatch read_len=" + back.len().to_string()
+}
+
+fn probe_mkdir_write(dir str) str {
+    file.create_dir(dir)
+    let p str = dir + "/io.txt"
+    return probe_write_read(p, "伴生模块中文持久化")
+}

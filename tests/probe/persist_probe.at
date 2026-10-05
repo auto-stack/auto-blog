@@ -1,0 +1,61 @@
+// persist_probe.at — BLOG-001 T-00 能力探针：验证正文持久化/读回在 AutoVM 的实际路径。
+// 用法: auto tests/probe/persist_probe.at
+// 独立数据目录: .tmp/probe-data/（不接触用户真实数据）
+
+fn main() {
+    let base str = ".tmp/probe-data"
+    file.create_dir(base)
+
+    // --- probe 1: 中文正文 write/read 往返 ---
+    let p1 str = base + "/probe-cn.txt"
+    let body1 str = "第一段：中文草稿正文。\n第二段：包含标点、数字 123 与 English mixed。\n第三段结束。"
+    let w1 int = file.write_text(p1, body1)
+    let r1 str = file.read_text(p1)
+    print("probe1 write_rc=" + w1.to_string())
+    print("probe1 read_len=" + r1.len().to_string())
+    print("probe1 match=" + (r1 == body1).to_string())
+
+    // --- probe 2: 长稿（约 50KB 中文）---
+    let p2 str = base + "/probe-long.txt"
+    var longBody str = ""
+    var i int = 0
+    while i < 500 {
+        longBody = longBody + "这是第" + i.to_string() + "段长文测试内容，用于验证大文本持久化是否完整。"
+        i = i + 1
+    }
+    let w2 int = file.write_text(p2, longBody)
+    let r2 str = file.read_text(p2)
+    print("probe2 write_rc=" + w2.to_string())
+    print("probe2 written_len=" + longBody.len().to_string())
+    print("probe2 read_len=" + r2.len().to_string())
+    print("probe2 match=" + (r2 == longBody).to_string())
+
+    // --- probe 3: exists / size ---
+    print("probe3 exists=" + file.exists(p1).to_string())
+    print("probe3 size=" + file.size(p1).to_string())
+
+    // --- probe 4: 目录递归创建 + 多文件 ---
+    let sub str = base + "/works/w001/revisions"
+    file.create_dir(sub)
+    let p4a str = sub + "/rev-1.json"
+    let p4b str = sub + "/rev-2.json"
+    file.write_text(p4a, "{\"revision\":1,\"body\":\"第一版\"}")
+    file.write_text(p4b, "{\"revision\":2,\"body\":\"第二版\"}")
+    print("probe4 rev1_exists=" + file.exists(p4a).to_string())
+    print("probe4 rev2_exists=" + file.exists(p4b).to_string())
+
+    // --- probe 5: 不可写路径（期望失败、不崩溃）---
+    let bad str = "Z:/definitely-not-writable/probe.txt"
+    let w5 int = file.write_text(bad, "should fail")
+    print("probe5 write_rc=" + w5.to_string() + " (expect -1)")
+    print("probe5 exists_after=" + file.exists(bad).to_string())
+
+    // --- probe 6: 写后读回中文 JSON 形状（draft 元数据）---
+    let p6 str = base + "/draft-meta.json"
+    let meta str = "{\"work_id\":\"w-test-001\",\"title\":\"中文标题测试\",\"revision\":3,\"status\":\"draft\"}"
+    file.write_text(p6, meta)
+    let r6 str = file.read_text(p6)
+    print("probe6 match=" + (r6 == meta).to_string())
+
+    print("PROBE_DONE")
+}

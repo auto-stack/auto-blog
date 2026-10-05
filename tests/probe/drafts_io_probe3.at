@@ -1,0 +1,11 @@
+// drafts_io_probe3.at — 核对 fs.* 各原语在 a2r 的映射面。
+
+fn probe_all(path str) str {
+    fs.create_dir(path)
+    let p str = fs.join(path, "t.txt")
+    fs.write_text(p, "映射面")
+    let ok1 bool = fs.exists(p)
+    let ok2 str = fs.read_text(p)
+    let sz int = fs.size(p)
+    return "exists=" + ok1.to_string() + " match=" + (ok2 == "映射面").to_string() + " size=" + sz.to_string()
+}

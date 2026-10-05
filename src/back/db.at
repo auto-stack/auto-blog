@@ -3,7 +3,8 @@
 // position (pre-declare result + let-ctor); avoid `tag` as a param name;
 // don't pass borrowed String fields to helper fns; avoid users[0]/len()>0.
 
-use api: User, Article, Comment, Follow, Cred
+use api: User, Article, Comment, Follow, Cred, Work, SaveResult
+use drafts
 
 // --- Seed users ---
 var users List<User> = List<User>.new([
@@ -313,4 +314,30 @@ pub fn unfollow(username str) bool {
     }
     follows = new_follows
     return found
+}
+
+// --- BLOG-001 drafts 仓储委托（thin，供 api 端点 route-B）---
+
+pub fn create_draft(title str, body str) Work {
+    return drafts.create_draft(title, body)
+}
+
+pub fn list_drafts() []Work {
+    return drafts.list_drafts()
+}
+
+pub fn open_draft(work_id str) Work {
+    return drafts.open_draft(work_id)
+}
+
+pub fn save_draft(work_id str, title str, summary str, body str, tags str, expected_rev int) SaveResult {
+    return drafts.save_draft(work_id, title, summary, body, tags, expected_rev)
+}
+
+pub fn migrate_drafts(items str) int {
+    return drafts.migrate_articles_batch(items)
+}
+
+pub fn migration_status() str {
+    return drafts.migration_status()
 }

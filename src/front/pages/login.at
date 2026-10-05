@@ -8,7 +8,7 @@ widget login {
 
     model {
         var email str = "sarah@vercel.com"
-        var password str = "password"
+        var password str = "sarah-secret"
         var error str = ""
     }
 
@@ -54,7 +54,8 @@ widget login {
             store.Login(.email, .password)
             if .store.me != nil {
                 if .store.me.id != 0 {
-                    router.push("/")
+                    store.SetToken(.store.me.token)
+                    router.push("/demo")
                 } else {
                     .error = "email or password is invalid"
                 }

@@ -1,0 +1,200 @@
+// works.at — BLOG-001 Work 元数据与 ID（纯 .at，双轨兼容）。
+// 不依赖 demo 用户登录。ID 改标题/slug 不变；revision 条件写。
+// 序列化用手写 JSON；json_escape 用 replace（逐字节切片会吞中文，见 T-00 补充）。
+// 结构体一律全量构造（字段赋值在部分路径不稳定；沿 db.at 惯例）。
+// Work 类型在此定义；api.at 有同形 pub type 供端点签名（伴生模块不能 use api: Type）。
+
+pub type Work = {
+    work_id: str
+    kind: str
+    title: str
+    summary: str
+    body_format: str
+    body: str
+    tags: str
+    cover_asset: str
+    asset_refs: str
+    source_refs: str
+    revision: int
+    status: str
+    created_at: int
+    updated_at: int
+}
+
+var next_work_seq int = 1
+
+/// 生成稳定 work_id。改标题/slug 不改 ID。
+pub fn new_work_id() str {
+    let n int = next_work_seq
+    next_work_seq = next_work_seq + 1
+    let ms int = time.now_ms()
+    return "w-" + ms.to_string() + "-" + n.to_string()
+}
+
+/// 新建 Work（全量构造）。
+pub fn make_work(work_id str, p_title str, p_summary str, p_body str, p_tags str, p_status str, p_rev int, p_created int, p_updated int) Work {
+    return Work {
+        work_id: work_id,
+        kind: "article",
+        title: p_title,
+        summary: p_summary,
+        body_format: "text",
+        body: p_body,
+        tags: p_tags,
+        cover_asset: "",
+        asset_refs: "[]",
+        source_refs: "[]",
+        revision: p_rev,
+        status: p_status,
+        created_at: p_created,
+        updated_at: p_updated
+    }
+}
+
+/// 空 Work。
+pub fn blank_work(work_id str) Work {
+    let now int = time.now_sec()
+    return make_work(work_id, "", "", "", "", "draft", 1, now, now)
+}
+
+/// JSON 字符串转义（replace 链，安全处理多字节字符）。
+pub fn json_escape(s str) str {
+    var out str = s.replace("\\", "\\\\")
+    out = out.replace("\"", "\\\"")
+    out = out.replace("\n", "\\n")
+    out = out.replace("\r", "\\r")
+    out = out.replace("\t", "\\t")
+    return out
+}
+
+/// JSON 字符串反转义。占位符 _BS_ 保护已转义反斜杠。
+pub fn json_unescape(s str) str {
+    let ph str = "_BS_"
+    var out str = s.replace("\\", ph)
+    out = out.replace(ph + "n", "\n")
+    out = out.replace(ph + "r", "\r")
+    out = out.replace(ph + "t", "\t")
+    out = out.replace(ph + "\"", "\"")
+    out = out.replace(ph + ph, "\\")
+    out = out.replace(ph, "\\")
+    return out
+}
+
+/// 从 JSON 对象串提取字符串字段（slice 区间切片，不逐字节拼）。
+pub fn json_field_str(src str, key str) str {
+    let marker str = "\"" + key + "\":\""
+    let i int = src.find(marker)
+    if i < 0 {
+        return ""
+    }
+    let start int = i + marker.len()
+    var j int = start
+    let n int = src.len()
+    while j < n {
+        let c str = src.slice(j, j + 1)
+        if c == "\\" {
+            j = j + 2
+        } else {
+            if c == "\"" {
+                return json_unescape(src.slice(start, j))
+            } else {
+                j = j + 1
+            }
+        }
+    }
+    return ""
+}
+
+/// 从 JSON 对象串提取整型字段。
+pub fn json_field_int(src str, key str) int {
+    let marker str = "\"" + key + "\":"
+    let i int = src.find(marker)
+    if i < 0 {
+        return 0
+    }
+    let start int = i + marker.len()
+    var j int = start
+    let n int = src.len()
+    while j < n {
+        let c str = src.slice(j, j + 1)
+        if c >= "0" && c <= "9" {
+            j = j + 1
+        } else {
+            if c == "-" && j == start {
+                j = j + 1
+            } else {
+                return src.slice(start, j).to_int()
+            }
+        }
+    }
+    return src.slice(start, j).to_int()
+}
+
+/// Work → meta JSON（不含 body，body 存独立文件）。
+pub fn work_to_meta_json(w Work) str {
+    var out str = "{"
+    out = out + "\"work_id\":\"" + json_escape(w.work_id) + "\","
+    out = out + "\"kind\":\"" + json_escape(w.kind) + "\","
+    out = out + "\"title\":\"" + json_escape(w.title) + "\","
+    out = out + "\"summary\":\"" + json_escape(w.summary) + "\","
+    out = out + "\"body_format\":\"" + json_escape(w.body_format) + "\","
+    out = out + "\"tags\":\"" + json_escape(w.tags) + "\","
+    out = out + "\"cover_asset\":\"" + json_escape(w.cover_asset) + "\","
+    out = out + "\"asset_refs\":\"" + json_escape(w.asset_refs) + "\","
+    out = out + "\"source_refs\":\"" + json_escape(w.source_refs) + "\","
+    out = out + "\"revision\":" + w.revision.to_string() + ","
+    out = out + "\"status\":\"" + json_escape(w.status) + "\","
+    out = out + "\"created_at\":" + w.created_at.to_string() + ","
+    out = out + "\"updated_at\":" + w.updated_at.to_string()
+    out = out + "}"
+    return out
+}
+
+/// meta JSON + body → Work。
+pub fn work_from_meta_json(meta str, body str) Work {
+    let wid str = json_field_str(meta, "work_id")
+    let t str = json_field_str(meta, "title")
+    let sm str = json_field_str(meta, "summary")
+    let bf str = json_field_str(meta, "body_format")
+    let tg str = json_field_str(meta, "tags")
+    let ca str = json_field_str(meta, "cover_asset")
+    let ar str = json_field_str(meta, "asset_refs")
+    let sr str = json_field_str(meta, "source_refs")
+    let rv int = json_field_int(meta, "revision")
+    let st str = json_field_str(meta, "status")
+    let cat int = json_field_int(meta, "created_at")
+    let uat int = json_field_int(meta, "updated_at")
+    let kd str = json_field_str(meta, "kind")
+    return Work {
+        work_id: wid,
+        kind: kd,
+        title: t,
+        summary: sm,
+        body_format: bf,
+        body: body,
+        tags: tg,
+        cover_asset: ca,
+        asset_refs: ar,
+        source_refs: sr,
+        revision: rv,
+        status: st,
+        created_at: cat,
+        updated_at: uat
+    }
+}
+
+/// 路径拼接（a2r 无 fs.join 映射，手写 / 拼接）。
+pub fn join_path(a str, b str) str {
+    if a == "" {
+        return b
+    }
+    if b == "" {
+        return a
+    }
+    let al int = a.len()
+    let last str = a.slice(al - 1, al)
+    if last == "/" || last == "\\" {
+        return a + b
+    }
+    return a + "/" + b
+}

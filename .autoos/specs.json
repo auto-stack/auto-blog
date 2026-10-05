@@ -1,0 +1,186 @@
+{
+  "project": "auto-blog",
+  "version": 1,
+  "sections": [
+    {
+      "id": "goals",
+      "section_type": "goals",
+      "title": "目标",
+      "status": "Active",
+      "content": "auto-blog v0.6 首批目标（B01 可靠草稿已交付）",
+      "depends_on": [],
+      "last_modified": 1791180000,
+      "last_verified": 1791180000,
+      "items": [
+        {
+          "id": "B001-1",
+          "title": "BLOG-001 个人作者模式与可靠草稿（M1/B01）",
+          "content": "稳定 work_id、revision 条件写、持久草稿、自动保存、崩溃恢复；不以 slug 作主键；不依赖 demo 登录。2026-10-05 交付。交付轨=auto run --server=vm；纯 rust 后端冷启动未实测（已登记 D-04）。",
+          "status": "Delivered",
+          "depends_on": [],
+          "related": ["BLOG-001"],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/archive/001-durable-drafts.md",
+          "milestone": "M1",
+          "module": "drafts",
+          "tags": ["blog", "drafts"],
+          "created_at": 1791180000,
+          "modified_at": 1791180000,
+          "completed_at": 1791180000
+        }
+      ]
+    },
+    {
+      "id": "architecture",
+      "section_type": "architecture",
+      "title": "架构",
+      "status": "Active",
+      "content": "auto-blog drafts/works 模块划分与双轨纪律",
+      "depends_on": [],
+      "last_modified": 1791180000,
+      "last_verified": 1791180000,
+      "items": [
+        {
+          "id": "B001-2",
+          "title": "drafts/works 模块与双轨 native 白名单",
+          "content": "src/back/works.at（Work/ID/JSON 序列化）+ drafts.at（仓储/迁移）+ api/db thin 端点 + draft_store/author 前端；共享代码仅用双轨已映射 native（fs.write_text/read_text/exists/create_dir/is_dir/file_size、time.now_*、Env.get、str.replace）。禁用 append_text/json.stringify/fs.read_dir/逐字节 slice/嵌套长串返回。",
+          "status": "Stable",
+          "depends_on": [],
+          "related": ["BLOG-001"],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/specs/blog/durable-drafts.md",
+          "milestone": "M1",
+          "module": "drafts",
+          "tags": ["blog", "drafts"],
+          "created_at": 1791180000,
+          "modified_at": 1791180000,
+          "completed_at": null
+        }
+      ]
+    },
+    {
+      "id": "designs",
+      "section_type": "designs",
+      "title": "设计",
+      "status": "Active",
+      "content": "实现态规范（canonical）",
+      "depends_on": [],
+      "last_modified": 1791180000,
+      "last_verified": 1791180000,
+      "items": [
+        {
+          "id": "B001-3",
+          "title": "可靠草稿实现态规范：数据布局/条件 revision/迁移/能力边界",
+          "content": "canonical 实现态规范：data_root 解析、index.json+works/<id>/{meta,body,revisions} 布局、条件 revision 冲突保留两版、slug-map 幂等迁移、save_state 状态机、偏差表 D-01..D-04（source_refs 占位、测试路径、源 demo 修改、rust 冷启动）。",
+          "status": "Stable",
+          "depends_on": [],
+          "related": ["BLOG-001"],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/specs/blog/durable-drafts.md",
+          "milestone": "M1",
+          "module": "drafts",
+          "tags": ["blog", "drafts"],
+          "created_at": 1791180000,
+          "modified_at": 1791180000,
+          "completed_at": null
+        }
+      ]
+    },
+    {
+      "id": "tests",
+      "section_type": "tests",
+      "title": "测试",
+      "status": "Active",
+      "content": "BLOG-001 验证资产",
+      "depends_on": [],
+      "last_modified": 1791180000,
+      "last_verified": 1791180000,
+      "items": [
+        {
+          "id": "B001-4",
+          "title": "草稿验证资产：API probe + 负例 + 崩溃恢复",
+          "content": "tests/probe/drafts_api_probe.ps1 12 项全 PASS（AC01 中文/长稿/open、AC02 id 稳定+冲突、AC03 迁移幂等、AC04 冲突恢复、NEG not-found/坏迁移 JSON/空 slug/不可写守卫）；崩溃恢复=杀进程重启 COUNT 一致；T-00 探针 tests/probe/persist_probe*.at。",
+          "status": "Verified",
+          "depends_on": [],
+          "related": ["BLOG-001"],
+          "priority": null,
+          "assignee": null,
+          "test_file": "tests/probe/drafts_api_probe.ps1",
+          "file": "docs/specs/blog/durable-drafts.md",
+          "milestone": "M1",
+          "module": "drafts",
+          "tags": ["blog", "drafts"],
+          "created_at": 1791180000,
+          "modified_at": 1791180000,
+          "completed_at": 1791180000
+        }
+      ]
+    },
+    {
+      "id": "reviews",
+      "section_type": "reviews",
+      "title": "复审",
+      "status": "Active",
+      "content": "BLOG-001 复审历史",
+      "depends_on": [],
+      "last_modified": 1791180000,
+      "last_verified": 1791180000,
+      "items": [
+        {
+          "id": "B001-5",
+          "title": "BLOG-001 r2 复审 pass（needs_fix 修复后）",
+          "content": "同会话复审（无独立会话，裁决由工件重建）：AC-01~05 pass；R1 needs_fix（F-01 SD-01 Spec 未建 / F-02 T-04 负例缺失）→ 修复 → R2 pass。F-03/F-04/F-06 记入 Spec §8 偏差表；F-05 同会话限制已声明。",
+          "status": "Published",
+          "depends_on": [],
+          "related": ["BLOG-001"],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/archive/001-durable-drafts.md",
+          "milestone": "M1",
+          "module": null,
+          "tags": ["blog"],
+          "created_at": 1791180000,
+          "modified_at": 1791180000,
+          "completed_at": 1791180000
+        }
+      ]
+    },
+    {
+      "id": "reports",
+      "section_type": "reports",
+      "title": "报告",
+      "status": "Active",
+      "content": "BLOG-001 执行报告",
+      "depends_on": [],
+      "last_modified": 1791180000,
+      "last_verified": 1791180000,
+      "items": [
+        {
+          "id": "B001-6",
+          "title": "BLOG-001 work 报告（T-00~T-04）",
+          "content": "T-00 双轨能力探针（fs 面/假成功返回码/append_text 禁用/嵌套长串截断）；T-01 Work/revision/work_id/迁移；T-02 CRUD+条件 rev+冲突 UI；T-03 个人模式 / 与 Demo /demo 分离；T-04 中文/长稿/崩溃/负例证据。",
+          "status": "Published",
+          "depends_on": [],
+          "related": ["BLOG-001"],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/archive/001-durable-drafts.md",
+          "milestone": "M1",
+          "module": null,
+          "tags": ["blog"],
+          "created_at": 1791180000,
+          "modified_at": 1791180000,
+          "completed_at": 1791180000
+        }
+      ]
+    }
+  ]
+}

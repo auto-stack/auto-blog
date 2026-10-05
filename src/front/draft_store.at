@@ -1,0 +1,134 @@
+// draft_store.at — BLOG-001 个人作者草稿状态（不依赖 demo 登录）。
+// 消息名与 api 函数名错开（auth_store 惯例，防 codegen 遮蔽）。
+// 注意：返回结构勿嵌套长 body 的 Work（VM 截断坑）；列表 body 为空。
+use back.api: create_draft, open_draft, save_draft, list_drafts
+
+store DraftStore {
+    model {
+        var drafts []Work = []
+        var current Work = Work { work_id: "", kind: "article", title: "", summary: "", body_format: "text", body: "", tags: "", cover_asset: "", asset_refs: "[]", source_refs: "[]", revision: 1, status: "draft", created_at: 0, updated_at: 0 }
+        var dirty bool = false
+        var save_state str = "saved"
+        var error str = ""
+        var editing_title str = ""
+        var editing_body str = ""
+        var editing_summary str = ""
+        var editing_tags str = ""
+    }
+
+    msg {
+        LoadList, NewDraft, OpenDraft(str), SaveCurrent, ForceSave,
+        TitleEdit(str), BodyEdit(str), SummaryEdit(str), TagsEdit(str),
+        AutosaveTick, ResolveKeepMine, ResolveKeepTheirs
+    }
+
+    on {
+        .LoadList -> {
+            .drafts = list_drafts()
+        }
+        .NewDraft -> {
+            .current = create_draft("未命名草稿", "")
+            .editing_title = "未命名草稿"
+            .editing_body = ""
+            .editing_summary = ""
+            .editing_tags = ""
+            .dirty = false
+            .save_state = "saved"
+            .error = ""
+            .drafts = list_drafts()
+        }
+        .OpenDraft(id str) -> {
+            .current = open_draft(id)
+            .editing_title = .current.title
+            .editing_body = .current.body
+            .editing_summary = .current.summary
+            .editing_tags = .current.tags
+            .dirty = false
+            .save_state = "saved"
+            .error = ""
+        }
+        .TitleEdit(t str) -> {
+            .editing_title = t
+            .dirty = true
+            .save_state = "dirty"
+        }
+        .BodyEdit(b str) -> {
+            .editing_body = b
+            .dirty = true
+            .save_state = "dirty"
+        }
+        .SummaryEdit(s str) -> {
+            .editing_summary = s
+            .dirty = true
+            .save_state = "dirty"
+        }
+        .TagsEdit(t str) -> {
+            .editing_tags = t
+            .dirty = true
+            .save_state = "dirty"
+        }
+        .SaveCurrent -> {
+            if .current.work_id != "" {
+                .save_state = "saving"
+                let r = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
+                if r.ok {
+                    .current = open_draft(.current.work_id)
+                    .editing_title = .current.title
+                    .editing_body = .current.body
+                    .editing_summary = .current.summary
+                    .editing_tags = .current.tags
+                    .dirty = false
+                    .save_state = "saved"
+                    .error = ""
+                    .drafts = list_drafts()
+                } else {
+                    if r.conflict {
+                        .save_state = "conflict"
+                        .error = "revision conflict: current rev " + r.revision.to_string()
+                    } else {
+                        .save_state = "error"
+                        .error = r.error
+                    }
+                }
+            }
+        }
+        .ForceSave -> {
+            if .current.work_id != "" {
+                .save_state = "saving"
+                let r = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, 0)
+                if r.ok {
+                    .current = open_draft(.current.work_id)
+                    .editing_title = .current.title
+                    .editing_body = .current.body
+                    .dirty = false
+                    .save_state = "saved"
+                    .error = ""
+                    .drafts = list_drafts()
+                } else {
+                    .save_state = "error"
+                    .error = r.error
+                }
+            }
+        }
+        .ResolveKeepMine -> {
+            .ForceSave()
+        }
+        .ResolveKeepTheirs -> {
+            if .current.work_id != "" {
+                .current = open_draft(.current.work_id)
+                .editing_title = .current.title
+                .editing_body = .current.body
+                .editing_summary = .current.summary
+                .editing_tags = .current.tags
+                .dirty = false
+                .save_state = "saved"
+                .error = ""
+            }
+        }
+        .AutosaveTick -> {
+            if .dirty && .current.work_id != "" {
+                .SaveCurrent()
+            }
+        }
+    }
+}

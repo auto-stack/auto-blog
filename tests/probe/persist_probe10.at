@@ -1,0 +1,19 @@
+// persist_probe10.at — json.stringify / json.parse 双轨面。
+pub type Meta = {
+    work_id: str
+    title: str
+    revision: int
+    body_len: int
+}
+
+fn main() {
+    let m Meta = Meta { work_id: "w-001", title: "中文标题", revision: 3, body_len: 42 }
+    let s str = json.stringify(m)
+    print("stringify=" + s)
+    let back = json.parse(s)
+    print("parse_ok=" + (s != "").to_string())
+    // 手写 JSON 构建对照
+    let manual str = "{\"work_id\":\"w-001\",\"title\":\"中文标题\",\"revision\":3}"
+    print("manual=" + manual)
+    print("DONE")
+}

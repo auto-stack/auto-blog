@@ -1,0 +1,378 @@
+// drafts.at — BLOG-001 草稿持久化仓储（纯 .at，双轨 fs.* 兼容面）。
+// 职责：新建/列表/打开/保存（条件 revision）/冲突保留/旧 Article 迁移。
+// 不依赖 demo 用户登录。数据目录独立，不接触用户真实知识库。
+// 双轨 API 面（T-00）：fs.write_text / fs.read_text / fs.exists / fs.create_dir / fs.is_dir / fs.file_size。
+// 写后必须 fs.exists 校验（返回码不可信）；禁用 fs.append_text；不用 fs.read_dir（a2r 不映射）。
+// 结构体一律全量构造。index.json 只存 work_id 数组，meta 存 works/<id>/meta.json。
+
+use works: Work, blank_work, make_work, new_work_id, work_to_meta_json, work_from_meta_json, join_path, json_escape, json_field_str, json_field_int
+
+/// 保存结果（与 api.SaveResult 同形；伴生模块自持类型）。
+pub type SaveResult = {
+    ok: bool
+    work_id: str
+    revision: int
+    conflict: bool
+    error: str
+}
+
+pub fn data_root() str {
+    let ovr str = Env.get("AUTO_BLOG_DATA")
+    if ovr != "" {
+        return ovr
+    }
+    let home str = Env.get("USERPROFILE")
+    if home == "" {
+        return join_path(Env.get("HOME"), ".auto-blog/data")
+    }
+    return join_path(home, ".auto-blog/data")
+}
+
+fn works_dir(root str) str {
+    return join_path(root, "works")
+}
+
+fn work_dir(root str, work_id str) str {
+    return join_path(works_dir(root), work_id)
+}
+
+fn meta_path(root str, work_id str) str {
+    return join_path(work_dir(root, work_id), "meta.json")
+}
+
+fn body_path(root str, work_id str) str {
+    return join_path(work_dir(root, work_id), "body.txt")
+}
+
+fn rev_dir(root str, work_id str) str {
+    return join_path(work_dir(root, work_id), "revisions")
+}
+
+fn rev_meta_path(root str, work_id str, rev int) str {
+    return join_path(rev_dir(root, work_id), "rev-" + rev.to_string() + ".json")
+}
+
+fn rev_body_path(root str, work_id str, rev int) str {
+    return join_path(rev_dir(root, work_id), "rev-" + rev.to_string() + ".body")
+}
+
+fn index_path(root str) str {
+    return join_path(root, "index.json")
+}
+
+fn slug_map_path(root str) str {
+    return join_path(root, "slug-map.json")
+}
+
+fn write_checked(path str, content str) bool {
+    fs.write_text(path, content)
+    return fs.exists(path)
+}
+
+// --- index.json：work_id 字符串数组 ---
+
+fn read_index(root str) str {
+    let p str = index_path(root)
+    if !fs.exists(p) {
+        return "[]"
+    }
+    let s str = fs.read_text(p)
+    if s == "" {
+        return "[]"
+    }
+    return s
+}
+
+fn write_index(root str, arr str) bool {
+    return write_checked(index_path(root), arr)
+}
+
+/// 简易 JSON 字符串数组解析：返回拼接串，元素用 \n 分隔。
+fn parse_id_array(arr str) str {
+    var s str = arr
+    if s.len() >= 2 && s.slice(0, 1) == "[" {
+        s = s.slice(1, s.len() - 1)
+    }
+    var out str = ""
+    var i int = 0
+    let n int = s.len()
+    while i < n {
+        let c str = s.slice(i, i + 1)
+        if c == "\"" {
+            var j int = i + 1
+            while j < n && s.slice(j, j + 1) != "\"" {
+                j = j + 1
+            }
+            let id str = s.slice(i + 1, j)
+            if id != "" {
+                out = out + id + "\n"
+            }
+            i = j + 1
+        } else {
+            i = i + 1
+        }
+    }
+    return out
+}
+
+/// 将 \n 分隔的 id 列表序列化回 JSON 数组。
+fn ids_to_json(ids str) str {
+    var out str = "["
+    var first bool = true
+    var i int = 0
+    let n int = ids.len()
+    while i < n {
+        var j int = i
+        while j < n && ids.slice(j, j + 1) != "\n" {
+            j = j + 1
+        }
+        let id str = ids.slice(i, j)
+        if id != "" {
+            if !first {
+                out = out + ","
+            }
+            first = false
+            out = out + "\"" + json_escape(id) + "\""
+        }
+        i = j + 1
+    }
+    out = out + "]"
+    return out
+}
+
+fn index_has(ids str, work_id str) bool {
+    return ids.find(work_id + "\n") >= 0
+}
+
+fn index_add(root str, work_id str) bool {
+    let ids str = parse_id_array(read_index(root))
+    if index_has(ids, work_id) {
+        return true
+    }
+    return write_index(root, ids_to_json(ids + work_id + "\n"))
+}
+
+// --- 读写 ---
+
+fn write_work_files(root str, w Work) bool {
+    let wd str = work_dir(root, w.work_id)
+    fs.create_dir(wd)
+    fs.create_dir(rev_dir(root, w.work_id))
+    let meta str = work_to_meta_json(w)
+    if !write_checked(meta_path(root, w.work_id), meta) {
+        return false
+    }
+    if !write_checked(body_path(root, w.work_id), w.body) {
+        return false
+    }
+    if !write_checked(rev_meta_path(root, w.work_id, w.revision), meta) {
+        return false
+    }
+    if !write_checked(rev_body_path(root, w.work_id, w.revision), w.body) {
+        return false
+    }
+    return index_add(root, w.work_id)
+}
+
+fn load_work(root str, work_id str) Work {
+    let mp str = meta_path(root, work_id)
+    if !fs.exists(mp) {
+        return blank_work("")
+    }
+    let meta str = fs.read_text(mp)
+    if meta == "" {
+        return blank_work("")
+    }
+    var body str = ""
+    let bp str = body_path(root, work_id)
+    if fs.exists(bp) {
+        body = fs.read_text(bp)
+    }
+    return work_from_meta_json(meta, body)
+}
+
+// --- 对外 API ---
+
+/// 新建草稿。失败返回 blank_work("")。
+pub fn create_draft(p_title str, p_body str) Work {
+    let root str = data_root()
+    fs.create_dir(works_dir(root))
+    let work_id str = new_work_id()
+    let now int = time.now_sec()
+    let w Work = make_work(work_id, p_title, "", p_body, "", "draft", 1, now, now)
+    let ok bool = write_work_files(root, w)
+    if !ok {
+        return blank_work("")
+    }
+    // 直接返回 Work（勿嵌套——长串会被截断）
+    return make_work(work_id, p_title, "", p_body, "", "draft", 1, now, now)
+}
+
+/// 打开草稿。失败返回 blank_work("")。
+pub fn open_draft(work_id str) Work {
+    let root str = data_root()
+    return load_work(root, work_id)
+}
+
+/// 保存（条件 revision）。expected_rev=0 强制；>0 条件写。
+pub fn save_draft(work_id str, p_title str, p_summary str, p_body str, p_tags str, expected_rev int) SaveResult {
+    let root str = data_root()
+    let cur Work = load_work(root, work_id)
+    if cur.work_id == "" {
+        return SaveResult { ok: false, work_id: work_id, revision: 0, conflict: false, error: "not_found" }
+    }
+    if expected_rev > 0 && cur.revision != expected_rev {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: true, error: "conflict" }
+    }
+    let next_rev int = cur.revision + 1
+    let now int = time.now_sec()
+    let next Work = make_work(work_id, p_title, p_summary, p_body, p_tags, cur.status, next_rev, cur.created_at, now)
+    let ok bool = write_work_files(root, next)
+    if !ok {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "save_failed" }
+    }
+    return SaveResult { ok: true, work_id: work_id, revision: next_rev, conflict: false, error: "" }
+}
+
+/// 列表：返回 []Work（body 为空，不含正文）。
+pub fn list_drafts() []Work {
+    let root str = data_root()
+    let ids str = parse_id_array(read_index(root))
+    var out []Work = []
+    var i int = 0
+    let n int = ids.len()
+    while i < n {
+        var j int = i
+        while j < n && ids.slice(j, j + 1) != "\n" {
+            j = j + 1
+        }
+        let id str = ids.slice(i, j)
+        i = j + 1
+        if id != "" {
+            let mp str = meta_path(root, id)
+            if fs.exists(mp) {
+                let meta str = fs.read_text(mp)
+                if meta != "" {
+                    let w Work = work_from_meta_json(meta, "")
+                    out.push(w)
+                }
+            }
+        }
+    }
+    return out
+}
+
+// --- 迁移 ---
+
+fn read_slug_map(root str) str {
+    let p str = slug_map_path(root)
+    if !fs.exists(p) {
+        return "{}"
+    }
+    return fs.read_text(p)
+}
+
+fn write_slug_map(root str, map_json str) bool {
+    return write_checked(slug_map_path(root), map_json)
+}
+
+pub fn slug_to_work_id(slug str) str {
+    let root str = data_root()
+    let map str = read_slug_map(root)
+    return json_field_str(map, slug)
+}
+
+/// 迁移一条旧 Article（幂等）。不删除源 demo 文章。失败返回空串。
+pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_tagList str, p_author str) str {
+    let root str = data_root()
+    let map str = read_slug_map(root)
+    let existing str = json_field_str(map, slug)
+    if existing != "" {
+        return existing
+    }
+    fs.create_dir(works_dir(root))
+    let work_id str = new_work_id()
+    let now int = time.now_sec()
+    let w Work = make_work(work_id, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
+    let ok bool = write_work_files(root, w)
+    if !ok {
+        return ""
+    }
+    var map2 str = "{}"
+    let stripped str = map_str_strip_close(map)
+    if stripped == "{" {
+        map2 = "{\"" + json_escape(slug) + "\":\"" + json_escape(work_id) + "\"}"
+    } else {
+        map2 = stripped + ",\"" + json_escape(slug) + "\":\"" + json_escape(work_id) + "\"}"
+    }
+    write_slug_map(root, map2)
+    return work_id
+}
+
+fn map_str_strip_close(s str) str {
+    let n int = s.len()
+    if n >= 1 && s.slice(n - 1, n) == "}" {
+        return s.slice(0, n - 1)
+    }
+    return s
+}
+
+/// 批量迁移。items_json 为对象数组串。幂等。返回成功数（含已迁移命中）。
+pub fn migrate_articles_batch(items_json str) int {
+    var count int = 0
+    var s str = items_json
+    if s.len() > 0 && s.slice(0, 1) == "[" {
+        s = s.slice(1, s.len() - 1)
+    }
+    var i int = 0
+    let n int = s.len()
+    while i < n {
+        let c str = s.slice(i, i + 1)
+        if c == "{" {
+            var depth int = 1
+            var j int = i + 1
+            while j < n && depth > 0 {
+                let d str = s.slice(j, j + 1)
+                if d == "{" {
+                    depth = depth + 1
+                }
+                if d == "}" {
+                    depth = depth - 1
+                }
+                j = j + 1
+            }
+            let obj str = s.slice(i, j)
+            let slug str = json_field_str(obj, "slug")
+            if slug != "" {
+                let wid str = migrate_article(
+                    slug,
+                    json_field_str(obj, "title"),
+                    json_field_str(obj, "description"),
+                    json_field_str(obj, "body"),
+                    json_field_str(obj, "tagList"),
+                    json_field_str(obj, "author")
+                )
+                if wid != "" {
+                    count = count + 1
+                }
+            }
+            i = j
+        } else {
+            i = i + 1
+        }
+    }
+    return count
+}
+
+/// 迁移状态摘要。
+pub fn migration_status() str {
+    let root str = data_root()
+    let map str = read_slug_map(root)
+    let ids str = read_index(root)
+    var out str = "{"
+    out = out + "\"slug_map\":" + map + ","
+    out = out + "\"data_root\":\"" + json_escape(root) + "\","
+    out = out + "\"index\":" + ids
+    out = out + "}"
+    return out
+}

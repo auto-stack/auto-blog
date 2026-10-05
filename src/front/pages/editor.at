@@ -90,7 +90,7 @@ widget editor {
         .DescChanged -> { .description = .description }
         .BodyChanged -> { .body = .body }
         .TagsChanged -> { .tagList = .tagList }
-        .Back -> { router.push("/") }
+        .Back -> { router.push("/demo") }
         .Publish -> {
             if .title == "" {
                 .error = "title is required"

@@ -50,7 +50,37 @@ pub type Cred = {
     token: str
 }
 
+// --- BLOG-001 个人作者模式与可靠草稿 ---
+
+/// 作品/草稿。work_id 稳定；slug 不作主键。body 大文本，双轨落盘。
+pub type Work = {
+    work_id: str
+    kind: str
+    title: str
+    summary: str
+    body_format: str
+    body: str
+    tags: str
+    cover_asset: str
+    asset_refs: str
+    source_refs: str
+    revision: int
+    status: str
+    created_at: int
+    updated_at: int
+}
+
+/// 保存结果。conflict=true 表示条件 revision 不匹配，未覆盖。
+pub type SaveResult = {
+    ok: bool
+    work_id: str
+    revision: int
+    conflict: bool
+    error: str
+}
+
 use db
+use drafts
 
 /// Extract `"key":"value"` from a flat JSON object string (a2r-safe
 /// .find/.slice). Used by VM-mode handlers, where the HTTP server binds the
@@ -211,6 +241,45 @@ pub fn follow(username str) bool {
 #[api(method = "DELETE", path = "/api/profiles/:username/follow")]
 pub fn unfollow(username str) bool {
     return db.unfollow(username)
+}
+
+// --- BLOG-001 drafts（个人作者，不依赖 demo 登录）---
+
+/// POST /api/drafts — 新建草稿。未登录即可用。
+#[api(method = "POST", path = "/api/drafts")]
+pub fn create_draft(title str, body str) Work {
+    return db.create_draft(title, body)
+}
+
+/// GET /api/drafts — 草稿列表（body 为空）。
+#[api(method = "GET", path = "/api/drafts")]
+pub fn list_drafts() []Work {
+    return db.list_drafts()
+}
+
+/// GET /api/drafts/:work_id — 打开草稿。
+#[api(method = "GET", path = "/api/drafts/:work_id")]
+pub fn open_draft(work_id str) Work {
+    return db.open_draft(work_id)
+}
+
+/// PUT /api/drafts/:work_id — 保存（条件 revision）。expected_rev>0 时冲突不覆盖。
+#[api(method = "PUT", path = "/api/drafts/:work_id")]
+pub fn save_draft(work_id str, title str, summary str, body str, tags str, expected_rev int) SaveResult {
+    return db.save_draft(work_id, title, summary, body, tags, expected_rev)
+}
+
+/// POST /api/drafts/migrate — 迁移旧 Article（slug→work_id，幂等）。
+/// items 为 JSON 数组串；返回迁移数量。
+#[api(method = "POST", path = "/api/drafts/migrate")]
+pub fn migrate_drafts(items str) int {
+    return db.migrate_drafts(items)
+}
+
+/// GET /api/drafts/migration/status — 迁移状态摘要。
+#[api(method = "GET", path = "/api/drafts/migration/status")]
+pub fn migration_status() str {
+    return db.migration_status()
 }
 
 // NOTE: no /api/tags endpoint — tags are derived client-side (a2r has no

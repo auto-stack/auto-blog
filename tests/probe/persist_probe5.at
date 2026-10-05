@@ -1,0 +1,31 @@
+// persist_probe5.at — 逐项核对双轨 API，每步独立打印。
+fn main() {
+    let base str = ".tmp/probe-data"
+    fs.create_dir(base)
+    let p str = base + "/probe-api.txt"
+
+    print("step1 write_text")
+    let w int = fs.write_text(p, "hello-api")
+    print("  rc=" + w.to_string() + " exists=" + fs.exists(p).to_string())
+
+    print("step2 read_text")
+    let r str = fs.read_text(p)
+    print("  match=" + (r == "hello-api").to_string())
+
+    print("step3 fs.file_size")
+    print("  val=" + fs.file_size(p).to_string())
+
+    print("step4 file.size")
+    print("  val=" + file.size(p).to_string())
+
+    print("step5 fs.is_dir")
+    print("  val=" + fs.is_dir(base).to_string())
+
+    print("step6 fs.append_text")
+    let a int = fs.append_text(p, "+tail")
+    print("  rc=" + a.to_string())
+    let r2 str = fs.read_text(p)
+    print("  match=" + (r2 == "hello-api+tail").to_string())
+
+    print("PROBE5_DONE")
+}

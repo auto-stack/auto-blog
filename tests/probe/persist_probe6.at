@@ -1,0 +1,17 @@
+// persist_probe6.at — 隔离 append_text；绝对路径。
+fn main() {
+    print("START")
+    let base str = "D:/autostack/auto-os/apps/023-realworld/.tmp/probe-data"
+    print("base=" + base)
+    fs.create_dir(base)
+    print("mkdir done exists=" + fs.exists(base).to_string())
+    let p str = base + "/probe-append.txt"
+    print("path=" + p)
+    let w int = fs.write_text(p, "abc")
+    print("write rc=" + w.to_string() + " exists=" + fs.exists(p).to_string())
+    let a int = fs.append_text(p, "def")
+    print("append rc=" + a.to_string())
+    let r str = fs.read_text(p)
+    print("read=" + r)
+    print("DONE")
+}

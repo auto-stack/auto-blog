@@ -1,0 +1,18 @@
+// persist_probe7.at — 最小化：只 print，再测 append 有无。
+fn main() {
+    print("P1_START")
+    let base str = ".tmp/probe-data"
+    fs.create_dir(base)
+    let p str = base + "/probe-min.txt"
+    let w int = fs.write_text(p, "xyz")
+    print("P2_write_rc=" + w.to_string())
+    print("P3_exists=" + fs.exists(p).to_string())
+    // 不用 append_text，先确认 write/read 正常
+    let r str = fs.read_text(p)
+    print("P4_read=" + r)
+    print("P5_BEFORE_APPEND")
+    // 单独测 append
+    let a int = fs.append_text(p, "!")
+    print("P6_append_rc=" + a.to_string())
+    print("P7_DONE")
+}

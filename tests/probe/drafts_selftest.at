@@ -1,0 +1,83 @@
+// drafts_selftest.at — BLOG-001 T-01/T-02 后端自测（VM 直跑）。
+// 数据目录用 AUTO_BLOG_DATA 隔离。
+use drafts: create_draft, open_draft, save_draft, list_drafts, migrate_article, migrate_articles_batch, slug_to_work_id, migration_status, data_root
+use works: Work, new_work_id, json_escape, json_field_str, json_field_int, work_to_meta_json, work_from_meta_json
+
+fn main() {
+    print("data_root=" + data_root())
+
+    // --- S1 新建 ---
+    print("S1_create")
+    let c1 = create_draft("中文标题一", "正文第一篇：中文草稿。")
+    print("  ok=" + c1.ok.to_string() + " id=" + c1.work.work_id + " rev=" + c1.work.revision.to_string())
+    let c2 = create_draft("中文标题二", "正文第二篇：较长内容。")
+    print("  ok=" + c2.ok.to_string() + " id=" + c2.work.work_id)
+    let c3 = create_draft("第三篇", "第三篇正文。")
+    print("  ok=" + c3.ok.to_string() + " id=" + c3.work.work_id)
+
+    // --- S2 打开 ---
+    print("S2_open")
+    let o1 = open_draft(c1.work.work_id)
+    print("  ok=" + o1.ok.to_string() + " title=" + o1.work.title + " body=" + o1.work.body)
+    print("  match=" + (o1.work.body == "正文第一篇：中文草稿。").to_string())
+
+    // --- S3 保存（条件 rev 正确）---
+    print("S3_save_ok")
+    let s1 = save_draft(c1.work.work_id, "中文标题一改", "摘要", "正文已更新。", "a,b", c1.work.revision)
+    print("  ok=" + s1.ok.to_string() + " rev=" + s1.revision.to_string() + " conflict=" + s1.conflict.to_string())
+
+    // --- S4 冲突（旧 rev）---
+    print("S4_conflict")
+    let s2 = save_draft(c1.work.work_id, "旧客户端", "x", "旧正文", "", c1.work.revision)
+    print("  ok=" + s2.ok.to_string() + " conflict=" + s2.conflict.to_string() + " cur_rev=" + s2.revision.to_string())
+
+    // --- S5 保存失败后正文可恢复（当前盘上仍是成功版）---
+    print("S5_recover")
+    let o2 = open_draft(c1.work.work_id)
+    print("  body=" + o2.work.body)
+    print("  match=" + (o2.work.body == "正文已更新。").to_string())
+
+    // --- S6 列表 ---
+    print("S6_list")
+    let list str = list_drafts()
+    print("  list=" + list)
+
+    // --- S7 迁移幂等 ---
+    print("S7_migrate")
+    let m1 str = migrate_article("understanding-react-server-components", "Understanding RSC", "desc", "body...", "React,JS", "Sarah Chen")
+    print("  m1=" + m1)
+    let m1b str = migrate_article("understanding-react-server-components", "Understanding RSC", "desc", "body...", "React,JS", "Sarah Chen")
+    print("  m1b_same=" + (m1 == m1b).to_string() + " id=" + m1b)
+    let m2 str = migrate_article("building-type-safe-apis-with-trpc", "tRPC", "d", "b", "TS", "Marcus")
+    print("  m2=" + m2)
+
+    // --- S8 批量迁移（含已迁移）---
+    print("S8_batch")
+    let batch str = "[{\"slug\":\"the-state-of-css-in-2026\",\"title\":\"CSS\",\"description\":\"d\",\"body\":\"b\",\"tagList\":\"CSS\",\"author\":\"Emily\"},{\"slug\":\"understanding-react-server-components\",\"title\":\"dup\",\"description\":\"\",\"body\":\"\",\"tagList\":\"\",\"author\":\"\"}]"
+    let n int = migrate_articles_batch(batch)
+    print("  migrated_count=" + n.to_string())
+
+    // --- S9 slug 映射 ---
+    print("S9_map")
+    let mapped str = slug_to_work_id("understanding-react-server-components")
+    print("  mapped=" + mapped + " same=" + (mapped == m1).to_string())
+
+    // --- S10 中文/长稿 ---
+    print("S10_long_cn")
+    var longBody str = ""
+    var i int = 0
+    while i < 200 {
+        longBody = longBody + "第" + i.to_string() + "段：中文长文测试内容，验证持久化完整性。"
+        i = i + 1
+    }
+    let cl = create_draft("长稿测试", longBody)
+    let ol = open_draft(cl.work.work_id)
+    print("  len_in=" + longBody.len().to_string() + " len_out=" + ol.work.body.len().to_string() + " match=" + (ol.work.body == longBody).to_string())
+
+    // --- S11 迁移状态 ---
+    print("S11_status")
+    let st str = migration_status()
+    print("  has_slug_map=" + (st.find("slug_map") >= 0).to_string())
+
+    print("SELFTEST_DONE")
+}

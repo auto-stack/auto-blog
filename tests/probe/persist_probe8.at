@@ -1,0 +1,13 @@
+// persist_probe8.at — 无 append 的基线 print。
+fn main() {
+    print("P1_START")
+    let base str = ".tmp/probe-data"
+    fs.create_dir(base)
+    let p str = base + "/probe-min.txt"
+    let w int = fs.write_text(p, "xyz")
+    print("P2_write_rc=" + w.to_string())
+    print("P3_exists=" + fs.exists(p).to_string())
+    let r str = fs.read_text(p)
+    print("P4_read=" + r)
+    print("P5_DONE")
+}

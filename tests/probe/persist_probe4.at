@@ -1,0 +1,25 @@
+// persist_probe4.at — 核对双轨兼容 API 面：fs.file_size / file.size / 路径拼接。
+fn main() {
+    let base str = ".tmp/probe-data"
+    let p str = base + "/probe-cn.txt"
+    // 先保证有内容
+    fs.write_text(p, "size-test")
+
+    // fs.file_size vs file.size
+    print("fs.file_size=" + fs.file_size(p).to_string())
+    print("file.size=" + file.size(p).to_string())
+
+    // 路径拼接：手写 join
+    let joined str = base + "/" + "sub/x.txt"
+    print("joined=" + joined)
+
+    // fs.is_dir
+    print("fs.is_dir_base=" + fs.is_dir(base).to_string())
+
+    // fs.append_text
+    fs.append_text(p, "+tail")
+    let after str = fs.read_text(p)
+    print("append_match=" + (after == "size-test+tail").to_string())
+
+    print("PROBE4_DONE")
+}

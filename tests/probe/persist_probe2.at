@@ -1,0 +1,41 @@
+// persist_probe2.at — T-00 补充探针：失败检测语义 + 崩溃恢复（写后立即退出）。
+// 用法: auto tests/probe/persist_probe2.at
+
+fn main() {
+    let base str = ".tmp/probe-data"
+    file.create_dir(base)
+
+    // --- probe A: 不可写路径的返回码语义 ---
+    // 用不存在的盘符根下的路径，create_dir 也应失败
+    let bad1 str = "Q:/no-such-drive-xyz/probe.txt"
+    let wa int = file.write_text(bad1, "x")
+    let ea bool = file.exists(bad1)
+    print("A write_rc=" + wa.to_string() + " exists=" + ea.to_string())
+
+    // 只读文件覆盖（先写再试图写入只读——Windows 只读属性未必可设，改用目录当文件）
+    let dirAsFile str = base + "/probe-cn.txt"
+    let wb int = file.write_text(dirAsFile, "overwrite ok")
+    let rb str = file.read_text(dirAsFile)
+    print("B overwrite_rc=" + wb.to_string() + " read_ok=" + (rb == "overwrite ok").to_string())
+
+    // --- probe C: 写后 exists 校验（保存确认模式）---
+    let pC str = base + "/crash-marker.txt"
+    let payload str = "CRASH_RECOVERY_PAYLOAD_中文_2026"
+    let wc int = file.write_text(pC, payload)
+    let ec bool = file.exists(pC)
+    let rc str = file.read_text(pC)
+    print("C write_rc=" + wc.to_string() + " exists=" + ec.to_string() + " match=" + (rc == payload).to_string())
+
+    // --- probe D: JSON 元数据 + 正文分离存储形态 ---
+    let worksDir str = base + "/works/w-crash-001"
+    file.create_dir(worksDir + "/revisions")
+    file.write_text(worksDir + "/meta.json", "{\"work_id\":\"w-crash-001\",\"revision\":1,\"title\":\"崩溃恢复测试\"}")
+    file.write_text(worksDir + "/body.txt", "正文内容：崩溃后应完整恢复。\n第二行。")
+    file.write_text(worksDir + "/revisions/rev-1.json", "{\"revision\":1,\"saved_at\":\"2026-10-04T00:00:00Z\"}")
+    print("D meta_exists=" + file.exists(worksDir + "/meta.json").to_string())
+    print("D body_exists=" + file.exists(worksDir + "/body.txt").to_string())
+    print("D rev_exists=" + file.exists(worksDir + "/revisions/rev-1.json").to_string())
+
+    print("PROBE2_DONE")
+    // 模拟异常退出：直接 return（进程自然结束；对比 kill 的效果另测）
+}
