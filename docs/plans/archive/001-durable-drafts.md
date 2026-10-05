@@ -1,11 +1,11 @@
 ---
 plan_id: BLOG-001
 title: "个人作者模式与可靠草稿"
-status: reviewed
+status: archived
 feature_name: "个人作者模式与可靠草稿"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
-updated_at: 2026-10-04T00:00:00Z
+updated_at: 2026-10-05T00:00:00Z
 plan_revision: 2
 current_step: 5
 total_steps: 5
@@ -117,6 +117,7 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 - stage: review | plan_id: BLOG-001 | plan_revision: 2 | outcome: needs_fix | reviewed_commit: 未提交工作树（基线 6d819c4 + dirty） | base_commit: 6d819c4edda9f7e1c3e52843b1e060c3df9d0a34 | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty | spec_inputs: docs/design/01-product-design.md B01；frontmatter SD-01 | acceptance_results: AC-01 pass / AC-02 pass / AC-03 pass / AC-04 pass / AC-05 pass（API+路由实证）；T-04 partial | findings: F-01 SD-01 spec 文件未创建（blocking）；F-02 T-04 不可写/迁移失败未进可重复脚本（blocking）；F-03 tests/fixtures/drafts/ 路径偏离为 tests/probe/ 未记录；F-04 source_refs/asset_refs 仅类型占位（B03 边界，Spec 应写明）；F-05 同会话复审非独立上下文；F-06 修改 7 个源 demo 文件需记录偏差 | evidence: tests/probe/drafts_api_probe.ps1 于 AUTO_BLOG_DATA=.tmp/blog-data-review 复跑 ALL_PASS；负例实测 not_found/坏迁移 JSON/空 slug 均安全返回 | next: work（补 SD-01 Spec + T-04 负例入脚本）
 - stage: work-repair | plan_id: BLOG-001 | plan_revision: 2 | outcome: pass | code_commit: 未提交 | task_ids: T-04（重开后关闭）、SD-01 | evidence: docs/specs/blog/durable-drafts.md 已建（接口/可靠性规则/迁移/UI/偏差表）；drafts_api_probe.ps1 增 4 负例全 PASS | blockers: 无 | next: review
 - stage: review | plan_id: BLOG-001 | plan_revision: 2 | outcome: pass | reviewed_commit: 未提交工作树（基线 6d819c4 + dirty，待 merge 提交） | base_commit: 6d819c4edda9f7e1c3e52843b1e060c3df9d0a34 | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty | spec_inputs: docs/design/01-product-design.md B01；docs/specs/blog/durable-drafts.md（SD-01，已建） | acceptance_results: AC-01 pass / AC-02 pass / AC-03 pass / AC-04 pass / AC-05 pass；T-00..T-04 全完成 | findings: F-01 closed（Spec 已建）；F-02 closed（4 负例入脚本 ALL_PASS）；F-03/F-04/F-06 记入 Spec §8 偏差表；F-05 同会话复审限制已声明 | evidence: drafts_api_probe.ps1 全 12 项 PASS（含 NEG-*）；docs/specs/blog/durable-drafts.md 含接口/可靠性/迁移/UI/偏差 | next: merge
+- stage: merge | plan_id: BLOG-001 | plan_revision: 2 | outcome: pass | delivery_commit: b23917b7c41dd990a17b6e1a88fe97ed80768df5 | prepared: 检出 023-realworld @ v0.6-dev；Spec=docs/specs/blog/durable-drafts.md；ledger=.autoos/specs.json B001-1..6 | landed: v0.6-dev tip=b23917b（ff-only 线性，自 6d819c4） | ledger_refreshed: .autoos/specs.json 六节 goals/architecture/designs/tests/reviews/reports，items B001-1..6，file 指向 canonical Spec 与 archive Plan | archived: docs/plans/archive/001-durable-drafts.md，status=archived，completion_kind=delivered | cleaned: 本仓无外部 worktree（app-submodule 检出约定）；无 junction/symlink；无残留 | next: 无（本计划关闭）
 
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 
