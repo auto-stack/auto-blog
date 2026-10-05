@@ -29,13 +29,18 @@
 ```text
 <data_root>/
   index.json                 # work_id 字符串数组（不用 fs.read_dir，a2r 不映射）
-  slug-map.json              # 旧 Article slug → work_id
+  slug-map.json              # 旧 Article slug → work_id（write_confirmed）
+  slug-map.json.bak-<ms>     # map 写失败前的备份
+  pending-migrate.json       # 迁移 journal：slug→work_id，半成品可重试复用
   works/<work_id>/
-    meta.json                # Work 序列化（不含 body）
-    body.txt                 # 正文全文
-    revisions/rev-<N>.json   # 保存时快照 meta
-    revisions/rev-<N>.body   # 保存时快照 body
+    current.txt              # 已提交 revision 号（提交指针）
+    meta.json                # 便捷副本（best-effort；兼容 Phase1）
+    body.txt                 # 便捷副本（best-effort；兼容 Phase1）
+    revisions/rev-<N>.json   # 不可变 meta 快照（先写并回读确认）
+    revisions/rev-<N>.body   # 不可变 body 快照（先写并回读确认）
 ```
+
+提交顺序：`rev-N.json` → `rev-N.body` → `current.txt`（每步 write_confirmed）。读取顺序：`current.txt` → 对应 revision；无指针时回退便捷 meta/body。
 
 ## 4. 接口契约
 

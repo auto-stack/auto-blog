@@ -103,7 +103,7 @@ widget home {
     }
 
     on {
-        .Init -> { store.Init() }
+        .Init -> { store.LoadFeed() }
         .SetTag(t str) -> { store.SetTag(t) }
         .ClearTag -> { store.ClearTag() }
         .OpenArticle(slug str) -> {

@@ -3,6 +3,7 @@
 # 用法：pwsh tests/probe/drafts_api_probe.ps1
 
 $base = "http://localhost:17827"
+if ($env:RW_API) { $base = $env:RW_API }
 $ErrorActionPreference = "Stop"
 
 function Ok($name, $cond) {

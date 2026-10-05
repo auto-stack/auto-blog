@@ -8,15 +8,33 @@ import { test, expect } from '@playwright/test'
 async function waitForDemo(page) {
   await page.goto('/#/demo')
   await page.locator('text=Global Feed').waitFor({ timeout: 10000 })
-  await page.waitForTimeout(1500)
+  // 种子文章异步加载
+  await page.locator('text=Understanding React Server Components').waitFor({ timeout: 10000 })
 }
 
 test('T0: 个人作者默认入口 /', async ({ page }) => {
   await page.goto('/#/')
-  await page.locator('text=我的草稿').waitFor({ timeout: 10000 })
+  await page.locator('text=新建草稿').waitFor({ timeout: 10000 })
+  await page.waitForTimeout(1000)
   const body = await page.locator('body').innerText()
   expect(body).toContain('个人模式')
   expect(body).toContain('社区 Demo')
+  expect(body).toContain('未登录即可创作')
+})
+
+test('T0b: 个人草稿 新建→保存→列表', async ({ page }) => {
+  await page.goto('/#/')
+  await page.locator('text=新建草稿').waitFor({ timeout: 10000 })
+  await page.locator('button:has-text("新建草稿")').click()
+  await page.locator('input[placeholder="文章标题"]').waitFor({ timeout: 10000 })
+  const title = '个人草稿' + Date.now()
+  await page.locator('input[placeholder="文章标题"]').fill(title)
+  await page.locator('textarea[placeholder*="正文"]').fill('这是个人模式正文。')
+  await page.locator('button:has-text("保存")').click()
+  await page.waitForTimeout(2000)
+  const body = await page.locator('body').innerText()
+  expect(body).toContain(title)
+  expect(body).toContain('已保存')
 })
 
 test('T1: 社区 feed 渲染 — 3 篇种子文章', async ({ page }) => {
@@ -106,7 +124,8 @@ test('T8: 控制台无实质错误', async ({ page }) => {
   page.on('console', (msg) => {
     if (msg.type() === 'error') errors.push(msg.text())
   })
-  await waitForDemo(page)
+  await page.goto('/#/')
+  await page.locator('text=新建草稿').waitFor({ timeout: 10000 })
   await page.waitForTimeout(1000)
   const real = errors.filter((e) => !e.includes('favicon') && !e.includes('Failed to load resource'))
   expect(real, `console errors: ${real.join('; ')}`).toEqual([])
@@ -114,7 +133,15 @@ test('T8: 控制台无实质错误', async ({ page }) => {
 
 // --- Stage 2 tests (T9-T14) ---
 
+async function loginDemo(page) {
+  await page.goto('/#/login')
+  await page.waitForLoadState('domcontentloaded')
+  await page.locator('button:has-text("Sign in")').click()
+  await page.waitForTimeout(1500)
+}
+
 test('T9: 新建文章 — 编辑器填表 → 发布 → 出现在 feed', async ({ page }) => {
+  await loginDemo(page)
   await page.goto('/#/editor/new')
   await page.waitForTimeout(800)
   const title = 'Stage2 Test Article ' + Date.now()
@@ -126,11 +153,14 @@ test('T9: 新建文章 — 编辑器填表 → 发布 → 出现在 feed', async
   await page.locator('input[placeholder*="Tags"]').fill('Test,Stage2')
   await page.locator('button:has-text("Publish Article")').click()
   await page.waitForTimeout(1500)
+  await page.goto('/#/demo')
+  await page.waitForTimeout(2000)
   const body = await page.locator('body').innerText()
   expect(body).toContain(title)
 })
 
 test('T10: 编辑文章 — 改 title → 保存 → 详情更新', async ({ page }) => {
+  await loginDemo(page)
   await page.goto('/#/editor/new')
   await page.waitForTimeout(800)
   const slug = 'edit-target-' + Date.now()
@@ -145,12 +175,14 @@ test('T10: 编辑文章 — 改 title → 保存 → 详情更新', async ({ pag
   await page.locator('input[placeholder="Article Title"]').fill('Edited Title')
   await page.locator('button:has-text("Publish Article")').click()
   await page.waitForTimeout(1500)
+  await page.goto('/#/article/' + slug)
+  await page.waitForTimeout(1500)
   const body = await page.locator('body').innerText()
   expect(body).toContain('Edited Title')
 })
 
 test('T11: 删除文章 — feed 列表正常(删按钮 stage3)', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/#/demo')
   await page.waitForTimeout(1500)
   const body = await page.locator('body').innerText()
   expect(body).toContain('Global Feed')

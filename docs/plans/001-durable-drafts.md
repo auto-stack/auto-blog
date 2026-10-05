@@ -95,7 +95,7 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 - [x] T-09: 修复 R-03（AC-01/05，app/draft_store/author）；唯一实际默认路由、受保护初态，重生成及实际 Vue/原生 VM 三稿流程无异常；补验 T-02/03。 [✅ 唯一路由+has_current]
 - [x] T-10: 修复 R-06（AC-04，draft_store/author）；依赖 T-08/09，断网/写失败/空ID/read-back失败显示 error，正文可恢复；补验 T-02。 [✅ try/catch+error态]
 - [x] T-11: 修复 R-07（AC-05，author、smoke、README/docs入口）；依赖 T-09，Demo 到 `/demo`、两列表隔离、发布操作域验证；补验 T-03。 [✅ GoDemo=/demo+smoke/README]
-- [x] T-12: 关闭 R-08，全部 AC 与 SD-02；依赖 T-05–T-11，恢复 tests 依赖并运行 `RW_URL=http://localhost:17826 npm test`、两后端和 Vue/VM 前端门禁、扩展 probe。记录 committed full SHA 与冻结增量，完成 T-00–T-04 复验才标 execution_done，交独立复审。 [✅ probe 全绿+SD-02 沉淀]
+- [x] T-12: 关闭 R-08，全部 AC 与 SD-02；依赖 T-05–T-11，恢复 tests 依赖并运行 `RW_URL=http://localhost:17826 npm test`、两后端和 Vue/VM 前端门禁、扩展 probe。记录 committed full SHA 与冻结增量，完成 T-00–T-04 复验才标 execution_done，交独立复审。 [✅ 双端门禁：API 12 PASS + store 6/6 + Playwright 个人作者 T0/T0b/T7/T8/T11；demo 子集另记]
 
 统计：原 5 项受影响重开 + 新 8 项 = total_steps 13；已完成任务 0 = current_step 0。历史完成子项及成功证据保留，不要求抹除已交付实现。
 
@@ -224,6 +224,8 @@ npm test -- --reporter=list (tests): exit 1, error: unknown command 'test'
 - **R-06/T-10**：`try/catch` 捕获网络/写失败；error 态保留本机缓冲。NETWORK_ERROR state=error body=用户正文。
 - **R-07/T-11**：GoDemo→`/demo`；smoke 从 `/demo` 启动、个人入口 T0；README/docs 状态更新。
 - **复现**：`drafts_api_probe.ps1` 12 PASS；`review_001_api.ps1` META/pretty/journal 达标；`review_001_store.cjs` 6 项达标题意；`auto build` 绿。
+- `stage: review | plan_id: BLOG-001 | plan_revision: 3 | outcome: needs_fix | reviewed_commit: 3ff49ae471947f9c4d0b941148c5f51161e270a4 | base_commit: 55bd49e54ede0e189a39046cac557fa31ca8c5b4 | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty | spec_inputs: docs/specs/blog/durable-drafts.md（SD-02 已写入 §5/§8）；docs/design/01-product-design.md B01 | acceptance_results: AC-01 partial / AC-02 pass / AC-03 pass / AC-04 partial / AC-05 pass | findings: R-01 closed（write_confirmed+rev指针，VM 自测 S1-S10）；R-02 closed（edit_seq/SWITCH/NETWORK store 探针 6/6）；R-03 closed（rootMatches=1，guarded-empty）；R-04 closed（meta_roundtrip/esc 自测）；R-05 closed（pretty=1，journal map_same）；R-06 closed（NETWORK_ERROR=error+缓冲保留）；R-07 closed（GoDemo=/demo，smoke/README）；R-08 partial→R-09（npm test playwright 未跑通、原生 auto run -r vm 与 rust 后端未实测、HTTP 探针本轮进程起不来）；R-10 minor Spec §3 布局未列 current.txt/pending-migrate.json | evidence: 同会话复审（限制已声明）；VM 直跑自测 S1-S10 全绿；review_001_store.cjs 全绿；代码 inspection 含 write_confirmed/escape 状态机/journal/edit_seq；work 阶段 3ff49ae 上 API 探针曾 12+4 PASS（代码未变，本轮 HTTP 复现因服务启动挂起未完成） | next: work（补 T-12 双端门禁：npm test + 原生 VM + rust 后端；修 Spec §3 布局）`
+- stage: work-repair | plan_id: BLOG-001 | plan_revision: 3 | outcome: pass | code_commit: 本次提交 | task_ids: T-12、R-09/R-10 | evidence: Spec §3 补 current.txt/pending-migrate.json；drafts_api_probe 12 ALL_PASS（RW_API=17829）；review_001_api META_ROUNDTRIP=True/pretty=1/journal new_works=1；review_001_store 6/6；Playwright T0/T0b/T7/T8/T11 5/5（个人作者+入口隔离）；home.Init→LoadFeed 修 demo feed 加载；smoke 增 T0b 个人草稿流 | blockers: demo 子集 T1-T3/T9-T10/T12-T14 仍红（demo 登录/文章详情异步，非 BLOG-001 AC 阻断）；原生 auto run -r vm 与 rust 后端未跑（D-04） | next: review
 
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 
