@@ -1,14 +1,14 @@
 ---
 plan_id: BLOG-001
 title: "个人作者模式与可靠草稿"
-status: archived
+status: executing
 feature_name: "个人作者模式与可靠草稿"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
-updated_at: 2026-10-05T08:00:00Z
-plan_revision: 3
-current_step: 13
-total_steps: 13
+updated_at: 2026-10-05T16:35:56Z
+plan_revision: 4
+current_step: 2
+total_steps: 19
 created: 2026-10-04
 base_branch: v0.6-dev
 base_commit: 55bd49e54ede0e189a39046cac557fa31ca8c5b4
@@ -22,7 +22,7 @@ touched_goals: ["auto-blog/first-real-release"]
 
 ## 0. 变更摘要
 
-Phase 1 已实施并合入 b23917b，后归档；2026-10-05 复审发现可靠草稿与作者入口缺陷，按用户明确要求重新激活原计划，新增 Phase 2。当前 needs_fix；本轮只复审、增加复现证据和修订计划，未修改产品实现。
+Phase 1 与 Phase 2 已实施并提交、归档。2026-10-06 对 HEAD 72a15c8 重新复审，确认部分修复有效，但仍有丢稿、读回误报、恢复与迁移缺陷；沿用户先前的条件授权再次激活原文件，新增 Phase 3，当前 needs_fix。仅修改计划与复现证据，产品实现/Spec/ledger 未改。
 
 ## 1. 目标
 
@@ -42,6 +42,8 @@ AutoLang/AutoUI `.at`、既有Vue/VM宿主；后端纯.at。协议使用版本�
 
 ## 4. 需求分析与背景调查
 
+修订4（2026-10-06）：用户“计划修复并提交了。请检查。”延续先前“有问题重新激活、写新 phase”的授权。本轮复审已提交 Phase 2，保留 ID、revision 3 的所有 work/review/merge 历史，新增同范围任务与 SD-03；目标和 AC 不变。不得以将原生 VM/Rust 门禁或完整套件降为债务替代验收。未授权远端推送；本轮只本地记录和提交。
+
 修订3授权（2026-10-05）：用户要求“计划001已经实施；请复审，如果有问题，请重新激活计划文件，并把问题和修复方案记录到它的新的phase里”。这是对归档终态规则的明确例外：原文件移回活动目录，原 ID 和历史收据保留。目标、AC-01–AC-05 和仓库范围不变；新增修复任务与 SD-02，plan_revision 2→3。以下修订2/文档阶段的授权与未实施叙述仅为历史，不代表当前状态。
 
 修订2：用户于2026-10-04确认所有app操作在auto-os/apps子目录；文档和代码修改使用该检出的v0.6-dev，完成提交/推送与父仓gitlink更新后显式恢复detached。此修订只改变工作位置/交接方式，任务和AC保持原意；本计划代码尚未实施。
@@ -58,6 +60,7 @@ AutoLang/AutoUI `.at`、既有Vue/VM宿主；后端纯.at。协议使用版本�
 |---|---|---|---|---|---|
 | SD-01 | add | docs/specs/blog/durable-drafts.md | 本模块尚无app级current-state Spec → 记录实际实现的接口、恢复/错误及能力边界 | 供后续agent使用，设计提案不能冒充实现 | AC-01–AC-05 |
 | SD-02 | modify | docs/specs/blog/durable-drafts.md | §5 exists 即成功、§6 迁移未覆盖映射失败、§7 作者入口/保存状态声明 → 修复并验证后记录完整版本提交/恢复、内容回读、迁移失败/备份/幂等、编辑缓冲及唯一默认入口规则 | R-01–R-08 证明现行声明不充分或与实现冲突；不降低原 AC | AC-01–AC-05 |
+| SD-03 | modify | docs/specs/blog/durable-drafts.md | current.txt 覆写提交、缺 body 仍读有效 Work、pending 重试跳过 index、前端新建/读回保护声明 → 修复后记录可恢复提交元数据、完整版本校验、迁移 index/map 一致成功条件、完整 JSON 转义及全切换/读回失败缓冲保护 | R-11–R-16 证明 Phase 2 尚未满足原可靠性门槛 | AC-01–AC-04 |
 
 SD-01 为 Phase 1 历史增量，已落地；本轮候选增量为 SD-02。输入 hash 和冻结增量文本见 §9；复审不修改 canonical Spec 或 live ledger。SD-02 只能在修复及实测后沉淀，不能把修复方案当成已交付行为。
 
@@ -67,11 +70,11 @@ SD-01 为 Phase 1 历史增量，已落地；本轮候选增量为 SD-02。输�
 
 T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-01形成接口/fixture，T-02/03接入实现，T-04完成整体验证与文档。任务输出见每项说明；T-00/04核查AC-01–05全体，中间任务按对应行为覆盖。每项实测命令/证据写入§9，不把未创建的测试入口说成已有。
 
-- [x] T-00: T0验证正文持久化/崩溃恢复在Vue后端与VM的实际路径，独立测试数据目录。 [✅ Phase2 复验]
-- [x] T-01: 定义Work/revision/source_refs/asset_refs，生成work_id；旧Article slug到ID映射迁移可重复。 [✅ Phase2 复验]
-- [x] T-02: 实现新建/列表/打开/自动保存/冲突草稿，不依赖demo账号登录。 [✅ Phase2 复验]
+- [ ] T-00: T0验证正文持久化/崩溃恢复在Vue后端与VM的实际路径，独立测试数据目录。 [✅ Phase2 复验]
+- [ ] T-01: 定义Work/revision/source_refs/asset_refs，生成work_id；旧Article slug到ID映射迁移可重复。 [✅ Phase2 复验]
+- [ ] T-02: 实现新建/列表/打开/自动保存/冲突草稿，不依赖demo账号登录。 [✅ Phase2 复验]
 - [x] T-03: 增加明确个人模式和社区demo入口；保留旧用户/文章测试fixture不投入生产。 [✅ Phase2 复验]
-- [x] T-04: 测试中文、长稿、异常退出、不可写及迁移失败，保存证据。 [✅ Phase2 复验]
+- [ ] T-04: 测试中文、长稿、异常退出、不可写及迁移失败，保存证据。 [✅ Phase2 复验]
 
 ### Phase 2：复审修复（2026-10-05，revision 3）
 
@@ -88,16 +91,36 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 | R-07 P2；AC-05；T-03 | `author.at:153` 社区 Demo 按钮跳 `/`；smoke 仍在 `/` 等 Global Feed；README/docs 仍称全部未实施 | Demo 动作改 `/demo`，演示回归从 `/demo` 启动，个人模式单测 `/`；核查发布仅演示域、两列表隔离。同步当前文档状态及计划链接，不改来源归档 |
 | R-08 P1；全部 AC；T-00/04 | ALL_PASS 没有真实不可写、备份、前端验证；AC04-recover 仅验服务端旧成功版；旧 pass 绑定 dirty；Rust 后端和原生 VM 前端未实测；旧归档链接失效 | 恢复仓测试依赖、修正断言，增加真实故障/竞态/迁移和双端实测。修复代码先提交，复审绑定 full SHA、依赖和 Spec hash；未验证项不计 pass。旧结果保留为历史，不覆盖 revision 3 |
 
-- [x] T-05: 修复 R-01（AC-01/04，`src/back/drafts.at`）；探测双轨提交能力并实现完整版本恢复，故障注入/kill/restart 精确回读；补验 T-00、T-02 仓储部分。 [✅ write_confirmed+rev指针]
-- [x] T-06: 修复 R-04（AC-01/03，`src/back/works.at`）；依赖 T-05 格式，特殊字符往返及重启全相等；补验 T-01 元数据。 [✅ json_unescape 状态机]
-- [x] T-07: 修复 R-05（AC-03，`src/back/drafts.at`）；依赖 T-05/06，LOCKED_MAP 不误报成功、重试不重复、PRETTY_MIGRATION=1；扩展备份/原件 hash 与不同来源 fixture；补验 T-01 迁移。 [✅ journal+pretty解析]
-- [x] T-08: 修复 R-02（AC-01/02/04，draft_store/author）；依赖 T-05/06，延迟回执期间输入、切稿/新建、双窗口冲突/ForceSave 均不丢本机版；补验 T-02。 [✅ edit_seq+切稿保护]
-- [x] T-09: 修复 R-03（AC-01/05，app/draft_store/author）；唯一实际默认路由、受保护初态，重生成及实际 Vue/原生 VM 三稿流程无异常；补验 T-02/03。 [✅ 唯一路由+has_current]
-- [x] T-10: 修复 R-06（AC-04，draft_store/author）；依赖 T-08/09，断网/写失败/空ID/read-back失败显示 error，正文可恢复；补验 T-02。 [✅ try/catch+error态]
+- [ ] T-05: 修复 R-01（AC-01/04，`src/back/drafts.at`）；探测双轨提交能力并实现完整版本恢复，故障注入/kill/restart 精确回读；补验 T-00、T-02 仓储部分。 [✅ write_confirmed+rev指针]
+- [ ] T-06: 修复 R-04（AC-01/03，`src/back/works.at`）；依赖 T-05 格式，特殊字符往返及重启全相等；补验 T-01 元数据。 [✅ json_unescape 状态机]
+- [ ] T-07: 修复 R-05（AC-03，`src/back/drafts.at`）；依赖 T-05/06，LOCKED_MAP 不误报成功、重试不重复、PRETTY_MIGRATION=1；扩展备份/原件 hash 与不同来源 fixture；补验 T-01 迁移。 [✅ journal+pretty解析]
+- [ ] T-08: 修复 R-02（AC-01/02/04，draft_store/author）；依赖 T-05/06，延迟回执期间输入、切稿/新建、双窗口冲突/ForceSave 均不丢本机版；补验 T-02。 [✅ edit_seq+切稿保护]
+- [ ] T-09: 修复 R-03（AC-01/05，app/draft_store/author）；唯一实际默认路由、受保护初态，重生成及实际 Vue/原生 VM 三稿流程无异常；补验 T-02/03。 [✅ 唯一路由+has_current]
+- [ ] T-10: 修复 R-06（AC-04，draft_store/author）；依赖 T-08/09，断网/写失败/空ID/read-back失败显示 error，正文可恢复；补验 T-02。 [✅ try/catch+error态]
 - [x] T-11: 修复 R-07（AC-05，author、smoke、README/docs入口）；依赖 T-09，Demo 到 `/demo`、两列表隔离、发布操作域验证；补验 T-03。 [✅ GoDemo=/demo+smoke/README]
-- [x] T-12: 关闭 R-08，全部 AC 与 SD-02；依赖 T-05–T-11，恢复 tests 依赖并运行 `RW_URL=http://localhost:17826 npm test`、两后端和 Vue/VM 前端门禁、扩展 probe。记录 committed full SHA 与冻结增量，完成 T-00–T-04 复验才标 execution_done，交独立复审。 [✅ 双端门禁：API 12 PASS + store 6/6 + Playwright 个人作者 T0/T0b/T7/T8/T11；demo 子集另记]
+- [ ] T-12: 关闭 R-08，全部 AC 与 SD-02；依赖 T-05–T-11，恢复 tests 依赖并运行 `RW_URL=http://localhost:17826 npm test`、两后端和 Vue/VM 前端门禁、扩展 probe。记录 committed full SHA 与冻结增量，完成 T-00–T-04 复验才标 execution_done，交独立复审。 [✅ 双端门禁：API 12 PASS + store 6/6 + Playwright 个人作者 T0/T0b/T7/T8/T11；demo 子集另记]
 
-统计：原 5 项受影响重开 + 新 8 项 = total_steps 13；已完成任务 0 = current_step 0。历史完成子项及成功证据保留，不要求抹除已交付实现。
+### Phase 3：Phase 2 提交后的复审修复（2026-10-06，revision 4）
+
+旧任务的 ✅ 为历史标记；当前 checkbox 已重开受影响项。已完成的唯一默认 Vue 路由、has_current、发送期间 edit_seq、普通写后回读、字面反斜杠、map 锁定 journal 等子项保留证据；不要求删除或回退这些修复。
+
+| finding / 级别 / 关联 | 复现与定位 | 修复方案与复验 |
+|---|---|---|
+| R-11 P1；R-02 重开；AC-01/02/04；T-02/08 | `draft_store.at:33–67` 新建前保存冲突/断网，仍继续创建并清正文/dirty、显示 saved；当前草稿行重开也跳过 dirty 保护。受控执行生成 store：NEW_AFTER_conflict/network 均从 a 变 b、body 空；REOPEN_CURRENT_DIRTY 变盘上旧稿 | new/open/reload/离开统一保护未存缓冲；保存失败或冲突终止动作，成功等待期间若编辑序号变化仍保留/继续存最新正文。包括同 ID 再次打开；所有分支和 ForceSave 串行化，不能绕过进行中请求。真实 UI + 控制延迟/失败测试确认两版仍可恢复 |
+| R-12 P1；R-06 重开；AC-04；T-02/10 | `draft_store.at:154–175,199–215` 保存后直接把 open_draft 结果赋 current，无 ID/版本/内容校验；读回空 Work 后本机正文变空、dirty=false、state=saved | 读回临时结果核对 work_id、回执 revision、完整正文后再提交 current；空/错稿/旧版本/读取失败显示 error，保留原稿 ID 与最新编辑缓冲。save_in_flight 覆盖完整保存+确认，Save/ForceSave 同门禁；API 2xx 不代表有效 Work |
+| R-13 P1；R-01 重开；AC-01/04；T-00/04/05 | `drafts.at:96–150` 可变 current.txt 直接截断覆写，缺完整/备用提交点；便利副本 best-effort 可能仍旧。先锁便利副本并成功保存 rev2，再注入空指针，GET 静默回 rev1；当前 revision body 缺失时仍返回有效 ID/rev2 和空正文 | 探测双轨支持的原子替换或双槽/追加提交记录，保留校验过的旧提交点；检查 meta 与 body 成对且属于同 revision，不能把缺文件当空正文，不能对损坏指针静默降回任意便利副本。注入各写阶段中断/空或部分指针/缺文件，真正 kill/restart；上一已确认完整版本可恢复并有可见异常 |
+| R-14 P1；R-05 重开；AC-03；T-01/07 | `drafts.at:414–420` 首次迁移 revision 已提交而 index 不可写时返回0；解锁重试因 cur_rev>0 跳过 write_work_files/index_add，返回1并写 map，实际 index 无该 ID，列表找不到作品 | journal 分阶段检查/恢复 work、index、map；重试对已存在 revision 仍确认 index 后才确认 map/成功。首次目录、index/map/journal 损坏/不可写/中途中断均有恢复流程；核对 open、list、实际 ID/数量和源备份 hash，不只 count |
+| R-15 P1；R-04/05 重开；AC-01/03；T-01/06/07 | `works.at:72–111` 未解析合法 JSON Unicode escape；迁移 title=\\u4e2d\\u6587/body=\\u6b63\\u6587，返回成功却存成 u4e2du6587/u6b63u6587；同样未完整校验 JSON，冒号前空白也未支持 | 使用经过双轨验证的标准解析器，或完整支持合法 JSON 转义（含 Unicode/surrogate pair）、字段空白与结构校验；无效输入拒绝且不留半迁移。覆盖 escaped/literal 中文和 emoji、引号/控制符、pretty、畸形输入，逐字段 hash/相等检查；不同来源同slug原要求继续保留 |
+| R-16 P1；R-08/09 重开；T-00/04/09/12；全部 AC | r3 pass 将明确未跑的 Rust 后端/原生 VM 前端列 D-04 非阻断；完整 Playwright 本轮8/16通过，T1/2/3/9/10/12/13/14失败，与旧记录同类；仅个人子集/API/store不等于双端门禁。任务统计文本、归档相对链接与当前状态亦不一致 | 修复后跑原约定完整门禁；demo失败须同工具/fixture对比基线，确认回归或可复现环境/既有缺陷，不能靠删除/选取子集宣布套件通过。实际 Rust 后端与原生 VM UI 的成功/失败/恢复流程须验证；不能自行降级原合同。更新持久证据、统计/链接/Spec候选，先提交再独立复审 |
+
+- [ ] T-13: 关闭 R-11（AC-01/02/04；draft_store/author）。统一新建、同稿打开、切稿和离开缓冲保护；运行 `review_001_r3_store.cjs` 的 NEW_AFTER_*、REOPEN_CURRENT_DIRTY 并补实际 UI，失败/冲突正文不变、禁止切走，延迟期间继续输入不丢；补验 T-02/08。
+- [ ] T-14: 关闭 R-12（AC-04；draft_store）。依赖 T-13 请求序列；空ID、错ID/版本及读取异常保留本机正文并显示 error，Save/ForceSave 都通过 EMPTY_READBACK 与实际 UI 错误用例；补验 T-10。
+- [ ] T-15: 关闭 R-13（AC-01/04；drafts）。先探测提交能力，再实现可恢复提交记录和完整 revision 验证；`review_001_r3_api.ps1` 的 TORN_POINTER_RECOVERY/MISSING_REVISION_BODY 通过，扩展真实 kill/restart、各文件写中断；补验 T-00/04/05。
+- [ ] T-16: 关闭 R-14（AC-03；drafts）。依赖 T-15；INDEX_RETRY first=0、second=1 时 actual index/list 必含唯一 ID；journal 中断各阶段和首次迁移目录测试通过；补验 T-01/07。
+- [ ] T-17: 关闭 R-15（AC-01/03；works/drafts）。依赖 T-15/16；JSON_UNICODE 精确为中文/正文，补 surrogate pair、空白、畸形 JSON 与同slug不同来源；补验 T-01/06/07。
+- [ ] T-18: 关闭 R-16（全部 AC、SD-03）。依赖 T-13–T-17；完整仓套件、Rust 后端和原生 VM 前端及 Vue UI 的真实负例/恢复门禁，记录实际 full SHA、依赖、基线故障归因和冻结 Spec 增量，重验所有重开任务后才 execution_done。
+
+当前计数：原13任务中重开11项，保留 T-03/T-11 完成；新增6项待执行，total_steps=19、current_step=2。AC-01–04 重开；AC-05 的 Vue 默认个人入口与 Demo 导航/数据域分离证据保留，整体双端通过仍取决于 T-18。
 
 ## 6. 测试设计
 
@@ -111,10 +134,10 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 
 ## 7. 验收标准（必须保留实际证据）
 
-- [x] AC-01: 未登录可创作3篇真实中文草稿，正常/异常退出后已确认保存内容完全一致。（Phase2：write_confirmed 回读+rev 指针；probe 中文/长稿/重启一致）
-- [x] AC-02: 改title/slug不改ID；两处同旧rev保存不会无提示覆盖。（Phase2：API conflict + 前端 edit_seq 两版保护）
-- [x] AC-03: 迁移重跑不重复，失败保留原件及备份，不擅自删除源demo。（Phase2：journal 幂等+pretty 解析+map 写确认/备份）
-- [x] AC-04: 保存失败时用户正文可恢复，UI不显示虚假的已保存。（Phase2：失败保留缓冲、error 态、禁止虚假 saved）
+- [ ] AC-01: 未登录可创作3篇真实中文草稿，正常/异常退出后已确认保存内容完全一致。（Phase2：write_confirmed 回读+rev 指针；probe 中文/长稿/重启一致）
+- [ ] AC-02: 改title/slug不改ID；两处同旧rev保存不会无提示覆盖。（Phase2：API conflict + 前端 edit_seq 两版保护）
+- [ ] AC-03: 迁移重跑不重复，失败保留原件及备份，不擅自删除源demo。（Phase2：journal 幂等+pretty 解析+map 写确认/备份）
+- [ ] AC-04: 保存失败时用户正文可恢复，UI不显示虚假的已保存。（Phase2：失败保留缓冲、error 态、禁止虚假 saved）
 - [x] AC-05: 发布入口没有调用演示网络社区，作者列表与demo列表明确分开。（Phase2：唯一 `/` 作者路由、Demo `/demo`）
 
 
@@ -228,6 +251,67 @@ npm test -- --reporter=list (tests): exit 1, error: unknown command 'test'
 - stage: work-repair | plan_id: BLOG-001 | plan_revision: 3 | outcome: pass | code_commit: 本次提交 | task_ids: T-12、R-09/R-10 | evidence: Spec §3 补 current.txt/pending-migrate.json；drafts_api_probe 12 ALL_PASS（RW_API=17829）；review_001_api META_ROUNDTRIP=True/pretty=1/journal new_works=1；review_001_store 6/6；Playwright T0/T0b/T7/T8/T11 5/5（个人作者+入口隔离）；home.Init→LoadFeed 修 demo feed 加载；smoke 增 T0b 个人草稿流 | blockers: demo 子集 T1-T3/T9-T10/T12-T14 仍红（demo 登录/文章详情异步，非 BLOG-001 AC 阻断）；原生 auto run -r vm 与 rust 后端未跑（D-04） | next: review
 - stage: review | plan_id: BLOG-001 | plan_revision: 3 | outcome: pass | reviewed_commit: 8e1be3438ca1e37a4d920b3cc8430a8ccc1715ce | base_commit: 55bd49e54ede0e189a39046cac557fa31ca8c5b4 | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty | spec_inputs: docs/specs/blog/durable-drafts.md（SD-01+SD-02 已落地，含 §3 布局/current.txt/journal、§5 可靠性规则 11 条、§8 偏差表）；docs/design/01-product-design.md B01 | acceptance_results: AC-01 pass / AC-02 pass / AC-03 pass / AC-04 pass / AC-05 pass | findings: R-01..R-07 closed（本轮复现）；R-08 closed（双端门禁：API 12+store 6/6+Playwright 个人 5/5）；R-09 closed（npm test 可跑通个人门禁）；R-10 closed（Spec §3 已补）；残留非阻断 D-04（原生 VM/rust 后端）与 demo smoke 子集 | evidence: 同会话复审（限制已声明）；drafts_api_probe 12 ALL_PASS；review_001_api META=True/pretty=1/journal=1；review_001_store 6/6；Playwright T0/T0b/T7/T8/T11 5/5；Spec 含 write_confirmed/journal/has_current/唯一入口 | next: merge
 - stage: merge | plan_id: BLOG-001 | plan_revision: 3 | outcome: pass | delivery_commit: 8e1be3438ca1e37a4d920b3cc8430a8ccc1715ce | prepared: app-submodule 检出 023-realworld @ v0.6-dev；Spec=docs/specs/blog/durable-drafts.md（SD-01+SD-02）；ledger=.autoos/specs.json B001-1..6 | landed: v0.6-dev tip=8e1be34（工作树线性，实施/测试/Spec 均已提交） | ledger_refreshed: B001-1..5 更新为 Phase 2 可靠性与 r3 复审；file 指向 archive Plan 与 canonical Spec | archived: docs/plans/archive/001-durable-drafts.md，status=archived，completion_kind=delivered | cleaned: 本仓无外部 worktree（app-submodule 约定）；无 junction/symlink | next: 无（本计划关闭）
+
+### Phase 3 重新复审（2026-10-06 00:36，Asia/Shanghai）
+
+- `stage: review | plan_id: BLOG-001 | plan_revision: 4 | outcome: needs_fix | reviewed_commit: 72a15c8a35afa37b5d0412d9d4d01c255f6897f7 | base_commit: 6696ef4d2a3218d27f8dcd211be383d4a68bd7bc | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty，auto-lang checkout 39a4f91339ac9744578cf2064c9731090469e960 | spec_inputs: 下列 SHA256 | acceptance_results: AC-01 fail / AC-02 partial / AC-03 fail / AC-04 fail / AC-05 Vue入口隔离子项 pass，双端门 partial | findings: R-11..R-16；R-01/02/04/05/06/08/09 原 closed 不覆盖本轮反例 | evidence: 下列重新执行结果 | next: work Phase 3 T-13..T-18，不合入或修复实现`。
+- 基线干净；实现提交为 `3ff49ae471947f9c4d0b941148c5f51161e270a4`，测试/Spec 为 `26d5d8edd8d643aa329795f06630ced5ca4fbc27`，依赖锁定为 `8e1be3438ca1e37a4d920b3cc8430a8ccc1715ce`，最新 `72a15c8` 仅归档/ledger。reviewed_commit 与 base 的差异均已提交；没有给未提交实现授 pass。`git worktree list --porcelain` 仅 app submodule 检出，按 AGENTS 在此复审。未参与 Phase 2 实施，未另建 agent，依据代码及本轮重跑作结论。
+- 历史归档可由 `72a15c8a35afa37b5d0412d9d4d01c255f6897f7:docs/plans/archive/001-durable-drafts.md` 恢复；SHA256=`1E940DB9EBDD7B4093998ECEB22F1A9FAA96432B781C95C298422F396F08C706`。移动原计划是延续用户的明确条件授权，所有 r3 work/review/merge 收据仍保留原 revision，不伪造历史。
+- Spec 输入：`docs/specs/blog/durable-drafts.md` SHA256=`DDE23DCC9710840B9D5486FB9A631E9D62CED82B6E5587712D13DFC35A403A15`；设计 B01 SHA256=`A69B61E2AAD77305B37C9FD84CA200CD9A6CE286FBA978DC678F778219285ECE`。这些原文固定在 reviewed_commit，测试/数据清理后也可解析。SD-03 冻结为 §5 对应表格行（UTF-8，无末尾换行），SHA256=`76AAC4220630926B7391AD0F28F3EEC091E1D2DBF4D6F39FD94506D750E20705`；增量尚未被实现满足，因此 partial，不发 Spec pass。supersedes 沿现有 Spec，goal 保留 auto-blog/first-real-release。canonical Spec 和 live ledger 不在复审阶段修改。
+- 工具输入：tests/package-lock SHA256=`85AF6B26AD81B28FC1293A801F1AB3E5D25B6F724FF6B09F27A7BC8D7330017C`；重新生成 store=`C68DDF086DBA89FB81A029B596481D12B655D6640FAFE66E1253FCEEC29A1372`、router=`3956EA6F885EBCA6A19604903AFE8C09BF268FD1AA2193D8F1DCEE1F263D5938`（生成文件不是实现来源；对应 .at 固定在 reviewed_commit）。
+
+| AC → task → artifact | 结果与持久证据 |
+|---|---|
+| AC-01 → T-00/02/04/05/08 → drafts/store | 中文三稿/长稿 API、Vue T0/T0b 成功；但新建冲突/断网丢缓冲、指针截断恢复旧稿、缺 body 读空稿，fail；实际写中 kill/restart与完整双端仍待补 |
+| AC-02 → T-01/02/08 → API/store | ID 稳定和 stale rev conflict 通过，普通保存期间继续输入保持 dirty；新建前 conflict 后丢本机版，完整两版保护 partial |
+| AC-03 → T-01/04/06/07 → drafts/works | 普通幂等、map 锁定不计成功、pretty JSON 已修好；index失败重试漏列表和 Unicode escape 有损，fail；备份/不同来源同slug未有完整有效证据 |
+| AC-04 → T-02/04/05/10 → store/drafts | 新建失败/普通网络失败/跨稿保存失败状态已修；新建保护绕过和空读回误报 saved仍 fail |
+| AC-05 → T-03/09/11 → routes/author/API域 | Vue唯一根路由、has_current、GoDemo=/demo、个人 API 与 demo仓分离有效；保留T-03/T-11。整体原生VM/Rust门禁仍partial，不以该子项作全计划pass |
+
+本轮实际命令（独立隔离目录，端口与其他会话分开）：
+
+```powershell
+$env:AUTO_BLOG_DATA=Join-Path (Get-Location) '.tmp/review-r3-20261006'
+auto run --server vm -p 17836 -B 17837 -F 17836
+# 另一个终端，仓根
+$env:RW_API='http://localhost:17837'
+pwsh -NoProfile -File tests/probe/drafts_api_probe.ps1
+pwsh -NoProfile -File tests/probe/review_001_api.ps1 -DataRoot .tmp/review-r3-20261006 -Base http://localhost:17837
+node tests/probe/review_001_store.cjs
+node tests/probe/review_001_r3_store.cjs
+pwsh -NoProfile -File tests/probe/review_001_r3_api.ps1 -DataRoot .tmp/review-r3-20261006
+# tests目录：$env:RW_URL='http://localhost:17836'; npm test -- --reporter=list --timeout=15000
+# gen/front/vue目录：npm run build
+```
+
+```text
+原 API probe: 12 PASS, ALL_PASS
+原 review probe: LOCKED_BODY ok=True rev2 body=新正文（body.txt 仅便利副本，成功合理）
+META_ROUNDTRIP=True; LOCKED_MAP first=0 second=0 new_works=1 map_has_slug=False; PRETTY=1
+原 store probe: rootMatches=1, guarded-empty, edit期间输入保留dirty,
+create失败error, network失败error并保留正文, 切换到不同稿的保存失败不切换
+新 store probe (exit 1):
+FAIL NEW_AFTER_conflict id=b body="" state=saved creates=2
+FAIL NEW_AFTER_network id=b body="" state=saved creates=2
+FAIL EMPTY_READBACK id="" body="" state=saved dirty=false
+FAIL REOPEN_CURRENT_DIRTY body=盘上旧稿 state=saved
+新 API probe (exit 1):
+PASS REVISION_SAVE ok=True rev=2 body=新正文（锁两便利副本后仍能读revision）
+FAIL TORN_POINTER_RECOVERY rev=1 body=旧正文
+FAIL MISSING_REVISION_BODY id有效 rev=2 body_length=0
+FAIL INDEX_RETRY first=0 second=1 id=w-216731456-13 index_has=False
+FAIL JSON_UNICODE count=1 title=u4e2du6587 body=u6b63u6587
+Playwright完整16项 (exit 1)：8 passed / 8 failed，1.5m
+通过：T0/T0b/T4/T5/T6/T7/T8/T11
+失败：T1/T2/T3（seed等待超时），T9（发布后feed无新稿），
+T10/T12/T13/T14（详情/profile仍Loading或目标元素缺失）
+Vue build (exit 0)：vue-tsc + vite, 673 modules
+```
+
+- 证据边界：新 store 脚本执行本轮重新生成 TS，控制 ref/API、模拟 conflict/network/空 Work，不冒称浏览器E2E；本轮完整 Playwright是真实 Chromium/Vue 门禁。API反例是真实HTTP和隔离文件故障注入，index/便利副本锁在 finally 释放，指针/正文路径在 finally 恢复；模拟空指针是截断提交点的确定性故障，未冒称已执行 kill。服务器已退出，ignored隔离数据保留；没有接触用户真实草稿。
+- 新证据：`tests/probe/review_001_r3_api.ps1` SHA256=`02D52956A7A23D43EBF5054CFD8BBC9A28CB41B57027B9FD78A1CA0401D632E5`；`tests/probe/review_001_r3_store.cjs` SHA256=`6A64701B3BB0C13C9B33FB063270C7F65293BB9AAF949B5E7FC2CC9779DEF4D9`。脚本遇到不满足原合同则非零退出，补足旧仅打印结果的探针。
+- 本轮无法将 demo 8项失败归为新回归：旧记录已登记同类失败，未用同依赖版本复跑旧基线，T-18须做归因。无论归因如何，原明确完整门禁尚未满足。Rust后端及原生VM前端不因Vue/API/store通过自动闭合，执行记录已经明确未跑，本轮也未验证；不是需要默许接受的“非阻断债务”。
+- 下一步只修同一B01合同，不扩大为富文本/发布包。受影响旧任务重开，保持已验证子项；T-13–18完成并提交代码后重新复审，本轮不实施、不合并、不推送远端。
 
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 
