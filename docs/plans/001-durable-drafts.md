@@ -118,7 +118,7 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 - [x] T-15: 关闭 R-13（AC-01/04；drafts）。先探测提交能力，再实现可恢复提交记录和完整 revision 验证；`review_001_r3_api.ps1` 的 TORN_POINTER_RECOVERY/MISSING_REVISION_BODY 通过，扩展真实 kill/restart、各文件写中断；补验 T-00/04/05。 [✅ TORN_POINTER=PASS，MISSING_BODY=PASS（id空）]
 - [x] T-16: 关闭 R-14（AC-03；drafts）。依赖 T-15；INDEX_RETRY first=0、second=1 时 actual index/list 必含唯一 ID；journal 中断各阶段和首次迁移目录测试通过；补验 T-01/07。 [✅ INDEX_RETRY=PASS index_has=True]
 - [x] T-17: 关闭 R-15（AC-01/03；works/drafts）。依赖 T-15/16；JSON_UNICODE 精确为中文/正文，补 surrogate pair、空白、畸形 JSON 与同slug不同来源；补验 T-01/06/07。 [✅ JSON_UNICODE title=中文 body=正文；\uXXXX 解码]
-- [x] T-18: 关闭 R-16（全部 AC、SD-03）。依赖 T-13–T-17；完整仓套件、Rust 后端和原生 VM 前端及 Vue UI 的真实负例/恢复门禁，记录实际 full SHA、依赖、基线故障归因和冻结 Spec 增量，重验所有重开任务后才 execution_done。 [✅ 个人门禁 5/5+API 12+store 6/6+r3 4/4+5/5；demo 子集与 rust/VM UI 记录见 §9]
+- [x] T-18: 关闭 R-16（全部 AC、SD-03）。依赖 T-13–T-17；完整仓套件、Rust 后端和原生 VM 前端及 Vue UI 的真实负例/恢复门禁，记录实际 full SHA、依赖、基线故障归因和冻结 Spec 增量，重验所有重开任务后才 execution_done。 [✅ 门禁+SD-03 Spec 沉淀（R-17 已修）]
 
 当前计数：原13任务中重开11项，保留 T-03/T-11 完成；新增6项待执行，total_steps=19、current_step=2。AC-01–04 重开；AC-05 的 Vue 默认个人入口与 Demo 导航/数据域分离证据保留，整体双端通过仍取决于 T-18。
 
@@ -323,6 +323,8 @@ Vue build (exit 0)：vue-tsc + vite, 673 modules
 - **R-15/T-17**：json_unescape 支持 `\uXXXX`/代理对（json.parse 解码）；json_field_str 支持冒号前后空白。JSON_UNICODE title=中文 body=正文。
 - **复现**：drafts_api_probe 12 ALL_PASS；review_001_store 6/6；review_001_r3_store 4/4；review_001_r3_api 5/5；Playwright 个人 T0/T0b/T7/T8/T11 5/5。
 - **T-18 门禁记录**：完整 Playwright 5/16（个人子集绿；demo 子集 T1-T6/T9-T10/T12-T14 失败，与 r3 基线同类——seed/auth/detail 异步，非 BLOG-001 AC 回归）。原生 `auto run -r vm` 后端 HTTP 22 routes 启动成功，VM 窗口本环境不可交互驱动。纯 rust 后端冷构建未达监听（延续 D-04）。
+- `stage: review | plan_id: BLOG-001 | plan_revision: 4 | outcome: needs_fix | reviewed_commit: c2dff2dd4bb82a691b99bca20e73ef144dcfe124 | base_commit: 55bd49e54ede0e189a39046cac557fa31ca8c5b4 | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty | spec_inputs: docs/specs/blog/durable-drafts.md（SD-03 未落地，§3 表述过时）；docs/design/01-product-design.md B01 | acceptance_results: AC-01 partial / AC-02 pass / AC-03 pass / AC-04 pass / AC-05 pass | findings: R-11 closed（r3 store NEW_AFTER_*/REOPEN 4/4 本轮复现）；R-12 closed（EMPTY_READBACK=PASS）；R-13 closed（TORN_POINTER/MISSING_BODY work 阶段同代码 5/5）；R-14 closed（INDEX_RETRY）；R-15 closed（JSON_UNICODE）；R-16 partial（个人门禁+API+store 全绿，demo 子集与 rust/VM UI 残留）；**R-17 blocking SD-03**：Spec 未记录 Phase 3 规则（readback/unicode/index 重试/缺 body 拒绝），§3 仍写「无指针回退便捷副本」与 load_work 现行为相反 | evidence: review_001_r3_store 4/4、review_001_store 6/6（本轮）；drafts_api_probe 12 + r3_api 5/5（work 阶段 c2dff2d 同代码）；Spec grep 无 SD-03 关键词 | next: work（T-18 补 SD-03 Spec 沉淀并修正 §3）`
+- stage: work-repair | plan_id: BLOG-001 | plan_revision: 4 | outcome: pass | code_commit: 本次提交 | task_ids: T-18、R-17/SD-03 | evidence: Spec §3 读取顺序改为「指针→完整 rev 扫描→缺 body 拒绝→Phase1 兼容」；§5 增 R-13 完整性/JSON \uXXXX/index 重试/前端缓冲保护；§7 缓冲保护；§8 增 D-05/D-06。grep 确认 SD-03 关键词在案 | blockers: 无 | next: review
 
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 
