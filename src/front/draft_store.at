@@ -31,76 +31,105 @@ store DraftStore {
             .drafts = list_drafts()
         }
         .NewDraft -> {
-            // 有未存缓冲先保存（R-02：不丢本机版）
+            // R-11：未存缓冲必须先保存成功；失败/冲突则中止，不丢本机版
+            var can_create bool = true
             if .dirty && .has_current && .current.work_id != "" {
                 try {
                     let r0 = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
                     if r0.ok {
                         .dirty = false
+                    } else {
+                        can_create = false
+                        if r0.conflict {
+                            .save_state = "conflict"
+                            .error = "conflict rev " + r0.revision.to_string()
+                        } else {
+                            .save_state = "error"
+                            .error = "save_before_new_failed"
+                        }
+                    }
+                } catch {
+                    can_create = false
+                    .save_state = "error"
+                    .error = "save_before_new_failed"
+                }
+            }
+            if can_create {
+                try {
+                    let nw = create_draft("未命名草稿", "")
+                    if nw.work_id == "" {
+                        .save_state = "error"
+                        .error = "create_failed"
+                    } else {
+                        .current = nw
+                        .has_current = true
+                        .editing_title = "未命名草稿"
+                        .editing_body = ""
+                        .editing_summary = ""
+                        .editing_tags = ""
+                        .dirty = false
+                        .save_state = "saved"
+                        .error = ""
+                        .edit_seq = .edit_seq + 1
+                        .drafts = list_drafts()
                     }
                 } catch {
                     .save_state = "error"
-                    .error = "save_before_switch_failed"
-                }
-            }
-            try {
-                let nw = create_draft("未命名草稿", "")
-                if nw.work_id == "" {
-                    .save_state = "error"
                     .error = "create_failed"
-                } else {
-                    .current = nw
-                    .has_current = true
-                    .editing_title = "未命名草稿"
-                    .editing_body = ""
-                    .editing_summary = ""
-                    .editing_tags = ""
-                    .dirty = false
-                    .save_state = "saved"
-                    .error = ""
-                    .edit_seq = .edit_seq + 1
-                    .drafts = list_drafts()
                 }
-            } catch {
-                .save_state = "error"
-                .error = "create_failed"
             }
         }
         .OpenDraft(id str) -> {
-            if .dirty && .has_current && .current.work_id != "" && .current.work_id != id {
+            // R-11：任意切换（含同 ID 重开）都保护未存缓冲；失败则不切换
+            var can_open bool = true
+            var snap_body str = .editing_body
+            var snap_title str = .editing_title
+            if .dirty && .has_current && .current.work_id != "" {
                 try {
                     let r0 = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
                     if r0.ok {
                         .dirty = false
                     } else {
-                        // 保存失败：不切换，保留本机版（R-02）
-                        .save_state = "error"
-                        .error = "save_before_switch_failed"
+                        can_open = false
+                        if r0.conflict {
+                            .save_state = "conflict"
+                            .error = "conflict rev " + r0.revision.to_string()
+                        } else {
+                            .save_state = "error"
+                            .error = "save_before_switch_failed"
+                        }
                     }
                 } catch {
+                    can_open = false
                     .save_state = "error"
                     .error = "save_before_switch_failed"
                 }
             }
-            if .save_state == "error" && .error == "save_before_switch_failed" {
-                // 不切换
-            } else {
+            if can_open {
                 try {
                     let w = open_draft(id)
+                    // R-12：读回必须校验有效 ID
                     if w.work_id == "" {
                         .save_state = "error"
                         .error = "open_failed"
                     } else {
-                        .current = w
-                        .has_current = true
-                        .editing_title = w.title
-                        .editing_body = w.body
-                        .editing_summary = w.summary
-                        .editing_tags = w.tags
-                        .dirty = false
-                        .save_state = "saved"
-                        .error = ""
-                        .edit_seq = .edit_seq + 1
+                        // 同 ID 重开：读回正文须与刚保存快照一致，否则保留本机缓冲
+                        if .dirty == false && id == .current.work_id && w.body != snap_body && snap_body != "" {
+                            .save_state = "error"
+                            .error = "readback_mismatch"
+                            // 不覆盖 editing_* / current
+                        } else {
+                            .current = w
+                            .has_current = true
+                            .editing_title = w.title
+                            .editing_body = w.body
+                            .editing_summary = w.summary
+                            .editing_tags = w.tags
+                            .dirty = false
+                            .save_state = "saved"
+                            .error = ""
+                            .edit_seq = .edit_seq + 1
+                        }
                     }
                 } catch {
                     .save_state = "error"
@@ -154,21 +183,29 @@ store DraftStore {
                         .save_in_flight = false
                         if r.ok {
                             if snap_id == .current.work_id {
-                                .current = open_draft(snap_id)
-                                if .edit_seq == snap_seq {
-                                    .editing_title = .current.title
-                                    .editing_body = .current.body
-                                    .editing_summary = .current.summary
-                                    .editing_tags = .current.tags
-                                    .dirty = false
-                                    .save_state = "saved"
-                                    .error = ""
+                                // R-12：读回必须校验 ID/revision，空/错稿不当成功
+                                let back = open_draft(snap_id)
+                                if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision {
+                                    .save_state = "error"
+                                    .error = "readback_invalid"
+                                    // 保留本机编辑缓冲与 current
                                 } else {
-                                    .dirty = true
-                                    .save_state = "dirty"
-                                    .error = ""
+                                    .current = back
+                                    if .edit_seq == snap_seq {
+                                        .editing_title = back.title
+                                        .editing_body = back.body
+                                        .editing_summary = back.summary
+                                        .editing_tags = back.tags
+                                        .dirty = false
+                                        .save_state = "saved"
+                                        .error = ""
+                                    } else {
+                                        .dirty = true
+                                        .save_state = "dirty"
+                                        .error = ""
+                                    }
+                                    .drafts = list_drafts()
                                 }
-                                .drafts = list_drafts()
                             }
                         } else {
                             if r.conflict {
@@ -199,18 +236,24 @@ store DraftStore {
                     .save_in_flight = false
                     if r.ok {
                         if snap_id == .current.work_id {
-                            .current = open_draft(snap_id)
-                            if .edit_seq == snap_seq {
-                                .editing_title = .current.title
-                                .editing_body = .current.body
-                                .dirty = false
-                                .save_state = "saved"
-                                .error = ""
+                            let back = open_draft(snap_id)
+                            if back.work_id == "" || back.work_id != snap_id {
+                                .save_state = "error"
+                                .error = "readback_invalid"
                             } else {
-                                .dirty = true
-                                .save_state = "dirty"
+                                .current = back
+                                if .edit_seq == snap_seq {
+                                    .editing_title = back.title
+                                    .editing_body = back.body
+                                    .dirty = false
+                                    .save_state = "saved"
+                                    .error = ""
+                                } else {
+                                    .dirty = true
+                                    .save_state = "dirty"
+                                }
+                                .drafts = list_drafts()
                             }
-                            .drafts = list_drafts()
                         }
                     } else {
                         .save_state = "error"
@@ -228,20 +271,25 @@ store DraftStore {
         }
         .ResolveKeepTheirs -> {
             if .has_current && .current.work_id != "" {
-                let w = open_draft(.current.work_id)
-                if w.work_id == "" {
+                try {
+                    let w = open_draft(.current.work_id)
+                    if w.work_id == "" {
+                        .save_state = "error"
+                        .error = "reload_failed"
+                    } else {
+                        .current = w
+                        .editing_title = w.title
+                        .editing_body = w.body
+                        .editing_summary = w.summary
+                        .editing_tags = w.tags
+                        .dirty = false
+                        .save_state = "saved"
+                        .error = ""
+                        .edit_seq = .edit_seq + 1
+                    }
+                } catch {
                     .save_state = "error"
                     .error = "reload_failed"
-                } else {
-                    .current = w
-                    .editing_title = w.title
-                    .editing_body = w.body
-                    .editing_summary = w.summary
-                    .editing_tags = w.tags
-                    .dirty = false
-                    .save_state = "saved"
-                    .error = ""
-                    .edit_seq = .edit_seq + 1
                 }
             }
         }

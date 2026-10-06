@@ -82,17 +82,39 @@ fn current_ptr_path(root str, work_id str) str {
     return join_path(work_dir(root, work_id), "current.txt")
 }
 
-/// 读已提交 revision 号；0=无已确认版本。
+/// 读已提交 revision 号；指针损坏/缺失时扫描最高完整 revision（R-13）。
 fn read_current_rev(root str, work_id str) int {
     let p str = current_ptr_path(root, work_id)
-    if !fs.exists(p) {
-        return 0
+    var rev int = 0
+    if fs.exists(p) {
+        rev = fs.read_text(p).trim().to_int()
     }
-    return fs.read_text(p).trim().to_int()
+    if rev > 0 {
+        return rev
+    }
+    // 指针缺失/为空/损坏：找最高完整 revision（meta+body 成对）
+    var best int = 0
+    var k int = 1
+    while k <= 200 {
+        if revision_complete(root, work_id, k) {
+            best = k
+        }
+        k = k + 1
+    }
+    return best
+}
+
+/// revision 完整 = meta 与 body 文件都在（R-13：缺 body 不算完整）。
+fn revision_complete(root str, work_id str, rev int) bool {
+    if rev <= 0 {
+        return false
+    }
+    let rm str = rev_meta_path(root, work_id, rev)
+    let rb str = rev_body_path(root, work_id, rev)
+    return fs.exists(rm) && fs.exists(rb)
 }
 
 /// 提交新 revision：先写不可变 rev-N 快照并回读，再写 current 指针。
-/// 任一步失败则保留上一确认版本（current 不动）。true=新版本已确认。
 fn commit_revision(root str, w Work) bool {
     let wd str = work_dir(root, w.work_id)
     fs.create_dir(wd)
@@ -106,17 +128,15 @@ fn commit_revision(root str, w Work) bool {
     if !write_confirmed(rb, w.body) {
         return false
     }
-    // current 指针 = 提交点
     if !write_confirmed(current_ptr_path(root, w.work_id), w.revision.to_string()) {
         return false
     }
-    // 便捷副本（best-effort；失败不影响已提交 revision）
     write_confirmed(meta_path(root, w.work_id), meta)
     write_confirmed(body_path(root, w.work_id), w.body)
     return true
 }
 
-/// 按 revision 号装载完整 Work；失败返回 blank。
+/// 按 revision 号装载完整 Work；缺 body 不当空正文（R-13），返回 blank。
 fn load_revision(root str, work_id str, rev int) Work {
     if rev <= 0 {
         return blank_work("")
@@ -126,15 +146,21 @@ fn load_revision(root str, work_id str, rev int) Work {
     if !fs.exists(rm) {
         return blank_work("")
     }
+    // 缺 body → 不完整，拒绝
+    if !fs.exists(rb) {
+        return blank_work("")
+    }
     let meta str = fs.read_text(rm)
     if meta == "" {
         return blank_work("")
     }
-    var body str = ""
-    if fs.exists(rb) {
-        body = fs.read_text(rb)
+    let body str = fs.read_text(rb)
+    let w Work = work_from_meta_json(meta, body)
+    // 校验 meta 的 revision 与请求一致
+    if w.work_id == "" || w.revision != rev {
+        return blank_work("")
     }
-    return work_from_meta_json(meta, body)
+    return w
 }
 
 fn load_work(root str, work_id str) Work {
@@ -144,8 +170,25 @@ fn load_work(root str, work_id str) Work {
         if w.work_id != "" {
             return w
         }
+        // 指针指向的 revision 不完整（R-13）：拒绝，不静默降回便利副本/旧 revision
+        return blank_work("")
     }
-    // 兼容 Phase1 无 current.txt：回退便捷 meta/body
+    // 无指针：扫描最高完整 revision
+    var best int = 0
+    var k int = 1
+    while k <= 200 {
+        if revision_complete(root, work_id, k) {
+            let cand Work = load_revision(root, work_id, k)
+            if cand.work_id != "" {
+                best = k
+            }
+        }
+        k = k + 1
+    }
+    if best > 0 {
+        return load_revision(root, work_id, best)
+    }
+    // Phase1 兼容：便捷 meta/body（仅当无任何 revision）
     let mp str = meta_path(root, work_id)
     if !fs.exists(mp) {
         return blank_work("")
@@ -410,10 +453,15 @@ pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_t
     fs.create_dir(works_dir(root))
     let now int = time.now_sec()
     let w Work = make_work(work_id, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
-    // 若重试已有完整 revision，跳过重建
+    // 若重试已有完整 revision，跳过重建；但仍须确认 index（R-14）
     let cur_rev int = read_current_rev(root, work_id)
     if cur_rev <= 0 {
         if !write_work_files(root, w) {
+            return ""
+        }
+    } else {
+        // revision 已在，补 index 一致性
+        if !index_add(root, work_id) {
             return ""
         }
     }
