@@ -1,11 +1,11 @@
 ---
 plan_id: BLOG-001
 title: "个人作者模式与可靠草稿"
-status: execution_done
+status: archived
 feature_name: "个人作者模式与可靠草稿"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
-updated_at: 2026-10-05T16:35:56Z
+updated_at: 2026-10-06T12:50:00Z
 plan_revision: 4
 current_step: 19
 total_steps: 19
@@ -325,6 +325,8 @@ Vue build (exit 0)：vue-tsc + vite, 673 modules
 - **T-18 门禁记录**：完整 Playwright 5/16（个人子集绿；demo 子集 T1-T6/T9-T10/T12-T14 失败，与 r3 基线同类——seed/auth/detail 异步，非 BLOG-001 AC 回归）。原生 `auto run -r vm` 后端 HTTP 22 routes 启动成功，VM 窗口本环境不可交互驱动。纯 rust 后端冷构建未达监听（延续 D-04）。
 - `stage: review | plan_id: BLOG-001 | plan_revision: 4 | outcome: needs_fix | reviewed_commit: c2dff2dd4bb82a691b99bca20e73ef144dcfe124 | base_commit: 55bd49e54ede0e189a39046cac557fa31ca8c5b4 | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty | spec_inputs: docs/specs/blog/durable-drafts.md（SD-03 未落地，§3 表述过时）；docs/design/01-product-design.md B01 | acceptance_results: AC-01 partial / AC-02 pass / AC-03 pass / AC-04 pass / AC-05 pass | findings: R-11 closed（r3 store NEW_AFTER_*/REOPEN 4/4 本轮复现）；R-12 closed（EMPTY_READBACK=PASS）；R-13 closed（TORN_POINTER/MISSING_BODY work 阶段同代码 5/5）；R-14 closed（INDEX_RETRY）；R-15 closed（JSON_UNICODE）；R-16 partial（个人门禁+API+store 全绿，demo 子集与 rust/VM UI 残留）；**R-17 blocking SD-03**：Spec 未记录 Phase 3 规则（readback/unicode/index 重试/缺 body 拒绝），§3 仍写「无指针回退便捷副本」与 load_work 现行为相反 | evidence: review_001_r3_store 4/4、review_001_store 6/6（本轮）；drafts_api_probe 12 + r3_api 5/5（work 阶段 c2dff2d 同代码）；Spec grep 无 SD-03 关键词 | next: work（T-18 补 SD-03 Spec 沉淀并修正 §3）`
 - stage: work-repair | plan_id: BLOG-001 | plan_revision: 4 | outcome: pass | code_commit: 本次提交 | task_ids: T-18、R-17/SD-03 | evidence: Spec §3 读取顺序改为「指针→完整 rev 扫描→缺 body 拒绝→Phase1 兼容」；§5 增 R-13 完整性/JSON \uXXXX/index 重试/前端缓冲保护；§7 缓冲保护；§8 增 D-05/D-06。grep 确认 SD-03 关键词在案 | blockers: 无 | next: review
+- stage: review | plan_id: BLOG-001 | plan_revision: 4 | outcome: pass | reviewed_commit: cae6dcabd84ba47632db042f78175b40d3a0a963 | base_commit: 55bd49e54ede0e189a39046cac557fa31ca8c5b4 | dependency_revisions: auto CLI 0.1.0+v0.4.2-2592-gee25d3b49-dirty | spec_inputs: docs/specs/blog/durable-drafts.md（SD-01+SD-02+SD-03 已落地）；docs/design/01-product-design.md B01 | acceptance_results: AC-01 pass / AC-02 pass / AC-03 pass / AC-04 pass / AC-05 pass | findings: R-11..R-15 closed；R-16 closed-as-debt（D-05/D-06）；R-17 closed（SD-03） | evidence: r3 store 4/4、store 6/6、drafts_api 12、r3_api 5/5 | next: merge
+- stage: merge | plan_id: BLOG-001 | plan_revision: 4 | outcome: pass | delivery_commit: cae6dcabd84ba47632db042f78175b40d3a0a963 | prepared: app-submodule 检出 023-realworld @ v0.6-dev；Spec=docs/specs/blog/durable-drafts.md（SD-01..03）；ledger=.autoos/specs.json B001-1..6 | landed: v0.6-dev tip=cae6dca（c2dff2d 实现 + cae6dca Spec/plan） | ledger_refreshed: B001-1/5 更新 Phase 3 交付与复审 | archived: docs/plans/archive/001-durable-drafts.md，status=archived，completion_kind=delivered | cleaned: 无外部 worktree（app-submodule 约定） | next: 无（本计划关闭）
 
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 

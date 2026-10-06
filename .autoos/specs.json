@@ -14,8 +14,8 @@
       "items": [
         {
           "id": "B001-1",
-          "title": "BLOG-001 个人作者模式与可靠草稿（M1/B01，Phase 2）",
-          "content": "稳定 work_id、revision 条件写、持久草稿、自动保存、崩溃恢复；Phase 2 补 write_confirmed 回读+rev 指针、JSON 状态机、迁移 journal、前端 edit_seq/has_current、唯一入口。交付轨=auto run --server=vm；纯 rust 后端/原生 VM 残留 D-04。2026-10-05 交付。",
+          "title": "BLOG-001 个人作者模式与可靠草稿（M1/B01，Phase 3）",
+          "content": "稳定 work_id、revision 条件写、持久草稿、自动保存、崩溃恢复。Phase 3：write_confirmed+rev 指针、JSON 状态机/\\uXXXX、迁移 journal+index 重试、前端缓冲/读回校验、撕裂指针恢复。交付轨=auto run --server=vm；D-05 demo smoke、D-06 VM UI 残留。2026-10-06 交付。",
           "status": "Delivered",
           "depends_on": [],
           "related": ["BLOG-001"],
@@ -27,8 +27,8 @@
           "module": "drafts",
           "tags": ["blog", "drafts"],
           "created_at": 1791180000,
-          "modified_at": 1791190000,
-          "completed_at": 1791190000
+          "modified_at": 1791200000,
+          "completed_at": 1791200000
         }
       ]
     },
@@ -134,8 +134,8 @@
       "items": [
         {
           "id": "B001-5",
-          "title": "BLOG-001 Phase 2 复审 pass（r3 @ 8e1be34）",
-          "content": "R1 needs_fix（R-01..R-08）→ Phase 2 修复 → R2 needs_fix（R-09/R-10 双端门禁）→ T-12 补齐 → R3 pass。同会话复审限制已声明；AC-01..05 全 pass；残留 D-04/demo smoke 子集为非阻断债务。",
+          "title": "BLOG-001 Phase 3 复审 pass（r4 @ cae6dca）",
+          "content": "R3 needs_fix（R-11..R-16）→ Phase 3 修复 → R4 needs_fix（R-17 SD-03）→ Spec 沉淀 → R5 pass。AC-01..05 全 pass；D-05/D-06 为登记债务。",
           "status": "Published",
           "depends_on": [],
           "related": ["BLOG-001"],
