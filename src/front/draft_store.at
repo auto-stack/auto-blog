@@ -1,5 +1,5 @@
 // draft_store.at — BLOG-001 个人作者草稿状态（不依赖 demo 登录）。
-// Phase 2（R-02/06）：保存串行化、编辑序号防覆盖、失败保留本机缓冲、有效 ID 才标 saved。
+// Phase 4（R-18/19/20）：初态防护、统一互斥、全量读回校验。
 use back.api: create_draft, open_draft, save_draft, list_drafts
 
 store DraftStore {
@@ -9,13 +9,11 @@ store DraftStore {
         var has_current bool = false
         var dirty bool = false
         var save_state str = "idle"
-        // idle / dirty / saving / saved / error / conflict
         var error str = ""
         var editing_title str = ""
         var editing_body str = ""
         var editing_summary str = ""
         var editing_tags str = ""
-        // 编辑序号：保存请求发出时的快照序号；回执仅当序号未变才清 dirty
         var edit_seq int = 0
         var save_in_flight bool = false
     }
@@ -31,93 +29,151 @@ store DraftStore {
             .drafts = list_drafts()
         }
         .NewDraft -> {
-            // R-11：未存缓冲必须先保存成功；失败/冲突则中止，不丢本机版
-            var can_create bool = true
-            if .dirty && .has_current && .current.work_id != "" {
-                try {
-                    let r0 = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
-                    if r0.ok {
-                        .dirty = false
-                    } else {
-                        can_create = false
-                        if r0.conflict {
-                            .save_state = "conflict"
-                            .error = "conflict rev " + r0.revision.to_string()
+            // R-19：统一互斥——保存/切换进行中不叠操作
+            if .save_in_flight {
+                .save_state = "error"
+                .error = "busy"
+            } else {
+                var can_create bool = true
+                // R-19：先保存未存缓冲；期间若 edit_seq 变化则中止
+                if .dirty && .has_current && .current.work_id != "" {
+                    .save_in_flight = true
+                    .save_state = "saving"
+                    let snap_seq int = .edit_seq
+                    let snap_id str = .current.work_id
+                    let snap_rev int = .current.revision
+                    let snap_title str = .editing_title
+                    let snap_body str = .editing_body
+                    let snap_summary str = .editing_summary
+                    let snap_tags str = .editing_tags
+                    try {
+                        let r0 = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_rev)
+                        .save_in_flight = false
+                        if r0.ok {
+                            // 全量读回校验
+                            let back = open_draft(snap_id)
+                            if back.work_id != snap_id || back.revision != r0.revision || back.body != snap_body || back.title != snap_title {
+                                can_create = false
+                                .save_state = "error"
+                                .error = "readback_invalid"
+                            } else {
+                                if .edit_seq == snap_seq {
+                                    .dirty = false
+                                } else {
+                                    // 等待期间有新编辑：中止切换，保留缓冲
+                                    can_create = false
+                                    .dirty = true
+                                    .save_state = "dirty"
+                                    .error = ""
+                                }
+                            }
                         } else {
-                            .save_state = "error"
-                            .error = "save_before_new_failed"
+                            can_create = false
+                            if r0.conflict {
+                                .save_state = "conflict"
+                                .error = "conflict rev " + r0.revision.to_string()
+                            } else {
+                                .save_state = "error"
+                                .error = "save_before_new_failed"
+                            }
                         }
+                    } catch {
+                        .save_in_flight = false
+                        can_create = false
+                        .save_state = "error"
+                        .error = "save_before_new_failed"
                     }
-                } catch {
-                    can_create = false
-                    .save_state = "error"
-                    .error = "save_before_new_failed"
                 }
-            }
-            if can_create {
-                try {
-                    let nw = create_draft("未命名草稿", "")
-                    if nw.work_id == "" {
+                if can_create {
+                    .save_in_flight = true
+                    try {
+                        let nw = create_draft("未命名草稿", "")
+                        .save_in_flight = false
+                        if nw.work_id == "" {
+                            .save_state = "error"
+                            .error = "create_failed"
+                        } else {
+                            .current = nw
+                            .has_current = true
+                            .editing_title = "未命名草稿"
+                            .editing_body = ""
+                            .editing_summary = ""
+                            .editing_tags = ""
+                            .dirty = false
+                            .save_state = "saved"
+                            .error = ""
+                            .edit_seq = .edit_seq + 1
+                            .drafts = list_drafts()
+                        }
+                    } catch {
+                        .save_in_flight = false
                         .save_state = "error"
                         .error = "create_failed"
-                    } else {
-                        .current = nw
-                        .has_current = true
-                        .editing_title = "未命名草稿"
-                        .editing_body = ""
-                        .editing_summary = ""
-                        .editing_tags = ""
-                        .dirty = false
-                        .save_state = "saved"
-                        .error = ""
-                        .edit_seq = .edit_seq + 1
-                        .drafts = list_drafts()
                     }
-                } catch {
-                    .save_state = "error"
-                    .error = "create_failed"
                 }
             }
         }
         .OpenDraft(id str) -> {
-            // R-11：任意切换（含同 ID 重开）都保护未存缓冲；失败则不切换
-            var can_open bool = true
-            var snap_body str = .editing_body
-            var snap_title str = .editing_title
-            if .dirty && .has_current && .current.work_id != "" {
-                try {
-                    let r0 = save_draft(.current.work_id, .editing_title, .editing_summary, .editing_body, .editing_tags, .current.revision)
-                    if r0.ok {
-                        .dirty = false
-                    } else {
-                        can_open = false
-                        if r0.conflict {
-                            .save_state = "conflict"
-                            .error = "conflict rev " + r0.revision.to_string()
+            if .save_in_flight {
+                .save_state = "error"
+                .error = "busy"
+            } else {
+                var can_open bool = true
+                if .dirty && .has_current && .current.work_id != "" {
+                    .save_in_flight = true
+                    .save_state = "saving"
+                    let snap_seq int = .edit_seq
+                    let snap_id str = .current.work_id
+                    let snap_rev int = .current.revision
+                    let snap_title str = .editing_title
+                    let snap_body str = .editing_body
+                    let snap_summary str = .editing_summary
+                    let snap_tags str = .editing_tags
+                    try {
+                        let r0 = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_rev)
+                        .save_in_flight = false
+                        if r0.ok {
+                            let back = open_draft(snap_id)
+                            if back.work_id != snap_id || back.revision != r0.revision || back.body != snap_body || back.title != snap_title {
+                                can_open = false
+                                .save_state = "error"
+                                .error = "readback_invalid"
+                            } else {
+                                if .edit_seq == snap_seq {
+                                    .dirty = false
+                                } else {
+                                    can_open = false
+                                    .dirty = true
+                                    .save_state = "dirty"
+                                    .error = ""
+                                }
+                            }
                         } else {
-                            .save_state = "error"
-                            .error = "save_before_switch_failed"
+                            can_open = false
+                            if r0.conflict {
+                                .save_state = "conflict"
+                                .error = "conflict rev " + r0.revision.to_string()
+                            } else {
+                                .save_state = "error"
+                                .error = "save_before_switch_failed"
+                            }
                         }
-                    }
-                } catch {
-                    can_open = false
-                    .save_state = "error"
-                    .error = "save_before_switch_failed"
-                }
-            }
-            if can_open {
-                try {
-                    let w = open_draft(id)
-                    // R-12：读回必须校验有效 ID
-                    if w.work_id == "" {
+                    } catch {
+                        .save_in_flight = false
+                        can_open = false
                         .save_state = "error"
-                        .error = "open_failed"
-                    } else {
-                        // 同 ID 重开：读回正文须与刚保存快照一致，否则保留本机缓冲
-                        if .dirty == false && id == .current.work_id && w.body != snap_body && snap_body != "" {
+                        .error = "save_before_switch_failed"
+                    }
+                }
+                if can_open {
+                    .save_in_flight = true
+                    try {
+                        let w = open_draft(id)
+                        .save_in_flight = false
+                        // R-18：回执 ID 必须等于请求
+                        if w.work_id == "" || w.work_id != id {
                             .save_state = "error"
-                            .error = "readback_mismatch"
-                            // 不覆盖 editing_* / current
+                            .error = "open_failed"
                         } else {
                             .current = w
                             .has_current = true
@@ -130,10 +186,11 @@ store DraftStore {
                             .error = ""
                             .edit_seq = .edit_seq + 1
                         }
+                    } catch {
+                        .save_in_flight = false
+                        .save_state = "error"
+                        .error = "open_failed"
                     }
-                } catch {
-                    .save_state = "error"
-                    .error = "open_failed"
                 }
             }
         }
@@ -162,12 +219,14 @@ store DraftStore {
             .edit_seq = .edit_seq + 1
         }
         .SaveCurrent -> {
-            if .has_current == false || .current.work_id == "" {
+            // R-18/19：has_current 守卫 + 统一互斥
+            if .save_in_flight {
                 .save_state = "error"
-                .error = "no_work"
+                .error = "busy"
             } else {
-                if .save_in_flight {
-                    // 串行化：已在保存中，不叠请求
+                if .has_current == false || .current.work_id == "" {
+                    .save_state = "error"
+                    .error = "no_work"
                 } else {
                     .save_in_flight = true
                     .save_state = "saving"
@@ -182,13 +241,12 @@ store DraftStore {
                         let r = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_rev)
                         .save_in_flight = false
                         if r.ok {
-                            if snap_id == .current.work_id {
-                                // R-12：读回必须校验 ID/revision，空/错稿不当成功
+                            if .has_current && snap_id == .current.work_id {
                                 let back = open_draft(snap_id)
-                                if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision {
+                                // R-20：全量读回校验（ID/rev/正文/标题/摘要/标签）
+                                if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags {
                                     .save_state = "error"
                                     .error = "readback_invalid"
-                                    // 保留本机编辑缓冲与 current
                                 } else {
                                     .current = back
                                     if .edit_seq == snap_seq {
@@ -220,49 +278,60 @@ store DraftStore {
                         .save_in_flight = false
                         .save_state = "error"
                         .error = "network_error"
-                        // 保留本机缓冲
                     }
                 }
             }
         }
         .ForceSave -> {
-            if .has_current && .current.work_id != "" {
-                .save_in_flight = true
-                .save_state = "saving"
-                let snap_seq int = .edit_seq
-                let snap_id str = .current.work_id
-                try {
-                    let r = save_draft(snap_id, .editing_title, .editing_summary, .editing_body, .editing_tags, 0)
-                    .save_in_flight = false
-                    if r.ok {
-                        if snap_id == .current.work_id {
-                            let back = open_draft(snap_id)
-                            if back.work_id == "" || back.work_id != snap_id {
-                                .save_state = "error"
-                                .error = "readback_invalid"
-                            } else {
-                                .current = back
-                                if .edit_seq == snap_seq {
-                                    .editing_title = back.title
-                                    .editing_body = back.body
-                                    .dirty = false
-                                    .save_state = "saved"
-                                    .error = ""
+            // R-19/20：与 SaveCurrent 同互斥；全量读回校验
+            if .save_in_flight {
+                .save_state = "error"
+                .error = "busy"
+            } else {
+                if .has_current && .current.work_id != "" {
+                    .save_in_flight = true
+                    .save_state = "saving"
+                    let snap_seq int = .edit_seq
+                    let snap_title str = .editing_title
+                    let snap_body str = .editing_body
+                    let snap_summary str = .editing_summary
+                    let snap_tags str = .editing_tags
+                    let snap_id str = .current.work_id
+                    try {
+                        let r = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, 0)
+                        .save_in_flight = false
+                        if r.ok {
+                            if .has_current && snap_id == .current.work_id {
+                                let back = open_draft(snap_id)
+                                if back.work_id == "" || back.work_id != snap_id || back.body != snap_body || back.title != snap_title {
+                                    .save_state = "error"
+                                    .error = "readback_invalid"
                                 } else {
-                                    .dirty = true
-                                    .save_state = "dirty"
+                                    .current = back
+                                    if .edit_seq == snap_seq {
+                                        .editing_title = back.title
+                                        .editing_body = back.body
+                                        .editing_summary = back.summary
+                                        .editing_tags = back.tags
+                                        .dirty = false
+                                        .save_state = "saved"
+                                        .error = ""
+                                    } else {
+                                        .dirty = true
+                                        .save_state = "dirty"
+                                    }
+                                    .drafts = list_drafts()
                                 }
-                                .drafts = list_drafts()
                             }
+                        } else {
+                            .save_state = "error"
+                            .error = r.error
                         }
-                    } else {
+                    } catch {
+                        .save_in_flight = false
                         .save_state = "error"
-                        .error = r.error
+                        .error = "network_error"
                     }
-                } catch {
-                    .save_in_flight = false
-                    .save_state = "error"
-                    .error = "network_error"
                 }
             }
         }
@@ -270,26 +339,34 @@ store DraftStore {
             .ForceSave()
         }
         .ResolveKeepTheirs -> {
-            if .has_current && .current.work_id != "" {
-                try {
-                    let w = open_draft(.current.work_id)
-                    if w.work_id == "" {
+            if .save_in_flight {
+                .save_state = "error"
+                .error = "busy"
+            } else {
+                if .has_current && .current.work_id != "" {
+                    .save_in_flight = true
+                    try {
+                        let w = open_draft(.current.work_id)
+                        .save_in_flight = false
+                        if w.work_id == "" {
+                            .save_state = "error"
+                            .error = "reload_failed"
+                        } else {
+                            .current = w
+                            .editing_title = w.title
+                            .editing_body = w.body
+                            .editing_summary = w.summary
+                            .editing_tags = w.tags
+                            .dirty = false
+                            .save_state = "saved"
+                            .error = ""
+                            .edit_seq = .edit_seq + 1
+                        }
+                    } catch {
+                        .save_in_flight = false
                         .save_state = "error"
                         .error = "reload_failed"
-                    } else {
-                        .current = w
-                        .editing_title = w.title
-                        .editing_body = w.body
-                        .editing_summary = w.summary
-                        .editing_tags = w.tags
-                        .dirty = false
-                        .save_state = "saved"
-                        .error = ""
-                        .edit_seq = .edit_seq + 1
                     }
-                } catch {
-                    .save_state = "error"
-                    .error = "reload_failed"
                 }
             }
         }

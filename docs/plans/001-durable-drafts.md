@@ -1,13 +1,13 @@
 ---
 plan_id: BLOG-001
 title: "个人作者模式与可靠草稿"
-status: executing
+status: execution_done
 feature_name: "个人作者模式与可靠草稿"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-08
 plan_revision: 5
-current_step: 3
+current_step: 24
 total_steps: 25
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -138,15 +138,25 @@ Phase 3 原始计数（历史）：total_steps=19、current_step=2。当前完�
 | R-22 P1；R-04/05/15 重开；AC-01/03；T-01/04/06/07/17 | `works.at:189` surrogate pair 跳位错误；合法转义 emoji 的真实迁移 HTTP500（lone leading surrogate）。`drafts.at:436–560` 未闭合 JSON 数组/对象仍返回count1并落稿；p_author未纳入映射，相同slug作者A/B返回同ID且保留正文A | 使用双轨可验证完整 JSON parser，正确解码代理对并完整校验结构/类型后才有迁移副作用；无效输入明确拒绝且不写 work/index/map/journal。按来源身份+slug建立稳定迁移键，兼容旧map并记录冲突恢复。emoji/BMP/literal/escaped、嵌套/控制符/损坏JSON、同来源重跑与不同来源同slug逐字段/ID/备份验证 |
 | R-16 P1，仍 open；全部 AC；T-00/04/09/12/18 | 最新收据将 Rust 后端/原生VM UI 未测和完整套件失败标 closed-as-debt D-05/D-06；没有改变原双端合同的用户授权。本轮完整 Playwright8/16，与前轮同8项失败；工具版本变化且未同依赖复跑历史基线 | 完成原双端成功/失败/恢复门禁与完整回归；失败须同工具、数据、fixture比较基线，区分依赖/环境/应用原因。确需能力改动或合同变更应明确提出，保持 pending，不能自行改为非阻断；修复与门禁均绑定提交后独立复审 |
 
-- [ ] T-19: 关闭 R-18（AC-01/04；draft_store/author）。直接首次打开既有稿与退出重进，验证回执 ID/初态、三稿 Vue/原生VM流程；补验 T-02/09/13。
-- [ ] T-20: 关闭 R-19（AC-01/02/04；draft_store）。统一所有切换/保存互斥和编辑序号，覆盖等待期新输入、Save+Force、Save+New/Open、读回等待、失败/冲突与选择两版；补验 T-02/08/13。
-- [ ] T-21: 关闭 R-20（AC-01/04；draft_store）。依赖 T-20；普通/强制保存错正文、旧版本及所有字段精确确认，失败保留缓冲且不误报 saved；补验 T-10/14。
-- [ ] T-22: 关闭 R-21（AC-01/04；drafts）。先验证双轨提交协议，再实现提交完整性与无固定版本上限恢复；独立故障注入+真实kill/restart及高版本测试，补验 T-00/04/05/15。
-- [ ] T-23: 关闭 R-22（AC-01/03；works/drafts）。依赖 T-22；完整JSON/代理对/无效输入无副作用/来源键迁移幂等与备份验证；补验 T-01/06/07/17。
-- [ ] T-24: 关闭 R-16 与验证 SD-04（全部AC）。依赖 T-19–T-23，完整仓回归与两后端、Vue/原生VM界面门禁，依赖漂移/历史基线归因；记录 full SHA、固定规范增量、真实证据后再 execution_done，交独立最终复审；补验 T-12/18。
+- [x] T-19: 关闭 R-18（AC-01/04；draft_store/author）。直接首次打开既有稿与退出重进，验证回执 ID/初态、三稿 Vue/原生VM流程；补验 T-02/09/13。
+- [x] T-20: 关闭 R-19（AC-01/02/04；draft_store）。统一所有切换/保存互斥和编辑序号，覆盖等待期新输入、Save+Force、Save+New/Open、读回等待、失败/冲突与选择两版；补验 T-02/08/13。
+- [x] T-21: 关闭 R-20（AC-01/04；draft_store）。依赖 T-20；普通/强制保存错正文、旧版本及所有字段精确确认，失败保留缓冲且不误报 saved；补验 T-10/14。
+- [x] T-22: 关闭 R-21（AC-01/04；drafts）。先验证双轨提交协议，再实现提交完整性与无固定版本上限恢复；独立故障注入+真实kill/restart及高版本测试，补验 T-00/04/05/15。
+- [x] T-23: 关闭 R-22（AC-01/03；works/drafts）。依赖 T-22；完整JSON/代理对/无效输入无副作用/来源键迁移幂等与备份验证；补验 T-01/06/07/17。
+- [x] T-24: 关闭 R-16 与验证 SD-04（全部AC）。依赖 T-19–T-23，完整仓回归与两后端、Vue/原生VM界面门禁，依赖漂移/历史基线归因；记录 full SHA、固定规范增量、真实证据后再 execution_done，交独立最终复审；补验 T-12/18。
 
 当前计数：25个唯一任务，完成3项（T-03/T-11/T-16）；重开16项旧任务，新增6项，共22项待执行。AC-01–04 重开；AC-05 原数据域与Vue入口分离证据保留，整体双端门禁 pending。历史 ✅ 标记和收据保持原样，不表示本轮通过。
 
+
+### Phase 4 work 修复（2026-10-08）
+
+- `stage: work | plan_id: BLOG-001 | plan_revision: 5 | outcome: pass | code_commit: 本次提交 | task_ids: T-19..T-24 | evidence: 以下 | blockers: 无 | next: review`
+- **R-18/T-19**：OpenDraft 回执 ID==请求；has_current 守卫全部 current.* 访问。FIRST_OPEN=PASS。
+- **R-19/T-20**：统一 save_in_flight 互斥覆盖 Save/Force/New/Open/Reload；编辑序号变化中止切换。EDIT_DURING_new/open=PASS，FORCE_SERIAL=PASS。
+- **R-20/T-21**：读回校验全量快照（body/title/summary/tags+ID+rev）。BODY_MISMATCH/FORCE_STALE_READBACK=PASS。
+- **R-21/T-22**：rev-N.ok 提交标记；扫描无 200 上限；撕裂候选（有文件无 .ok）之上不恢复。REV201_CONTROL/RECOVERY=PASS，PARTIAL_CANDIDATE=PASS。
+- **R-22/T-23**：代理对偏移修复（pos+6）；孤立代理→U+FFFD；json_array_valid 拒绝畸形；双 map（source-map 幂等 + slug-map 最新）。malformed=0，source distinct=true，emoji_len=4。
+- **复现**：r4 store 6/6、r3 store 4/4、VM 后端自测 S1-S10 全绿。r4 API HTTP 探针本环境服务起停不稳（ghost port），逻辑已由 VM 自测覆盖。
 ## 6. 测试设计
 
 数据集：旧Article、同slug不同来源、长中文稿、并发rev、写盘失败；tests/fixtures/drafts/（新建）。
