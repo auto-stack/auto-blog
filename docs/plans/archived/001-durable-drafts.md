@@ -1,7 +1,7 @@
 ---
 plan_id: BLOG-001
 title: "个人作者模式与可靠草稿"
-status: executing
+status: archived
 feature_name: "个人作者模式与可靠草稿"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
@@ -26,7 +26,7 @@ touched_goals: ["auto-blog/first-real-release"]
 
 ## 1. 目标
 
-覆盖需求：B01（定义见[产品设计](../design/01-product-design.md)）。依赖：无，可从当前基线开始。
+覆盖需求：B01（定义见[产品设计](../../design/01-product-design.md)）。依赖：无，可从当前基线开始。
 
 原始导入commit用于识别来源，不要求后续计划回退到该commit；实际开工从最新v0.6-dev及已验收前序计划起步，在记录中填入实际HEAD。T0是有限能力核查；若需跨仓runtime改动，提交单独设计/计划，当前任务保留未完成验收，不偷偷将真实能力换成stub。
 
@@ -208,7 +208,7 @@ R-18 的 Vue 首次打开子项通过；普通保存全字段比对、失败new�
 
 数据集：旧Article、同slug不同来源、长中文稿、并发rev、写盘失败；tests/fixtures/drafts/（新建）。
 
-在D:/autostack/auto-os/apps/023-realworld本仓根以匹配当前基线的auto CLI分别启动`auto run`与`auto run -r vm`，端口17826 / 17827，使用隔离存储目录。依赖准备见[仓根README](../README.md)，不得把用户真实数据作为首次迁移样本。
+在D:/autostack/auto-os/apps/023-realworld本仓根以匹配当前基线的auto CLI分别启动`auto run`与`auto run -r vm`，端口17826 / 17827，使用隔离存储目录。依赖准备见[仓根README](../../README.md)，不得把用户真实数据作为首次迁移样本。
 
 本仓现有测试不保证覆盖新增产品能力。先建立tests下针对本计划的可重复fixture和驱动，在报告记录确切启动/执行命令；不得编造尚不存在的npm test/cargo test入口。使用AutoUI verifier现有双端驱动能力时，配置实际端口与app路径。
 
@@ -590,7 +590,7 @@ Vue build exit0：vue-tsc+vite 673 modules
 - 裁决说明：两项 pending 门禁均非本仓产品缺陷（其一为跨仓 a2r 转译缺陷且有 59 errors 的可复现根因，其二为环境能力缺失），不构成 AC 证据的削弱——AC-01..05 按已验证栈（VM HTTP 持久化 + 真实 Vue + store + 真实 kill/restart）判定 pass，双端门禁显式保留为收尾项并列入交付报告，由用户在 §10 两选项间裁决。R-28/R-29 修复后受影响 SD 候选（SD-06）内容与实现一致，可随 merge 沉淀。
 - 状态置 reviewed，交 merge。
 
-[整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
+[整体roadmap](../../roadmap-v0.6.md) · [agent执行说明](../../README.md)
 
 ## 10. 待澄清事项
 
