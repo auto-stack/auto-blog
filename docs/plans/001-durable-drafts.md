@@ -5,9 +5,9 @@ status: executing
 feature_name: "个人作者模式与可靠草稿"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
-updated_at: 2026-10-08
+updated_at: 2026-10-29
 plan_revision: 6
-current_step: 3
+current_step: 8
 total_steps: 31
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -22,7 +22,7 @@ touched_goals: ["auto-blog/first-real-release"]
 
 ## 0. 变更摘要
 
-Phase 4 修复已提交 a34520f。2026-10-08 最终复审：首次打开和上一轮多数反例通过，但后续等待期丢稿、强制保存字段/版本校验、恢复完整性与旧格式兼容、JSON及迁移升级/重试仍失败。沿用户的持续条件授权新增 Phase 5（revision 6），状态 executing，结论 needs_fix。只修改计划和复现证据，产品实现/Spec/ledger 未改。
+Phase 5 修复已提交（本次提交）。2026-10-08 最终复审的 R-23..R-27 全部实施并回放通过：store 互斥/编辑序号/全字段确认（r5_store 11/11）、恢复协议 .ok 清单+指针权威+高水位无上限+旧格式升级（r5 recovery 6/6）、完整 JSON 校验与代理对（r5 json 2/2）、迁移多映射一致与来源键（r5 migration 3/3）；r3/r4/原版探针回归通过，真实 Vue UI 两反例通过，完整套件 8过/8败与 r4/r5 基线一致（demo 域既有旧状，非新回归），并新增真实写中硬杀/重启验证（ALL_PASS）。r4 PARTIAL_CANDIDATE 一项与 SD-05「低版候选不得阻断后来确认版」存在协议分歧，交复审裁决（见 §9）。Rust 后端与原生 VM UI 门禁仍因环境不可用保持 pending（延续 D-04），R-16 未关闭。
 
 ## 1. 目标
 
@@ -173,14 +173,35 @@ R-18 的 Vue 首次打开子项通过；普通保存全字段比对、失败new�
 | R-27 P1；R-22解析重开；AC-01/03；T-01/04/06/17/23 | `drafts.at:567–616` 仅平衡括号，不检查JSON语法；两个对象缺逗号仍count2并落稿。`works.at:191–196` 仅首hex nibble>=D即跳12字节，合法非代理 `\uD000\u4e2d` 被读成“퀀”，丢“中”（应“퀀中”） | 完整JSON结构/类型/转义校验在任何迁移副作用之前完成；仅真实D800–DBFF + DC00–DFFF配对消费12字符，否则分别解码。覆盖缺逗号/冒号、括号类型、转义\b/\f/非法转义、嵌套同名字段、D000/E000/F000后连续Unicode和合法emoji；逐字段精确相等，无效输入零work/index/map/journal变化 |
 | R-16 P1，仍open；全部AC；T-00/04/09/12/18/19/24 | 交接保留demo smoke/VM UI债务，Rust后端与真实写中kill仍无本轮验收证据；T-24勾完且execution_done，但25任务实际只有9勾完，frontmatter却24。SD-04未实现完备，canonical未更新不视为缺陷本身，候选需验证后才沉淀 | 完成原完整门禁与两后端、Vue/原生VM成功/失败/恢复；按同工具/数据比较demo历史基线，保持未测pending。不把VM函数自测替代HTTP/实际UI。修正文档统计并记录committed full SHA、依赖、冻结规范候选后最终复审 |
 
-- [ ] T-25: 关闭R-23（AC-01/02/04；draft_store/author），统一完整操作互斥与每个await的编辑保护，确认版本推进；运行r5 store等待矩阵及r5真实Vue延迟open输入，补原生VM；补验T-02/08/13/20。
-- [ ] T-26: 关闭R-24（AC-01/04；draft_store），依赖T-25，普通/force/切前保存同等完整读回；独立错revision/summary/tags控制；补验T-10/14/21。
-- [ ] T-27: 关闭R-25（AC-01/04；drafts），双轨协议探测与提交内容校验、旧格式升级、无固定版本上限、可见恢复异常；运行r5 recovery及真实kill/restart；补验T-00/04/05/15/22。
-- [ ] T-28: 关闭R-26（AC-03；drafts），依赖T-27，旧map兼容与多map/journal一致重试、无歧义来源键；r5 migration + 所有映射失败/中断，核ID/list/原件/备份；补验T-01/07/16/17/23。
-- [ ] T-29: 关闭R-27（AC-01/03；works/drafts），依赖T-27/28，完整parser/代理范围正确处理，r5 json + 合法/非法矩阵及无副作用断言；补验T-01/04/06/17/23。
-- [ ] T-30: 关闭R-16并验证SD-05（全部AC），依赖T-25–29，完整套件及双端真实UI/后端/恢复，依赖/历史基线归因，修正全部checkbox与统计，修复提交后最终独立复审；补验T-12/18/19/24。
+- [x] T-25: 关闭R-23（AC-01/02/04；draft_store/author），统一完整操作互斥与每个await的编辑保护，确认版本推进；运行r5 store等待矩阵及r5真实Vue延迟open输入，补原生VM；补验T-02/08/13/20。 [✅ r5_store 11/11；r5_ui BROWSER_EDIT_IN_OPEN_WAIT=PASS；原生VM窗口门禁见T-30 pending]
+- [x] T-26: 关闭R-24（AC-01/04；draft_store），依赖T-25，普通/force/切前保存同等完整读回；独立错revision/summary/tags控制；补验T-10/14/21。 [✅ FORCE_MISMATCH_revision/summary/tags=PASS，NEW_PRE_SAVE_SUMMARY=PASS]
+- [x] T-27: 关闭R-25（AC-01/04；drafts），双轨协议探测与提交内容校验、旧格式升级、无固定版本上限、可见恢复异常；运行r5 recovery及真实kill/restart；补验T-00/04/05/15/22。 [✅ r5 recovery 6/6；真实硬杀120条批迁移+重启 ALL_PASS]
+- [x] T-28: 关闭R-26（AC-03；drafts），依赖T-27，旧map兼容与多map/journal一致重试、无歧义来源键；r5 migration + 所有映射失败/中断，核ID/list/原件/备份；补验T-01/07/16/17/23。 [✅ r5 migration 3/3；source_map_claims 归属检查；INDEX_RETRY/原版LOCKED_MAP 保持]
+- [x] T-29: 关闭R-27（AC-01/03；works/drafts），依赖T-27/28，完整parser/代理范围正确处理，r5 json + 合法/非法矩阵及无副作用断言；补验T-01/04/06/17/23。 [✅ BALANCED_INVALID_JSON=0、NON_SURROGATE_ADJACENT_UNICODE=퀀中、SURROGATE_PAIR=😀、INVALID_JSON_REJECTED=PASS]
+- [ ] T-30: 关闭R-16并验证SD-05（全部AC），依赖T-25–29，完整套件及双端真实UI/后端/恢复，依赖/历史基线归因，修正全部checkbox与统计，修复提交后最终独立复审；补验T-12/18/19/24。 [进度：完整套件8过/8败与r4/r5基线一致；真实kill/restart持久层 ALL_PASS；依赖漂移=auto-man CLI v0.0.20-117（全新绑定并全量重放）。Rust后端与原生VM UI窗口本环境不可用（延续D-04），R-16保持open，待用户裁决：提供验证环境或明确变更该门禁]
 
-当前计数：31个唯一任务，完成3项（T-03/T-11/T-16）；其余28项待执行/复验。T-19 Vue首次打开子项通过，但包含原生VM门禁，整体重开。T-16已确认index重试子项保留，迁移新增map一致性由T-28验证。AC-01–04未通过，AC-05数据域分离子项保留，整体双端pending；保持所有历史收据。
+当前计数：31个唯一任务，完成8项（T-03/T-11/T-16/T-25/T-26/T-27/T-28/T-29）；T-30进行中（完成套件/kill门禁，双端UI/后端环境门禁pending）。AC-01–04的修复反例全部回放通过，最终验收由独立复审裁决；AC-05数据域分离子项保留，整体双端pending；保持所有历史收据。
+
+### Phase 5 work 修复（2026-10-29，revision 6）
+
+- `stage: goal | plan_id: BLOG-001 | plan_revision: 6 | round: 1 | from: executing | to: work | status: executing | outcome: pass | worktree: D:/autostack/.wt/blog-001/auto-blog | commit: 本次提交 | next: review`
+- `stage: work | plan_id: BLOG-001 | plan_revision: 6 | outcome: pass | worktree_path: D:/autostack/.wt/blog-001/auto-blog | branch: plan-001-dev | base_commit: 08da63359c4f8d147c0c10f2c774d6feaad79425 | code_commit: 本次提交 | dependency_revisions: auto CLI 0.1.0+v0.0.20-117-g873fa23（auto-man @ e6cc06fbc496f366edde7929abfd49254ec13647，本机构建）；auto-lang 仓已无 CLI 产物（r5 绑定的 0.4.2-2785 工具链不存在） | task_ids: T-25..T-30 | evidence: 以下 | blockers: Rust后端/原生VM UI 环境门禁（D-04 延续）；r4 PARTIAL_CANDIDATE 协议分歧待裁决 | next_responsible_role: final review`
+- **授权与位置**：用户 /goal「完成计划001」整链授权（work/review/修复/合并），沿 §4 各轮「有问题重开新 phase」条件授权。023-realworld 旧检出已不存在；本独立仓（github.com/auto-work… auto-blog）为唯一权威检出，按 .wt 组约定新建专属 worktree `D:/autostack/.wt/blog-001/auto-blog` + 分支 `plan-001-dev`（基于 main @ 08da633），主检出零 WIP。提交仅含三个产品源文件与本计划。
+- **R-23/T-25**（draft_store.at）：互斥锁覆盖保存+读回+切换全程（不再在 save 回执后提前释放）；每个 await 前后核对 edit_seq——目标 create/open/reload 等待期编辑一律中止并保留本机缓冲；已确认保存推进 `.current` 至服务器确认版本（中止切换不再留旧 rev 造成下次冲突）。
+- **R-24/T-26**（draft_store.at）：SaveCurrent/ForceSave/切前保存统一为同一全字段读回确认（work_id/revision/body/title/summary/tags）。
+- **R-25/T-27**（drafts.at）：`.ok` 升级为持久清单 `{"work_id","revision","body_len"}`（body_len 取自 fs.file_size 实测字节）；commit 顺序 meta→body→.ok→指针→便利副本→高水位；指针=当前确认版本权威引用（目标内容/身份/清单矛盾 → blank 可见异常，不静默降级）；指针缺失 → 扫描恢复（持久 high-water + 动态边界，无固定上限；撕裂候选不提升也不阻断更高确认版）；整个 work 无任何 .ok 时按 Phase 1–3 旧格式内容校验升级并补写清单；Phase 1 纯便利副本兜底加身份校验。load_revision 增加 meta.work_id 与请求一致性校验。
+- **R-26/T-28**（drafts.at）：迁移键默认保持字面量 `author::slug`（兼容旧数据与观察），任一组件含 `::` 时切换长度编码（两态文本空间不相交，整键单射）；旧 slug-map 身份沿用前经 source-map 归属检查（已被其他来源认领的 ID 不沿用）；source-map 旧键升级期兼容；所有成功路径（含 existing 早返回）核对/修复 index 与 slug-map，作品文件缺失时由迁移内容重建。
+- **R-27/T-29**（works.at/drafts.at）：代理对仅在当前码点真实 D800–DBFF 且后随 DC00–DFFF 时成对消费 12 字符，否则单码点解码（修复 D000 相邻 Unicode 丢字）；孤立代理 U+FFFD；迁移前完整 JSON 校验（迭代式：结构/逗号/冒号/转义含 \b\f\uXXXX/字面量/数字/嵌套，根数组元素必须为对象），失败零副作用。
+- **回放证据（隔离数据 .tmp/review-r6-20261029，服务 `auto run --server vm -p 17836 -F 17836 -B 17837`，全部门禁在 plan-001-dev 最终代码上执行）**：
+  - store：r5_store 11/11（修复前 1/11）、r4_store 6/6、r3_store 4/4、原版 review_001_store 全过（路由/初态/错误态语义不变）。
+  - API：r5 recovery 6/6（截断已提交正文→可见异常、foreign meta→拒绝、旧格式→rev2 升级恢复、10001 控制与恢复）；r5 json 2/2；r5 migration 3/3（旧 ID 沿用、双 map 重试一致、来源键不碰撞）；r3_api 5/5；r4_api 6/7；drafts_api_probe 12 ALL_PASS；原版 review_001_api LOCKED_BODY/META_ROUNDTRIP/LOCKED_MAP(journal)/PRETTY_MIGRATION 全过。
+  - 真实 UI：r4_ui BROWSER_FIRST_OPEN=PASS、r5_ui BROWSER_EDIT_IN_OPEN_WAIT=PASS（真实 Chromium + Vue dev server，打开等待期输入保留且不误报已保存）。
+  - 完整套件：8 passed / 8 failed（2.4m），通过 T0/T0b/T4/T5/T6/T7/T8/T11，失败 T1/T2/T3/T9/T10/T12/T13/T14——与 r4/r5 复审单独复核基线逐项一致，同工具同 fixture，归因为 demo 域既有旧状（seed/详情异步），非本轮新回归。
+  - 真实 kill/restart（.tmp/kill_test.ps1，隔离 .tmp/review-r6-kill2，120 条批迁移 800ms 处 Stop-Process 硬杀）：客户端收到连接错误（无假成功）→ 重启后 kill 前控制稿逐字恢复 → 分块重试 todo 120→90→60→30→0 恰好完成（预杀 ~30 条经 journal/source-map 复用，零重复）→ 幂等重跑 count 30×4 且 ID 逐条稳定 → source-map 120 条与 index 121 条（控制稿+120）零悬挂引用 → 来源分离抽查 count=1。单稿保存内的瞬时窗口仍由确定性注入探针覆盖（torn/partial/截断/缺body），真实 kill 仅覆盖迁移窗口，如实记录。
+- **PARTIAL_CANDIDATE 协议分歧（r4_api 唯一非绿项，交复审裁决）**：该探针在 201 版 CONTROL/RECOVERY 之后构造无 .ok 的 rev2 候选并清空指针，期望服务 rev1。r6 协议下 CONTROL 步骤已把 rev201 合法确认升级（self-heal 清单+高水位，探针 finally 只还原 current.txt），扫描按 SD-05「不因低版候选阻断后来确认版」返回最高确认版 rev201；候选 rev2 正确地未被提升。要满足 rev1/blank 期望须重新引入 R-25 明文移除的「低版候选阻断」缺陷。未修改任何探针脚本。
+- **依赖漂移与绑定**：r5 复审绑定的 auto-lang CLI 二进制与产物已不存在（仓内已无 auto 包）；本轮改绑 auto-man @ e6cc06f 的 CLI v0.0.20-117（binary SHA256 记录于提交时）。旧 pass 不继承：r3/r4/r5/原版全部探针在本轮工具链上全量重放（结果如上）。VM HTTP 层存在单请求等待超时（r5 已记录），大批量验证采用 ≤30 条分块，不归因为应用回归。
+- **T-30/R-16 门禁现状**：完整套件（✅ 与基线一致归因完成）、真实 kill/restart 持久层（✅）已完成；Rust 后端冷构建与原生 `auto run -r vm` 可交互 UI 本机环境不可用（延续 D-04，四轮一致），保持 pending 未编造通过。SD-05 候增量的实现实质已验证；canonical Spec 更新归合并阶段沉淀。两开放门禁需要用户裁决：提供可交互原生 VM/可完成 Rust 构建的验证环境，或明确变更/退役该双端门禁。
+- 收尾：`auto build` 绿（vue-tsc+vite）；31 任务/8 完成/1 进行中与 frontmatter 一致；探针脚本零修改（kill_test.ps1 为 .tmp 本地证据，不入库）；canonical Spec 与本仓无独立 live ledger 未动，均留给复审/合并。
 
 ## 6. 测试设计
 
@@ -545,5 +566,9 @@ Vue build exit0：vue-tsc+vite 673 modules
 ## 10. 待澄清事项
 
 T-00需核实实际平台/运行时能力，负责者为本计划执行agent；输出具体API、可复现实验与独立阻塞提案。不存在先执行全局重构的隐含前置。核心验收变更须明确提出，不能用mock替换真实结果。
+
+Phase 5 work（2026-10-29）留交复审与用户的两个裁决点：
+1. R-16 双端门禁环境：Rust 后端冷构建与原生 `auto run -r vm` 可交互 UI 连续四轮在本机不可用（CLI 已迁至 auto-man 仓，旧 auto-lang 工具链产物不存在）。请用户提供可完成的 Rust 构建环境与可驱动原生 VM UI 的验证环境，或明确将该双端门禁变更为等效可验证据（如 VM HTTP + Vue 已覆盖的成功/失败/恢复矩阵 + 真实 kill/restart），否则该项保持 pending、不能宣布 AC 全体通过。
+2. r4 PARTIAL_CANDIDATE 协议分歧：见 §9 Phase 5 work 收据。r4 探针期望（清指针+撕裂候选下返回 rev1）与 SD-05「不因低版候选阻断后来确认版」不能同时成立；请复审确认 r6 协议语义（返回最高确认版 rev201）为准，或给出替代裁决。
 
 历史草案交接（revision 2）：stage=new；outcome=pass（草案，非代码验收）；next=work。当前状态以 Phase 5 与 frontmatter 为准；历史交付后重新激活，待修复。

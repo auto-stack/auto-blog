@@ -4,8 +4,16 @@
 // 双轨 API 面（T-00）：fs.write_text / fs.read_text / fs.exists / fs.create_dir / fs.is_dir / fs.file_size。
 // 写后必须 fs.exists 校验（返回码不可信）；禁用 fs.append_text；不用 fs.read_dir（a2r 不映射）。
 // 结构体一律全量构造。index.json 只存 work_id 数组，meta 存 works/<id>/meta.json。
+//
+// Phase 5 提交协议（R-25）：
+//   完整提交 = rev meta + rev body + .ok 持久清单（身份/版本/正文长度）+ current 指针。
+//   current 指针是当前确认版本的权威引用：指针目标不完整/损坏 → 可见异常（blank），
+//   不静默降级到旧版或便利副本；指针缺失/为空 → 扫描恢复（撕裂候选不提升）。
+//   旧格式升级：Phase 1–3 的 revision 无 .ok——仅当整个 work 无任何 .ok 时按内容
+//   校验取最高完整版并补写清单；混合状态（已有 .ok）下无 .ok 的 revision 是未提交候选。
+//   恢复扫描用持久高水位 + 动态边界，无固定版本上限。
 
-use works: Work, blank_work, make_work, new_work_id, work_to_meta_json, work_from_meta_json, join_path, json_escape, json_field_str, json_field_int
+use works: Work, blank_work, make_work, new_work_id, work_to_meta_json, work_from_meta_json, join_path, json_escape, json_field_str, json_field_int, hex_val
 
 /// 保存结果（与 api.SaveResult 同形；伴生模块自持类型）。
 pub type SaveResult = {
@@ -60,6 +68,10 @@ fn rev_ok_path(root str, work_id str, rev int) str {
     return join_path(rev_dir(root, work_id), "rev-" + rev.to_string() + ".ok")
 }
 
+fn hw_path(root str, work_id str) str {
+    return join_path(work_dir(root, work_id), "high-water.txt")
+}
+
 fn index_path(root str) str {
     return join_path(root, "index.json")
 }
@@ -86,65 +98,149 @@ fn current_ptr_path(root str, work_id str) str {
     return join_path(work_dir(root, work_id), "current.txt")
 }
 
-/// revision 完整提交 = meta + body + .ok 标记（R-21）。
-fn revision_complete(root str, work_id str, rev int) bool {
-    if rev <= 0 {
-        return false
+/// 持久高水位（R-25）：已观察到的最高 revision 号。恢复扫描以此为下界扩展，
+/// 无固定版本上限；仅增大，不回退。
+fn read_hw(root str, work_id str) int {
+    let p str = hw_path(root, work_id)
+    if !fs.exists(p) {
+        return 0
     }
-    return fs.exists(rev_meta_path(root, work_id, rev)) && fs.exists(rev_body_path(root, work_id, rev)) && fs.exists(rev_ok_path(root, work_id, rev))
-}
-
-fn revision_files_exist(root str, work_id str, rev int) bool {
-    if rev <= 0 {
-        return false
-    }
-    return fs.exists(rev_meta_path(root, work_id, rev)) && fs.exists(rev_body_path(root, work_id, rev))
-}
-
-/// 最低撕裂候选（有文件无 .ok）的 revision；无则 0。
-fn lowest_torn_candidate(root str, work_id str) int {
-    var k int = 1
-    while k <= 10000 {
-        if revision_files_exist(root, work_id, k) && !fs.exists(rev_ok_path(root, work_id, k)) {
-            return k
-        }
-        k = k + 1
+    let v int = fs.read_text(p).trim().to_int()
+    if v > 0 {
+        return v
     }
     return 0
 }
 
-/// 扫描最高已提交 revision；不提升撕裂候选及其以上版本（R-21）。
-fn scan_highest_committed(root str, work_id str) int {
-    let torn int = lowest_torn_candidate(root, work_id)
-    var best int = 0
-    var k int = 1
-    let limit int = 10000
-    while k <= limit {
-        if torn > 0 && k >= torn {
-            break
+fn bump_hw(root str, work_id str, rev int) {
+    if rev > read_hw(root, work_id) {
+        write_confirmed(hw_path(root, work_id), rev.to_string())
+    }
+}
+
+/// .ok 提交标记校验（R-25）。新格式 = 持久清单 JSON：
+/// {"work_id":..,"revision":N,"body_len":字节数}，逐项与磁盘核对；
+/// 旧格式（Phase 4）= 纯版本号文本，仅要求与 revision 一致。
+fn ok_marker_valid(root str, work_id str, rev int) bool {
+    let p str = rev_ok_path(root, work_id, rev)
+    if !fs.exists(p) {
+        return false
+    }
+    let t str = fs.read_text(p).trim()
+    if t == "" {
+        return false
+    }
+    if t.slice(0, 1) == "{" {
+        let mid str = json_field_str(t, "work_id")
+        let mrev int = json_field_int(t, "revision")
+        let mlen int = json_field_int(t, "body_len")
+        if mid != work_id || mrev != rev || mlen < 0 {
+            return false
         }
-        if revision_complete(root, work_id, k) {
-            best = k
+        let rb str = rev_body_path(root, work_id, rev)
+        if !fs.exists(rb) {
+            return false
+        }
+        return fs.file_size(rb) == mlen
+    }
+    return t == rev.to_string()
+}
+
+/// revision 内容校验：meta+body 存在、可解析、work_id/revision 与请求一致
+/// （不含 .ok 检查；R-25：错身份/缺 body 不当有效稿）。
+fn revision_content_valid(root str, work_id str, rev int) bool {
+    return load_revision(root, work_id, rev).work_id != ""
+}
+
+/// 读 current 指针原文（仅指针；缺失/空/非法返回 0）。
+fn read_pointer(root str, work_id str) int {
+    let p str = current_ptr_path(root, work_id)
+    if !fs.exists(p) {
+        return 0
+    }
+    let t str = fs.read_text(p).trim()
+    if t == "" {
+        return 0
+    }
+    let v int = t.to_int()
+    if v > 0 {
+        return v
+    }
+    return 0
+}
+
+/// 扫描恢复最高已确认 revision（R-25）。边界 = max(高水位, 最近见档 + 64)
+/// 动态扩展，无固定上限；有 .ok 的最高完整版优先；整个 work 无任何 .ok 时
+/// 视为 Phase 1–3 旧格式，按内容校验取最高完整版（由调用方补写清单升级）；
+/// 混合状态下无 .ok 的 revision 是未提交候选，不提升、不阻断更高确认版。
+fn scan_recover_rev(root str, work_id str) int {
+    let hw int = read_hw(root, work_id)
+    var bound int = hw + 64
+    if bound < 64 {
+        bound = 64
+    }
+    var any_ok bool = false
+    var best_committed int = 0
+    var best_legacy int = 0
+    var k int = 1
+    while k <= bound {
+        let has_ok bool = fs.exists(rev_ok_path(root, work_id, k))
+        let has_meta bool = fs.exists(rev_meta_path(root, work_id, k))
+        let has_body bool = fs.exists(rev_body_path(root, work_id, k))
+        if has_ok || has_meta || has_body {
+            if k + 64 > bound {
+                bound = k + 64
+            }
+        }
+        if has_ok {
+            any_ok = true
+            if ok_marker_valid(root, work_id, k) && revision_content_valid(root, work_id, k) {
+                best_committed = k
+            }
+        } else {
+            if has_meta && has_body && revision_content_valid(root, work_id, k) {
+                best_legacy = k
+            }
         }
         k = k + 1
     }
-    return best
+    if any_ok {
+        return best_committed
+    }
+    return best_legacy
 }
 
-/// 读已提交 revision 号；指针损坏/缺失时扫描最高已提交（R-13/21）。
+/// 读当前已确认 revision 号（迁移等存在性检查用）：指针优先，缺失时扫描。
 fn read_current_rev(root str, work_id str) int {
-    let p str = current_ptr_path(root, work_id)
-    var rev int = 0
-    if fs.exists(p) {
-        rev = fs.read_text(p).trim().to_int()
+    let ptr int = read_pointer(root, work_id)
+    if ptr > 0 {
+        return ptr
     }
-    if rev > 0 {
-        return rev
-    }
-    return scan_highest_committed(root, work_id)
+    return scan_recover_rev(root, work_id)
 }
 
-/// 提交新 revision：meta+body → .ok 标记 → current 指针。
+/// .ok 升级为持久清单 + 推进高水位（旧格式/旧标记升级，best-effort）。
+fn self_heal_commit(root str, work_id str, rev int) {
+    bump_hw(root, work_id, rev)
+    let p str = rev_ok_path(root, work_id, rev)
+    var need bool = true
+    if fs.exists(p) {
+        let t str = fs.read_text(p).trim()
+        if t != "" && t.slice(0, 1) == "{" {
+            need = false
+        }
+    }
+    if need {
+        let rb str = rev_body_path(root, work_id, rev)
+        if fs.exists(rb) {
+            let manifest str = "{\"work_id\":\"" + json_escape(work_id) + "\",\"revision\":" + rev.to_string() + ",\"body_len\":" + fs.file_size(rb).to_string() + "}"
+            write_confirmed(p, manifest)
+        }
+    }
+}
+
+/// 提交新 revision：meta+body → .ok 清单 → current 指针 → 便利副本 → 高水位。
+/// 指针仅在完整确认后写入（指针=权威引用，R-25）。
 fn commit_revision(root str, w Work) bool {
     let wd str = work_dir(root, w.work_id)
     fs.create_dir(wd)
@@ -159,7 +255,9 @@ fn commit_revision(root str, w Work) bool {
     if !write_confirmed(rb, w.body) {
         return false
     }
-    if !write_confirmed(rk, w.revision.to_string()) {
+    let blen int = fs.file_size(rb)
+    let manifest str = "{\"work_id\":\"" + json_escape(w.work_id) + "\",\"revision\":" + w.revision.to_string() + ",\"body_len\":" + blen.to_string() + "}"
+    if !write_confirmed(rk, manifest) {
         return false
     }
     if !write_confirmed(current_ptr_path(root, w.work_id), w.revision.to_string()) {
@@ -167,10 +265,12 @@ fn commit_revision(root str, w Work) bool {
     }
     write_confirmed(meta_path(root, w.work_id), meta)
     write_confirmed(body_path(root, w.work_id), w.body)
+    bump_hw(root, w.work_id, w.revision)
     return true
 }
 
-/// 按 revision 号装载完整 Work；缺 body 不当空正文（R-13），返回 blank。
+/// 按 revision 号装载完整 Work；缺 body 不当空正文，身份/版本必须一致
+/// （R-13/25），不完整返回 blank。
 fn load_revision(root str, work_id str, rev int) Work {
     if rev <= 0 {
         return blank_work("")
@@ -190,34 +290,39 @@ fn load_revision(root str, work_id str, rev int) Work {
     }
     let body str = fs.read_text(rb)
     let w Work = work_from_meta_json(meta, body)
-    // 校验 meta 的 revision 与请求一致
-    if w.work_id == "" || w.revision != rev {
+    if w.work_id == "" || w.work_id != work_id || w.revision != rev {
         return blank_work("")
     }
     return w
 }
 
+/// 装载当前确认版本（R-25）。指针存在时指针即权威：目标内容不完整/
+/// 身份不符，或 .ok 清单存在且与磁盘矛盾 → 返回 blank（可见恢复异常），
+/// 不静默降级；指针缺失/为空 → 扫描最高确认版（撕裂候选不提升，全旧
+/// 格式按内容升级）；最后兼容 Phase 1 纯便利副本。
 fn load_work(root str, work_id str) Work {
-    let rev int = read_current_rev(root, work_id)
-    if rev > 0 {
-        if revision_files_exist(root, work_id, rev) {
-            let w Work = load_revision(root, work_id, rev)
+    let ptr int = read_pointer(root, work_id)
+    if ptr > 0 {
+        var marker_ok bool = true
+        if fs.exists(rev_ok_path(root, work_id, ptr)) {
+            marker_ok = ok_marker_valid(root, work_id, ptr)
+        }
+        if revision_content_valid(root, work_id, ptr) && marker_ok {
+            let w Work = load_revision(root, work_id, ptr)
             if w.work_id != "" {
-                if !fs.exists(rev_ok_path(root, work_id, rev)) {
-                    write_confirmed(rev_ok_path(root, work_id, rev), rev.to_string())
-                }
+                self_heal_commit(root, work_id, ptr)
                 return w
             }
         }
-        let best int = scan_highest_committed(root, work_id)
-        if best > 0 {
-            return load_revision(root, work_id, best)
-        }
         return blank_work("")
     }
-    let best int = scan_highest_committed(root, work_id)
+    let best int = scan_recover_rev(root, work_id)
     if best > 0 {
-        return load_revision(root, work_id, best)
+        let w Work = load_revision(root, work_id, best)
+        if w.work_id != "" {
+            self_heal_commit(root, work_id, best)
+            return w
+        }
     }
     let mp str = meta_path(root, work_id)
     if !fs.exists(mp) {
@@ -232,7 +337,11 @@ fn load_work(root str, work_id str) Work {
     if fs.exists(bp) {
         body = fs.read_text(bp)
     }
-    return work_from_meta_json(meta, body)
+    let w Work = work_from_meta_json(meta, body)
+    if w.work_id != work_id {
+        return blank_work("")
+    }
+    return w
 }
 
 fn write_work_files(root str, w Work) bool {
@@ -485,7 +594,24 @@ fn write_source_map(root str, map_json str) bool {
     return write_confirmed(source_map_path(root), map_json)
 }
 
+/// 组合迁移键（R-26）。默认保持旧格式字面量 "author::slug"；
+/// 仅当任一组件自身含 "::" 时切换为长度编码 "<len>::<author>::<slug>"，
+/// 使 (author="A::B", slug="C") 与 (author="A", slug="B::C") 不再共享键。
+/// 编码态文本（首段为长度、其后组件必含 "::"）与字面量态文本（两组件
+/// 均不含 "::"）不相交，整键映射单射。
 fn migrate_key(p_author str, slug str) str {
+    var src str = p_author
+    if src == "" {
+        src = "_"
+    }
+    if src.find("::") >= 0 || slug.find("::") >= 0 {
+        return src.len().to_string() + "::" + src + "::" + slug
+    }
+    return src + "::" + slug
+}
+
+/// 旧格式键（revision 4/5 的 author::slug），升级期兼容查找用。
+fn legacy_migrate_key(p_author str, slug str) str {
     var src str = p_author
     if src == "" {
         src = "_"
@@ -493,18 +619,86 @@ fn migrate_key(p_author str, slug str) str {
     return src + "::" + slug
 }
 
+/// source-map 是否已有任一来源认领该作品 ID（R-26）。source-map 的
+/// 值均为 work_id（形如 "w-..."，键内引号必被转义），因此值起始的
+/// '"w-' 序列只会出现在值首。用于旧 slug-map 沿用前的归属检查：
+/// 已被其他来源认领的 ID 不得再次沿用。
+fn source_map_claims(root str, work_id str) bool {
+    var rest str = read_source_map(root)
+    let needle str = "\"w-"
+    var found bool = false
+    var scanning bool = true
+    while scanning {
+        let hit int = rest.find(needle)
+        if hit < 0 {
+            scanning = false
+        } else {
+            rest = rest.slice(hit + 1, rest.len())
+            let m int = rest.len()
+            var j int = 0
+            while j < m && rest.slice(j, j + 1) != "\"" {
+                j = j + 1
+            }
+            let val str = rest.slice(0, j)
+            if val == work_id {
+                found = true
+                scanning = false
+            } else {
+                if j + 1 >= m {
+                    scanning = false
+                } else {
+                    rest = rest.slice(j + 1, m)
+                }
+            }
+        }
+    }
+    return found
+}
+
 pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_tagList str, p_author str) str {
     let root str = data_root()
     let mkey str = migrate_key(p_author, slug)
+    let oldkey str = legacy_migrate_key(p_author, slug)
     fs.create_dir(root)
+    fs.create_dir(works_dir(root))
     let smap str = read_source_map(root)
-    let existing str = json_field_str(smap, mkey)
+    var existing str = json_field_str(smap, mkey)
+    if existing == "" {
+        // 旧格式 source-map 键的升级期兼容查找（R-26）
+        existing = json_field_str(smap, oldkey)
+    }
     if existing != "" {
+        // 幂等早返回同样核对/修复 index、legacy-map 与作品文件（R-26）
+        if !index_add(root, existing) {
+            return ""
+        }
+        let lmap str = read_slug_map(root)
+        if json_field_str(lmap, slug) != existing {
+            if !write_slug_map(root, map_put(lmap, slug, existing)) {
+                backup_file(slug_map_path(root))
+                return ""
+            }
+        }
+        if read_current_rev(root, existing) <= 0 && !fs.exists(meta_path(root, existing)) {
+            let now int = time.now_sec()
+            let w Work = make_work(existing, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
+            if !write_work_files(root, w) {
+                return ""
+            }
+        }
         return existing
     }
     let pending str = read_pending_map(root)
-    let pending_id str = json_field_str(pending, mkey)
-    var work_id str = pending_id
+    var work_id str = json_field_str(pending, mkey)
+    if work_id == "" {
+        // 旧 slug-map（Phase 1–3）身份升级：沿用已迁移作品 ID，不重复建稿；
+        // 但该 ID 已被 source-map 中其他来源认领时不得沿用（R-26）
+        let lmap0 str = read_slug_map(root)
+        let legacy_id str = json_field_str(lmap0, slug)
+        if legacy_id != "" && !source_map_claims(root, legacy_id) {
+            work_id = legacy_id
+        }
+    }
     if work_id == "" {
         work_id = new_work_id()
         if !write_pending_map(root, map_put(pending, mkey, work_id)) {
@@ -513,9 +707,9 @@ pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_t
     }
     fs.create_dir(works_dir(root))
     let now int = time.now_sec()
-    let w Work = make_work(work_id, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
     let cur_rev int = read_current_rev(root, work_id)
     if cur_rev <= 0 {
+        let w Work = make_work(work_id, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
         if !write_work_files(root, w) {
             return ""
         }
@@ -524,14 +718,16 @@ pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_t
             return ""
         }
     }
-    if !write_source_map(root, map_put(smap, mkey, work_id)) {
+    if !write_source_map(root, map_put(read_source_map(root), mkey, work_id)) {
         backup_file(source_map_path(root))
         return ""
     }
     let lmap str = read_slug_map(root)
-    if !write_slug_map(root, map_put(lmap, slug, work_id)) {
-        backup_file(slug_map_path(root))
-        return ""
+    if json_field_str(lmap, slug) != work_id {
+        if !write_slug_map(root, map_put(lmap, slug, work_id)) {
+            backup_file(slug_map_path(root))
+            return ""
+        }
     }
     return work_id
 }
@@ -563,62 +759,329 @@ fn skip_json_string(s str, start int) int {
     return n
 }
 
-/// 校验 JSON 数组结构合法（R-22：畸形输入拒绝且无副作用）。
-fn json_array_valid(items str) bool {
-    var s str = items.trim()
-    if s.len() < 2 {
-        return false
-    }
-    if s.slice(0, 1) != "[" || s.slice(s.len() - 1, s.len()) != "]" {
-        return false
-    }
-    // 括号配对 + 字符串边界
-    var depth int = 0
-    var i int = 0
+/// 跳过空白；返回下一个非空白下标。
+fn skip_ws(s str, i int) int {
+    var j int = i
     let n int = s.len()
-    while i < n {
-        let c str = s.slice(i, i + 1)
+    while j < n {
+        let c str = s.slice(j, j + 1)
+        if c == " " || c == "\t" || c == "\n" || c == "\r" {
+            j = j + 1
+        } else {
+            break
+        }
+    }
+    return j
+}
+
+/// 校验 JSON 字符串与转义（R-27）；start 指向开引号，返回闭引号后下标，非法 -1。
+fn scan_json_string(s str, start int) int {
+    let n int = s.len()
+    var j int = start + 1
+    while j < n {
+        let c str = s.slice(j, j + 1)
         if c == "\"" {
-            i = skip_json_string(s, i + 1)
-            if i > n {
-                return false
+            return j + 1
+        }
+        if c == "\\" {
+            if j + 1 >= n {
+                return -1
+            }
+            let e str = s.slice(j + 1, j + 2)
+            if e == "\"" || e == "\\" || e == "/" || e == "b" || e == "f" || e == "n" || e == "r" || e == "t" {
+                j = j + 2
+            } else {
+                if e == "u" {
+                    if j + 6 > n {
+                        return -1
+                    }
+                    if hex_val(s.slice(j + 2, j + 3)) < 0 || hex_val(s.slice(j + 3, j + 4)) < 0 || hex_val(s.slice(j + 4, j + 5)) < 0 || hex_val(s.slice(j + 5, j + 6)) < 0 {
+                        return -1
+                    }
+                    j = j + 6
+                } else {
+                    return -1
+                }
             }
         } else {
+            j = j + 1
+        }
+    }
+    return -1
+}
+
+/// 校验 JSON 数字（-? 整数 [. 分数] [eE 指数]）；返回结束下标，非法 -1。
+fn scan_json_number(s str, start int) int {
+    let n int = s.len()
+    var j int = start
+    if j < n && s.slice(j, j + 1) == "-" {
+        j = j + 1
+    }
+    var digits int = 0
+    while j < n {
+        let c str = s.slice(j, j + 1)
+        if c >= "0" && c <= "9" {
+            digits = digits + 1
+            j = j + 1
+        } else {
+            break
+        }
+    }
+    if digits == 0 {
+        return -1
+    }
+    if j < n && s.slice(j, j + 1) == "." {
+        j = j + 1
+        var fd int = 0
+        while j < n {
+            let c str = s.slice(j, j + 1)
+            if c >= "0" && c <= "9" {
+                fd = fd + 1
+                j = j + 1
+            } else {
+                break
+            }
+        }
+        if fd == 0 {
+            return -1
+        }
+    }
+    if j < n {
+        let c str = s.slice(j, j + 1)
+        if c == "e" || c == "E" {
+            j = j + 1
+            if j < n {
+                let sc str = s.slice(j, j + 1)
+                if sc == "+" || sc == "-" {
+                    j = j + 1
+                }
+            }
+            var ed int = 0
+            while j < n {
+                let c str = s.slice(j, j + 1)
+                if c >= "0" && c <= "9" {
+                    ed = ed + 1
+                    j = j + 1
+                } else {
+                    break
+                }
+            }
+            if ed == 0 {
+                return -1
+            }
+        }
+    }
+    return j
+}
+
+/// 完整 JSON 校验（R-27）：结构/逗号/冒号/转义/字面量/数字/嵌套全检，
+/// 且根数组每个元素必须是对象。校验在任何迁移副作用之前完成，
+/// 失败即整体拒绝（零副作用）。
+fn json_array_valid(items str) bool {
+    var s str = items.trim()
+    let n int = s.len()
+    if n < 2 {
+        return false
+    }
+    if s.slice(0, 1) != "[" || s.slice(n - 1, n) != "]" {
+        return false
+    }
+    // 栈：A=数组待值(可闭) a=数组已有元素 K=对象待键(可闭) o=对象已有键值对
+    var stack str = "A"
+    var i int = 1
+    var expect str = "value"
+    while i < n {
+        if expect == "value" {
+            i = skip_ws(s, i)
+            if i >= n {
+                return false
+            }
+            let c str = s.slice(i, i + 1)
+            let top str = stack.slice(stack.len() - 1, stack.len())
+            // 根数组元素必须是对象（迁移合同类型检查）
+            if stack.len() == 1 && c != "{" {
+                return false
+            }
             if c == "[" {
-                depth = depth + 1
+                stack = stack + "A"
                 i = i + 1
             } else {
-                if c == "]" {
-                    depth = depth - 1
-                    if depth < 0 {
+                if c == "{" {
+                    stack = stack + "K"
+                    i = i + 1
+                    expect = "key"
+                } else {
+                    if c == "]" && top == "A" {
+                        stack = stack.slice(0, stack.len() - 1)
+                        i = i + 1
+                        expect = "after"
+                    } else {
+                        if c == "\"" {
+                            let e int = scan_json_string(s, i)
+                            if e < 0 {
+                                return false
+                            }
+                            i = e
+                            if top == "A" {
+                                stack = stack.slice(0, stack.len() - 1) + "a"
+                            } else {
+                                if top == "K" {
+                                    stack = stack.slice(0, stack.len() - 1) + "o"
+                                }
+                            }
+                            expect = "after"
+                        } else {
+                            if (c >= "0" && c <= "9") || c == "-" {
+                                let e int = scan_json_number(s, i)
+                                if e < 0 {
+                                    return false
+                                }
+                                i = e
+                                if top == "A" {
+                                    stack = stack.slice(0, stack.len() - 1) + "a"
+                                } else {
+                                    if top == "K" {
+                                        stack = stack.slice(0, stack.len() - 1) + "o"
+                                    }
+                                }
+                                expect = "after"
+                            } else {
+                                var lit int = 0
+                                if i + 4 <= n && s.slice(i, i + 4) == "true" {
+                                    lit = 4
+                                }
+                                if lit == 0 && i + 5 <= n && s.slice(i, i + 5) == "false" {
+                                    lit = 5
+                                }
+                                if lit == 0 && i + 4 <= n && s.slice(i, i + 4) == "null" {
+                                    lit = 4
+                                }
+                                if lit == 0 {
+                                    return false
+                                }
+                                i = i + lit
+                                if top == "A" {
+                                    stack = stack.slice(0, stack.len() - 1) + "a"
+                                } else {
+                                    if top == "K" {
+                                        stack = stack.slice(0, stack.len() - 1) + "o"
+                                    }
+                                }
+                                expect = "after"
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            if expect == "key" {
+                i = skip_ws(s, i)
+                if i >= n {
+                    return false
+                }
+                let c str = s.slice(i, i + 1)
+                let top str = stack.slice(stack.len() - 1, stack.len())
+                if c == "}" && top == "K" {
+                    stack = stack.slice(0, stack.len() - 1)
+                    i = i + 1
+                    expect = "after"
+                } else {
+                    if c == "\"" {
+                        let e int = scan_json_string(s, i)
+                        if e < 0 {
+                            return false
+                        }
+                        i = e
+                        expect = "colon"
+                    } else {
+                        return false
+                    }
+                }
+            } else {
+                if expect == "colon" {
+                    i = skip_ws(s, i)
+                    if i >= n {
+                        return false
+                    }
+                    if s.slice(i, i + 1) != ":" {
                         return false
                     }
                     i = i + 1
+                    expect = "value"
                 } else {
-                    if c == "{" {
-                        depth = depth + 1
-                        i = i + 1
-                    } else {
-                        if c == "}" {
-                            depth = depth - 1
-                            if depth < 0 {
+                    // expect == "after"
+                    i = skip_ws(s, i)
+                    if i >= n {
+                        return false
+                    }
+                    if stack == "" {
+                        return false
+                    }
+                    let c str = s.slice(i, i + 1)
+                    let top str = stack.slice(stack.len() - 1, stack.len())
+                    if c == "," {
+                        if top == "a" {
+                            expect = "value"
+                        } else {
+                            if top == "o" {
+                                expect = "key"
+                            } else {
                                 return false
                             }
+                        }
+                        i = i + 1
+                    } else {
+                        if c == "]" {
+                            if top != "A" && top != "a" {
+                                return false
+                            }
+                            stack = stack.slice(0, stack.len() - 1)
                             i = i + 1
+                            expect = "after"
+                            // 闭合一层后父容器记为已有元素
+                            if stack != "" {
+                                let pt str = stack.slice(stack.len() - 1, stack.len())
+                                if pt == "A" {
+                                    stack = stack.slice(0, stack.len() - 1) + "a"
+                                } else {
+                                    if pt == "K" {
+                                        stack = stack.slice(0, stack.len() - 1) + "o"
+                                    }
+                                }
+                            }
                         } else {
-                            i = i + 1
+                            if c == "}" {
+                                if top != "K" && top != "o" {
+                                    return false
+                                }
+                                stack = stack.slice(0, stack.len() - 1)
+                                i = i + 1
+                                expect = "after"
+                                if stack != "" {
+                                    let pt str = stack.slice(stack.len() - 1, stack.len())
+                                    if pt == "A" {
+                                        stack = stack.slice(0, stack.len() - 1) + "a"
+                                    } else {
+                                        if pt == "K" {
+                                            stack = stack.slice(0, stack.len() - 1) + "o"
+                                        }
+                                    }
+                                }
+                            } else {
+                                return false
+                            }
                         }
                     }
                 }
             }
         }
     }
-    return depth == 0
+    return stack == "" && expect == "after"
 }
 
 /// 批量迁移。items_json 为对象数组串（允许 pretty 空白）。幂等。
+/// R-27：完整 JSON 校验在任何副作用之前，失败零写入。
 pub fn migrate_articles_batch(items_json str) int {
-    // R-22：结构校验失败直接拒绝，零副作用
     if !json_array_valid(items_json) {
         return 0
     }
@@ -691,4 +1154,3 @@ pub fn migration_status() str {
     out = out + "}"
     return out
 }
-
