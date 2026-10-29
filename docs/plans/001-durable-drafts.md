@@ -583,6 +583,13 @@ Vue build exit0：vue-tsc+vite 673 modules
 - **Rust 后端门禁新鲜证据（按复审要求以新工具链再尝试）**：`auto run`（默认 rust api）由 CLI 生成 `rust-workspace/auto-blog-back/`（a2r 转译自当前 .at）后 cargo 冷构建；CLI 120s 就绪看门狗先行超时后手动 `cargo build` 续建至编译终结：**59 errors**（E0433 `cannot find time in a2r_std` ×7 于 works.rs/drafts.rs 的 time.now_* 调用，及 E0308/E0061/E0277/E0599 于 db.rs 等）——a2r-std 缺少 time 映射等转译缺陷，属**跨仓框架问题**（plan §1/T-00 约定：跨仓改动单独设计/计划登记，不得在本计划内偷偷改框架或以 stub 顶替）。R-16 的 Rust 门禁因此定界：非本仓产品缺陷、非环境偶发，需独立 a2r 能力计划修复后才能验收；保持 pending 并入 §10 用户裁决点。
 - SD-06 候选行已按复审裁决加入 §5（字段类型校验 + 键转义一致/原位替换）；canonical 沉淀归合并。
 
+### Phase 5 复审·复验与最终裁决（2026-10-29，db207f2，review_scope: final）
+
+- `stage: review | review_scope: final | reviewer_identity: 本会话复审agent（同会话限制沿前述，以工件重建结论） | plan_id: BLOG-001 | plan_revision: 6 | outcome: pass | worktree_path: D:/autostack/.wt/blog-001/auto-blog | branch: plan-001-dev | reviewed_commit: db207f2e7b8b8226af7ed75ca26c26d75bb69887 | base_commit: 48b6a97e445b8bfb83d615c7fd013e562701f75c | dependency_revisions: auto CLI 0.1.0+v0.0.20-117-g873fa23（auto-man @ e6cc06f，binary SHA256=97CE3BDEDFC6C2A62FD71678D80B71003EC4985946FE406928308690FC2E4B19） | spec_inputs: docs/specs/blog/durable-drafts.md（canonical=cae6dca 版；SD-05/SD-06 候选归 merge 沉淀）、docs/design/01-product-design.md B01 | acceptance_results: AC-01 pass（VM HTTP+Vue 全矩阵+真实kill；原生/Rust 门禁显式pending）/ AC-02 pass（同上口径）/ AC-03 pass（RV7 幂等+迁移组全过）/ AC-04 pass（恢复边界+可见异常全过）/ AC-05 pass（数据域分离子项，双端整体门禁显式pending） | pending_closeout_gates: ①Rust 后端=a2r 转译产物 59 编译错误（E0433 a2r_std 缺 time 映射等），跨仓框架缺陷，须独立 a2r 能力计划；②原生 auto run -r vm 可交互 UI 四轮环境不可用。两项均用户裁决点（§10），不作为本计划产品缺陷关闭 | findings: 无新 finding；R-28/R-29 关闭确认；PARTIAL_CANDIDATE 维持前轮裁决 | evidence: 下列绑定重放 | next: merge`
+- 绑定重放（db207f2 提交态，隔离 .tmp/review-r6c，VM 17836/17837）：review_001_r6_review 7/7 ALL_PASS（R-28/R-29 关闭判据）；r5 recovery 6/6 + json 2/2 + migration 3/3；r3_api 5/5；drafts_api_probe 12 ALL_PASS；r4_api 6/7（唯一非绿=已裁决 PARTIAL_CANDIDATE，维持记录不改）；原版 review_001_api 4/4。draft_store.at 自 54a7aa7 未改，store 探针证据沿用（r5 11/11、r4 6/6、r3 4/4、原版语义一致）。完整套件与真实 kill/restart 证据沿用 round 1（代码未变）。
+- 裁决说明：两项 pending 门禁均非本仓产品缺陷（其一为跨仓 a2r 转译缺陷且有 59 errors 的可复现根因，其二为环境能力缺失），不构成 AC 证据的削弱——AC-01..05 按已验证栈（VM HTTP 持久化 + 真实 Vue + store + 真实 kill/restart）判定 pass，双端门禁显式保留为收尾项并列入交付报告，由用户在 §10 两选项间裁决。R-28/R-29 修复后受影响 SD 候选（SD-06）内容与实现一致，可随 merge 沉淀。
+- 状态置 reviewed，交 merge。
+
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 
 ## 10. 待澄清事项
