@@ -64,12 +64,16 @@ widget App {
 
     on {
         .Init -> {
-            store.Init()
-            store.LoadFeed()
+            // 多 store 裸 `store.Init()` 歧义（Auth/Article 均有 Init）——
+            // VM 渲染按 plan-446 A1 拒绝歧义调用；限定到意图归属：
+            // 会话恢复归 AuthStore，Feed 加载归 ArticleStore（其 LoadFeed
+            // 专名即为此设计，见 article_store.at 注）。
+            AuthStore.Init()
+            ArticleStore.LoadFeed()
         }
         .Logout -> {
-            store.Logout()
-            store.SetToken("")
+            AuthStore.Logout()
+            ArticleStore.SetToken("")
         }
         .GoProfile(username str) -> { router.push("/profile/" + username) }
         .GoAuthor -> { router.push("/") }
