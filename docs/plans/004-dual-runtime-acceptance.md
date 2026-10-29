@@ -6,7 +6,7 @@ author: [Codex]
 created_at: 2026-10-29
 updated_at: 2026-10-29
 plan_revision: 2
-current_step: 1
+current_step: 2
 total_steps: 10
 depends_on: ["BLOG-001", "auto-lang/PLAN-885", "auto-ui/PLAN-003"]
 supersedes_spec_components: ["docs/specs/blog/durable-drafts.md"]
@@ -114,7 +114,7 @@ T-02/T-03消费实际前置回执（已交付commit＋适用生成/运行证据�
 ## 8. 执行步骤
 
 - [x] T-01（owner_stage=work；依赖无；AC-01）：当前版本/两条全路径诊断与错误归组，输出baseline-and-routing.md；先固定真实工具链和数据目录，准备前置消费清单。证据：[docs/plans/evidence/004/baseline-and-routing.md](evidence/004/baseline-and-routing.md)（四仓 HEAD/CLI/源文件指纹；`auto service --server rust` 冷生成成功、`cargo build` exit 101 复现 001 同款 59 errors 并按 E0433×7/E0308×31/E0277×10/E0061×9/E0599×2 归组；`auto run -r vm --server rust` 因 Rust 编译门失败、`-r vm --server vm` 后端 VM HTTP 22 routes 可起但前端 17826 无监听且无原生窗口）。原始日志 docs/plans/attachments/004/（不入库）。
-- [ ] T-02（owner_stage=work；依赖T-01、auto-lang/PLAN-885实际交付；AC-02）：消费语言侧修复/无需修复回执，用其固定版本重新生成Blog Rust后端；只做必要纯.at兼容接入，不动已验存储语义；缺口未闭不继续Rust验收。
+- [x] T-02（owner_stage=work；依赖T-01、auto-lang/PLAN-885实际交付；AC-02）：消费语言侧修复/无需修复回执，用其固定版本重新生成Blog Rust后端；只做必要纯.at兼容接入，不动已验存储语义；缺口未闭不继续Rust验收。证据：重建 auto-man CLI（e6cc06f `cargo build -p auto` exit 0，新 auto.exe SHA256 `44B23860…`，旧 `C049ABE…`；链接 auto-lang master `dacd00184`=885 交付）；正式入口 `auto service --server rust -B 17829` 冷生成+release 编译 exit 0+`AUTO_SERVICE_READY` 服务就绪（纯 .at 零改动接入，存储语义未动）。过程中发现并清除 ui-003 时期遗留的陈旧 `rust-workspace/Cargo.toml`（钉在未含 885 修复的 `.wt/ui-003/auto-lang`）——首次再生成 37 errors；删除后生成器正确解析主检出；毒化清单复现实验中被正确重写（run3），run1 的保留现象未复现（记录为观察，见 §11）。HTTP 电池 13/13 PASS：中文/长中文创建、列表/打开回读、条件保存 rev1→2、陈旧 rev 冲突拒绝、迁移幂等、not_found/坏 body 4xx/坏内层 JSON→0/空 slug→0 负例（`tests/probe/drafts_api_probe.ps1` migrate 形状修正为生成合同 `{"items":"<json>"}` 并新增外层坏 body 负例）；`AUTO_BLOG_DATA` 隔离实测（`.tmp/t02-data` 落盘 index/works/slug-map，默认目录不存在）；time epoch 有效（created_at=1793275608==now）；停服务重启后回读逐字段一致。原始日志 docs/plans/attachments/004/t02-*（不入库；battery `05e6bce3`、gen2 `86bc2eb7`）。
 - [ ] T-03（owner_stage=work；依赖T-01、auto-ui/PLAN-003实际交付；AC-04）：接入已验证的原生启动/驱动入口，保留其VM HTTP隔离证据身份；若应用.at接缝需修，局限于既有作者任务，登记真实代码修改。
 - [ ] T-04（owner_stage=work；依赖T-02；AC-02/05）：建立tests/dual/verify_dual.py调度/隔离/失败传播，接真实Rust API电池及001存储负例，不建立第二套存储实现。
 - [ ] T-05（owner_stage=work；依赖T-04；AC-03/05）：Vue＋Rust真实交互、自动/手动保存、冲突/错误/重启回放，保存有区分力的UI与数据证据。
@@ -136,9 +136,13 @@ stage: goal | plan_id: BLOG-004 | plan_revision: 2 | round: 1 | from: new | to: 
 
 stage: goal | plan_id: BLOG-004 | plan_revision: 2 | round: 2 | from: work | to: work | status: executing | outcome: partial | worktree: D:/autostack/auto-blog/main | commit: 840aea0（T-01基线诊断已提交） | next: 用户授权继续执行两份前置（885 已交付）
 
+stage: work | plan_id: BLOG-004 | plan_revision: 2 | outcome: partial（T-02 完成；Rust 缺口经正式入口关闭） | worktree_path: D:/autostack/auto-blog（main，计划合同唯一开发/复审检出） | branch: main | base_commit: a258449 | code_commit: 本提交（tests/probe/drafts_api_probe.ps1 migrate 合同形状修正 + 本计划文档；.at 源零改动） | dependency_revisions: auto-lang master 09bb4148（交付 dacd00184，885 archived；主检出 docs/design/*.md 存在他人 WIP，未触碰）、auto-man e6cc06f（重建 auto.exe 44B23860）、auto-ui 0261ae9（未消费） | task_ids: T-02（已勾选附证据） | evidence: 正式入口 `auto service --server rust` 冷生成+编译 exit 0+服务就绪；电池 13/13 PASS（含迁移幂等与 5 负例）；AUTO_BLOG_DATA 落盘隔离实测；time epoch 有效；重启持久化逐字段一致；陈旧 rust-workspace 清单毒化已定位并记录观察（§11） | blockers: T-03/T-06 仍阻塞于 auto-ui/PLAN-003（drafting）；T-04/T-05 无阻塞可继续 | next_responsible_role: work（T-04 建 tests/dual/verify_dual.py，或 T-03 等前置交付）
+
 ## 11. 前置交付登记（round 2 续）
 
 **auto-lang/PLAN-885 已完整交付**（work→review→merge→archive→cleanup）：交付提交 `dacd00184c6b1db8332115349ac43b88de4e1a2b`（master，rebase 后 patch 等价验证），实现提交 `f5e2d1a9053a2a3c0d8a252486c853a83209fd0e`；ledger v137（P885-D1/D2/R1/REP）；归档 `docs/plans/archive/885-blog-generated-rust-backend-parity.md`（status: archived）。**BLOG-004 T-02 的 Rust 前置解除**：Blog 用 885 修复后的生成器冷生成 → cargo build exit 0（001 同款 59 errors 全部关闭：E0433 time×7/E0308×31/E0277×10/E0061×9/E0599×2），HTTP 创建/列表/保存/陈旧 rev 冲突/重启持久化全链路通过。**消费注意事项**：auto-man CLI（auto.exe C049ABE）仍链接旧 auto-lang，重建 CLI 后才能用正式 `auto run --server rust`/`auto service --server rust` 验收——重建属 auto-man 构建动作，T-02 执行时以 worktree 生成器或重建 CLI 进行。auto-ui/PLAN-003 仍 drafting，T-03 继续阻塞。
+
+**T-02 消费回执（2026-10-29，本轮）**：重建 CLI（44B23860）后经正式入口 `auto service --server rust -B 17829` 冷生成+编译 exit 0+服务就绪，电池 13/13 PASS——885 交付版本消费确认，Rust 缺口经正式入口关闭。**观察（非阻断，交最终复审/上游登记）**：Blog `rust-workspace/Cargo.toml` 曾存在 ui-003 时期遗留清单（钉 `.wt/ui-003/auto-lang`，未含 885 修复），首次再生成（19:55，新 CLI）保留了陈旧路径并复现 37 errors；删除清单后生成器正确解析主检出 `../../auto-lang/…`；将清单重新毒化后再生成则被正确重写（run3，日志 attachments/004/t02-gen3.log）——run1 的"保留陈旧清单"未能复现，成因未定位（候选：exe 替换竞态/文件锁窗口）。当前行为（毒化→重写正确）已验证；T-04 的 verify_dual.py 每轮从干净 rust-workspace 起步以规避不确定性。此坑属生成器落点/清单维护语义，归 auto-lang 上游知晓，不在 Blog 仓越仓修补。
 
 ## 10. 待澄清事项
 
