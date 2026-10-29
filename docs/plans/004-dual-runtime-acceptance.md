@@ -164,7 +164,7 @@ stage: work | plan_id: BLOG-004 | plan_revision: 2 | outcome: blocked（T-03 部
 
 1. **auto-ui/PLAN-003 交付**（T-03/T-06 前置）：原生 VM 真实窗口正控（可见、可驱动、退出重开）交付回执。该仓 PLAN-003 docs 正被他人 WIP 编辑中，本轮未触碰。
 2. ~~auto-ui Vue 渲染器页面 mounted 接线缺陷~~ **已交付关闭（2026-10-29）**：auto-ui/PLAN-010（裸 store.Method 归属路由，master a448d57：86a1006+131125d+3a3c12e，spec vue-bare-store-routing.md，worktree 已清理）→ T-05 15/15 EXIT=0。
-3. **auto-ui VM 渲染器 author 页动态加载静默失败**（T-03/T-06 关闭条件，新具名阻塞，2026-10-29）：`auto run -r vm --server rust` 窗口/壳/MCP 驱动/后端集成全通，但导航 '/' 时 author 页加载无任何输出即失败（无 Init 派发；对照 '/demo' home 页同机制成功、PLAN-003 无路由单页夹具正常）→ 原生窗口无法执行作者任务。嫌疑：author 页 timer（every_ms 3000）/多条件/列表模板特性。解除：在 auto-ui 登记 VM 动态页加载缺陷修复（PLAN-011 或并入在途 UI 计划；注意该仓另一会话正活跃于 UI-005）后，本计划 T-03/T-06 以同一 MCP 驱动模式续跑（接入面已验证），无需重新授权。
+3. **auto-ui VM 渲染器 author 页动态加载静默失败**（T-03/T-06 关闭条件，新具名阻塞，2026-10-29）：`auto run -r vm --server rust` 窗口/壳/MCP 驱动/后端集成全通，但导航 '/' 时 author 页加载无任何输出即失败（无 Init 派发；对照 '/demo' home 页同机制成功、PLAN-003 无路由单页夹具正常）→ 原生窗口无法执行作者任务。嫌疑：author 页 timer（every_ms 3000）/多条件/列表模板特性。解除：auto-ui/PLAN-015 已起草（2026-10-30，`docs/plans/015-vm-route-page-dynamic-load.md`，master 5ed4b30——编号避让 009/011，保守模式仅计划文档；T-01 有界调查定界根因，验收含消费者 native-vm-rust 全 profile EXIT=0）。开工唯一前置=与该仓 UI-005 在途会话协调确认；到位后 T-03/T-06 以同一 MCP 驱动模式续跑（接入面已验证），无需重新授权。
 3. 消费登记（Blog 侧已做的框架构建动作，均不改框架源）：重建 auto-man CLI（`cargo build -p auto`，新 hash 44B23860）；重建 auto-ui-tool（`cargo build -p auto-ui-tools --bin auto-ui-tool`）——`auto run --server rust` 的生成经该工具进程，旧 exe（15:04）不含 885 修复面。
 
 ## 11. T-01 阻塞（goal round 1）
