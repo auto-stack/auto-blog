@@ -1,12 +1,12 @@
 ---
 plan_id: BLOG-004
-status: drafting
+status: executing
 feature_name: dual-runtime-acceptance
 author: [Codex]
 created_at: 2026-10-29
 updated_at: 2026-10-29
 plan_revision: 2
-current_step: 0
+current_step: 1
 total_steps: 10
 depends_on: ["BLOG-001", "auto-lang/PLAN-885", "auto-ui/PLAN-003"]
 supersedes_spec_components: ["docs/specs/blog/durable-drafts.md"]
@@ -113,7 +113,7 @@ T-02/T-03消费实际前置回执（已交付commit＋适用生成/运行证据�
 
 ## 8. 执行步骤
 
-- [ ] T-01（owner_stage=work；依赖无；AC-01）：当前版本/两条全路径诊断与错误归组，输出baseline-and-routing.md；先固定真实工具链和数据目录，准备前置消费清单。
+- [x] T-01（owner_stage=work；依赖无；AC-01）：当前版本/两条全路径诊断与错误归组，输出baseline-and-routing.md；先固定真实工具链和数据目录，准备前置消费清单。证据：[docs/plans/evidence/004/baseline-and-routing.md](evidence/004/baseline-and-routing.md)（四仓 HEAD/CLI/源文件指纹；`auto service --server rust` 冷生成成功、`cargo build` exit 101 复现 001 同款 59 errors 并按 E0433×7/E0308×31/E0277×10/E0061×9/E0599×2 归组；`auto run -r vm --server rust` 因 Rust 编译门失败、`-r vm --server vm` 后端 VM HTTP 22 routes 可起但前端 17826 无监听且无原生窗口）。原始日志 docs/plans/attachments/004/（不入库）。
 - [ ] T-02（owner_stage=work；依赖T-01、auto-lang/PLAN-885实际交付；AC-02）：消费语言侧修复/无需修复回执，用其固定版本重新生成Blog Rust后端；只做必要纯.at兼容接入，不动已验存储语义；缺口未闭不继续Rust验收。
 - [ ] T-03（owner_stage=work；依赖T-01、auto-ui/PLAN-003实际交付；AC-04）：接入已验证的原生启动/驱动入口，保留其VM HTTP隔离证据身份；若应用.at接缝需修，局限于既有作者任务，登记真实代码修改。
 - [ ] T-04（owner_stage=work；依赖T-02；AC-02/05）：建立tests/dual/verify_dual.py调度/隔离/失败传播，接真实Rust API电池及001存储负例，不建立第二套存储实现。
@@ -130,8 +130,18 @@ r2起草校正：AC-02将泛称“CRUD”展开为001实际已有的创建/读�
 
 stage: new | plan_id: BLOG-004 | plan_revision: 2 | outcome: pass（首个有界诊断任务就绪；两份前置仅draft，运行缺口未关闭） | next: work/T-01（另行执行）。T-02/T-03等实际前置交付，未实施、未跑构建/双端验收，10项任务全部未勾选。001归档与002/003原合同保持。
 
+stage: work | plan_id: BLOG-004 | plan_revision: 2 | outcome: partial（T-01完成，T-02..T-08阻塞于前置未交付） | worktree_path: D:/autostack/auto-blog（main，本计划合同不建外部app worktree） | branch: main | base_commit: 48e0c831fb99fca73d8db64845d367ec22ba8f75 | code_commit: 无源码改动（仅docs） | dependency_revisions: auto-lang 69d90c52（885仍drafting/step0）、auto-ui b00fd30（003仍drafting/step0）、auto-man e6cc06f | task_ids: T-01（已勾选并附证据） | evidence: docs/plans/evidence/004/baseline-and-routing.md（四仓指纹；`auto service --server rust`冷生成成功；`cargo build` exit 101 复现59 errors=E0433×7/E0308×31/E0277×10/E0061×9/E0599×2；`-r vm --server rust`因Rust编译门整体不可运行；`-r vm --server vm`后端VM HTTP 22 routes可起但前端17826无监听、无原生窗口；AUTO_BLOG_DATA实现已读但运行时实测被编译门阻断）；原始日志docs/plans/attachments/004/（不入库） | blockers: auto-lang/PLAN-885、auto-ui/PLAN-003 均仍drafting/step0（仅prepare提交57382e9c0/d5c7b86），无实际交付回执可消费 | next_responsible_role: work（T-02/T-03），等前置实际交付。
+
+stage: goal | plan_id: BLOG-004 | plan_revision: 2 | round: 1 | from: new | to: work | status: executing | outcome: blocked | worktree: D:/autostack/auto-blog/main | commit: （docs未提交，待T-08统一提交） | next: user
+
 ## 10. 待澄清事项
 
 无须再次确认Rust/原生VM是否必须完成，用户已明确要求。技术不确定性由T-01及两份前置首任务负责：当前编译诊断数量/根因、CLI/ui工具是否旧构建、原生窗口是否有可驱动会话、真实数据env传递。如果需要外部交互桌面或越出已登记仓的能力，给出具体条件并保持依赖阻塞，不能静默修改验收口径。
 
 前置规划登记：auto-lang/PLAN-885 本地提交 `57382e9c046dee861b3d916d7eddd93b70e194df`；auto-ui/PLAN-003 本地提交 `d5c7b865c442d8f82a4afebb972f7f6d27bd1c89`。框架仓原有未推送历史及在途WIP未随本次起草推送；执行者使用上述本地主检出合同，框架交付时再登记实际发布版本。
+
+## 11. T-01 阻塞（goal round 1）
+
+T-01 已完成（见 §8 证据与 §9 work 回执）：当前版本可复现 001 同款 59 Rust errors 并完成根因归组（time 路径/字符串借用/int 宽度/模块类型/函数签名，全部归 auto-lang/PLAN-885），原生 VM 前端窗口未启动（归 auto-ui/PLAN-003）。**T-02/T-03 需要两份前置的实际交付回执（已交付commit＋适用生成/运行证据），当前两者均仍 drafting/step0（仅 prepare 提交），故 work 阶段阻塞**。
+
+解除阻塞动作（精确）：在 auto-lang 执行 PLAN-885（先其 T-01 诊断再修复，交付 885 回执）并在 auto-ui 执行 PLAN-003（交付原生窗口正控回执）；各自回执到位后回到本计划继续 T-02/T-03。无需重新授权——用户 2026-10-29 已明确要求补齐 Rust 后端与原生 VM 运行验收。
