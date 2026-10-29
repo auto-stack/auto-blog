@@ -50,6 +50,6 @@ AutoOS 通过 [`apps/023-realworld`](https://github.com/auto-stack/auto-os/tree/
 
 ## 当前优先计划（2026-10-29）
 
-[BLOG-004：Rust后端与原生VM界面运行及验收补齐](docs/plans/004-dual-runtime-acceptance.md)为当前后续合同，drafting/r1、未实施。关联auto-lang/PLAN-885（Rust生成链）和auto-ui/PLAN-003（原生输入/生命周期前置）；两项实际交付后仍须Blog本身完成Vue＋Rust与原生VM＋Rust用户任务。002/003的增强范围另行安排，001不重开。
+[BLOG-004：Rust后端与原生VM界面运行及验收补齐](docs/plans/004-dual-runtime-acceptance.md)为当前后续合同，drafting/r2、未实施。关联auto-lang/PLAN-885（Rust生成链）和auto-ui/PLAN-003（原生输入/生命周期前置）；两项实际交付后仍须Blog本身完成Vue＋Rust与原生VM＋Rust用户任务。002/003的增强范围另行安排，001不重开。
 
 开发在 `D:/autostack/auto-blog` 独立clone的main；先push应用，再更新AutoOS组合子模块的精确提交。Linux适配仍等待auto-os-distro完成Nix＋COSMIC基础，本计划的Windows运行验收不等待该基础。

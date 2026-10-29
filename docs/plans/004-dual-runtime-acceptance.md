@@ -5,7 +5,7 @@ feature_name: dual-runtime-acceptance
 author: [Codex]
 created_at: 2026-10-29
 updated_at: 2026-10-29
-plan_revision: 1
+plan_revision: 2
 current_step: 0
 total_steps: 10
 depends_on: ["BLOG-001", "auto-lang/PLAN-885", "auto-ui/PLAN-003"]
@@ -104,7 +104,7 @@ T-02/T-03消费实际前置回执（已交付commit＋适用生成/运行证据�
 | ID | owner_stage | 结果与关闭证据 |
 |---|---|---|
 | AC-01 | work | 当前错误/原生启动失败可复现或有不复现的有效正控；逐根因归组、owner/前置/关闭条件、真实版本/数据根/配置可追溯，无未具名必需路径 |
-| AC-02 | work | 纯.at经公开入口冷生成、Rust编译exit0，真实服务健康/草稿CRUD/迁移/条件revision与001语义一致；time产生有效epoch而非0，占位/手修生成物不算 |
+| AC-02 | work | 纯.at经公开入口冷生成、Rust编译exit0，真实服务健康/草稿创建/读取/保存/迁移/条件revision与001语义一致；time产生有效epoch而非0，占位/手修生成物不算 |
 | AC-03 | work | Vue＋Rust后端从真实输入完成创建、编辑/自动保存、重开及可见冲突/失败保护；数据与HTTP/磁盘一致 |
 | AC-04 | work | 原生VM真实窗口＋Rust后端完成同一任务及正常/异常退出后恢复，驱动行为确实到达UI；VM HTTP隔离或窗口可见不能代替 |
 | AC-05 | work | V-04/05/06含失败控制及恢复后的下一次操作通过；驱动不可用/超时/零选择明确失败，两条profile永久入口可重复运行；无必需门pending |
@@ -126,7 +126,9 @@ T-02/T-03消费实际前置回执（已交付commit＋适用生成/运行证据�
 
 ## 9. 复审记录
 
-stage: new | plan_id: BLOG-004 | plan_revision: 1 | outcome: pass（首个有界诊断任务就绪；两份前置仅draft，运行缺口未关闭） | next: work/T-01（另行执行）。T-02/T-03等实际前置交付，未实施、未跑构建/双端验收，10项任务全部未勾选。001归档与002/003原合同保持。
+r2起草校正：AC-02将泛称“CRUD”展开为001实际已有的创建/读取/保存/迁移，明确不加入删除草稿新功能；T-01..10与其余AC不变。r1原稿保留于 `d844b8b5223f8197441704cfb9a4b67d0deb0ba2`，本修订继承用户原运行验收范围。
+
+stage: new | plan_id: BLOG-004 | plan_revision: 2 | outcome: pass（首个有界诊断任务就绪；两份前置仅draft，运行缺口未关闭） | next: work/T-01（另行执行）。T-02/T-03等实际前置交付，未实施、未跑构建/双端验收，10项任务全部未勾选。001归档与002/003原合同保持。
 
 ## 10. 待澄清事项
 

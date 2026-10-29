@@ -16,7 +16,7 @@
 
 ## 给执行agent
 
-先读仓根README、对应计划及当前Spec，核对实际HEAD/WIP/依赖版本。001保持归档，004为drafting/r1、仅起草；当前授权为计划准备，不自动执行002/003/004。功能执行按new/work/review/merge及既有验收纪律，不以文档或勾选代替用户任务。
+先读仓根README、对应计划及当前Spec，核对实际HEAD/WIP/依赖版本。001保持归档，004为drafting/r2、仅起草；当前授权为计划准备，不自动执行002/003/004。功能执行按new/work/review/merge及既有验收纪律，不以文档或勾选代替用户任务。
 
 本轮在各独立应用仓内从001–003编号，plan_id带应用前缀；核对本仓活动/归档计划为空后独占创建，不占用AutoLang/AutoOS的.next-id，也不与主力机739/740共用编号。新建后续计划按本仓取号机制检查活动及归档目录；本批不重新分配已存在ID。工作位置按2026-10-04用户约定，统一使用D:/autostack/auto-blog独立clone的main；AutoOS内apps/auto-blog仅固定已交付pin，修改推送后再集成。旧apps/023-realworld与v0.6-dev仅作历史，不作为当前开发入口。不同app可并行，同app保持一个写入者，禁止junction/symlink。
 
