@@ -134,6 +134,12 @@ stage: work | plan_id: BLOG-004 | plan_revision: 2 | outcome: partial（T-01完�
 
 stage: goal | plan_id: BLOG-004 | plan_revision: 2 | round: 1 | from: new | to: work | status: executing | outcome: blocked | worktree: D:/autostack/auto-blog/main | commit: （docs未提交，待T-08统一提交） | next: user
 
+stage: goal | plan_id: BLOG-004 | plan_revision: 2 | round: 2 | from: work | to: work | status: executing | outcome: partial | worktree: D:/autostack/auto-blog/main | commit: 840aea0（T-01基线诊断已提交） | next: 用户授权继续执行两份前置（885 已交付）
+
+## 11. 前置交付登记（round 2 续）
+
+**auto-lang/PLAN-885 已完整交付**（work→review→merge→archive→cleanup）：交付提交 `dacd00184c6b1db8332115349ac43b88de4e1a2b`（master，rebase 后 patch 等价验证），实现提交 `f5e2d1a9053a2a3c0d8a252486c853a83209fd0e`；ledger v137（P885-D1/D2/R1/REP）；归档 `docs/plans/archive/885-blog-generated-rust-backend-parity.md`（status: archived）。**BLOG-004 T-02 的 Rust 前置解除**：Blog 用 885 修复后的生成器冷生成 → cargo build exit 0（001 同款 59 errors 全部关闭：E0433 time×7/E0308×31/E0277×10/E0061×9/E0599×2），HTTP 创建/列表/保存/陈旧 rev 冲突/重启持久化全链路通过。**消费注意事项**：auto-man CLI（auto.exe C049ABE）仍链接旧 auto-lang，重建 CLI 后才能用正式 `auto run --server rust`/`auto service --server rust` 验收——重建属 auto-man 构建动作，T-02 执行时以 worktree 生成器或重建 CLI 进行。auto-ui/PLAN-003 仍 drafting，T-03 继续阻塞。
+
 ## 10. 待澄清事项
 
 无须再次确认Rust/原生VM是否必须完成，用户已明确要求。技术不确定性由T-01及两份前置首任务负责：当前编译诊断数量/根因、CLI/ui工具是否旧构建、原生窗口是否有可驱动会话、真实数据env传递。如果需要外部交互桌面或越出已登记仓的能力，给出具体条件并保持依赖阻塞，不能静默修改验收口径。
