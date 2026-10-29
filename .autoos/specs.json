@@ -1,6 +1,6 @@
 {
   "project": "auto-blog",
-  "version": 1,
+  "version": 2,
   "sections": [
     {
       "id": "goals",
@@ -14,21 +14,21 @@
       "items": [
         {
           "id": "B001-1",
-          "title": "BLOG-001 个人作者模式与可靠草稿（M1/B01，Phase 3）",
-          "content": "稳定 work_id、revision 条件写、持久草稿、自动保存、崩溃恢复。Phase 3：write_confirmed+rev 指针、JSON 状态机/\\uXXXX、迁移 journal+index 重试、前端缓冲/读回校验、撕裂指针恢复。交付轨=auto run --server=vm；D-05 demo smoke、D-06 VM UI 残留。2026-10-06 交付。",
+          "title": "BLOG-001 个人作者模式与可靠草稿（M1/B01，Phase 5 交付）",
+          "content": "稳定 work_id、revision 条件写、持久草稿、自动保存、崩溃恢复。Phase 5：.ok 持久清单提交（身份/版本/正文长度）+指针权威可见异常恢复、持久高水位无固定上限、旧格式升级、代理对精确解码、完整 JSON+字段类型校验、来源键编码与转义一致/原位替换、统一互斥锁覆盖保存+读回+切换。2026-10-29 交付（delivered）。双端门禁（Rust 后端=a2r 跨仓缺陷；原生 VM UI=环境）显式 pending 待用户裁决。",
           "status": "Delivered",
           "depends_on": [],
           "related": ["BLOG-001"],
           "priority": null,
           "assignee": null,
           "test_file": null,
-          "file": "docs/plans/archive/001-durable-drafts.md",
+          "file": "docs/plans/archived/001-durable-drafts.md",
           "milestone": "M1",
           "module": "drafts",
           "tags": ["blog", "drafts"],
           "created_at": 1791180000,
-          "modified_at": 1791200000,
-          "completed_at": 1791200000
+          "modified_at": 1793240784,
+          "completed_at": 1793240784
         }
       ]
     },
@@ -45,7 +45,7 @@
         {
           "id": "B001-2",
           "title": "drafts/works 模块与双轨 native 白名单",
-          "content": "src/back/works.at（Work/ID/JSON 状态机）+ drafts.at（write_confirmed/rev 指针/迁移 journal）+ api/db thin 端点 + draft_store/author 前端；双轨 fs 白名单 + 禁用清单（append_text/json.stringify/fs.read_dir/逐字节 slice/嵌套长串返回/_BS_ 占位符）；前端 edit_seq/has_current/try-catch；唯一 `/` 作者路由与 `/demo`。",
+          "content": "src/back/works.at（Work/ID/JSON 状态机/代理对精确配对）+ drafts.at（write_confirmed/.ok 清单提交/指针权威恢复/高水位扫描/迁移 journal/来源键编码+map_put 原位替换）+ api/db thin 端点 + draft_store/author 前端（统一互斥锁覆盖保存+读回+切换、每 await 编辑序号守卫）；双轨 fs 白名单与禁用清单；唯一 / 作者路由与 /demo。",
           "status": "Stable",
           "depends_on": [],
           "related": ["BLOG-001"],
@@ -57,7 +57,7 @@
           "module": "drafts",
           "tags": ["blog", "drafts"],
           "created_at": 1791180000,
-          "modified_at": 1791180000,
+          "modified_at": 1793240784,
           "completed_at": null
         }
       ]
@@ -74,8 +74,8 @@
       "items": [
         {
           "id": "B001-3",
-          "title": "可靠草稿实现态规范：数据布局/条件 revision/迁移/能力边界",
-          "content": "canonical 实现态规范：data_root 解析、index.json+works/<id>/{meta,body,revisions} 布局、条件 revision 冲突保留两版、slug-map 幂等迁移、save_state 状态机、偏差表 D-01..D-04（source_refs 占位、测试路径、源 demo 修改、rust 冷启动）。",
+          "title": "可靠草稿实现态规范：数据布局/清单化提交/恢复协议/迁移/能力边界",
+          "content": "canonical 实现态规范（Phase 5 沉淀 SD-05+SD-06）：data_root、index+works 布局含 high-water 与 rev-N.ok 清单；读取协议=指针权威（目标校验失败可见异常）+扫描恢复（高水位动态边界、撕裂不提升不阻断、全旧格式内容升级）；条件 revision 冲突保留两版；迁移=完整 JSON+字段类型校验零副作用、幂等（含引号键）、多映射一致重试、归属检查；偏差表 D-01..D-06 更新（D-04=a2r 59 编译错误跨仓缺陷）。",
           "status": "Stable",
           "depends_on": [],
           "related": ["BLOG-001"],
@@ -87,7 +87,7 @@
           "module": "drafts",
           "tags": ["blog", "drafts"],
           "created_at": 1791180000,
-          "modified_at": 1791180000,
+          "modified_at": 1793240784,
           "completed_at": null
         }
       ]
@@ -105,7 +105,7 @@
         {
           "id": "B001-4",
           "title": "草稿验证资产：API probe + 负例 + 崩溃恢复",
-          "content": "drafts_api_probe.ps1 12 ALL_PASS（含 NEG-*）；review_001_api（META_ROUNDTRIP/pretty/journal）；review_001_store 6/6（路由/缓冲/网络/切稿）；Playwright T0/T0b/T7/T8/T11 5/5 个人作者门禁。复审 8e1be34 复现全绿。",
+          "content": "drafts_api_probe 12 ALL_PASS；review_001_r3/r4/r5_api 恢复+JSON+迁移矩阵；r6_review 7/7（类型校验/引号键幂等/恢复边界）；r3/r4/r5/original store 探针 21 项；r4_ui/r5_ui 真实浏览器；完整 Playwright 8过/8败=r4/r5 基线一致；真实 kill-during-write（120 条批迁移硬杀/重启/零重复/幂等）ALL_PASS。绑定 db207f2/dcc392e。",
           "status": "Verified",
           "depends_on": [],
           "related": ["BLOG-001"],
@@ -117,7 +117,7 @@
           "module": "drafts",
           "tags": ["blog", "drafts"],
           "created_at": 1791180000,
-          "modified_at": 1791180000,
+          "modified_at": 1793240784,
           "completed_at": 1791180000
         }
       ]
@@ -134,21 +134,21 @@
       "items": [
         {
           "id": "B001-5",
-          "title": "BLOG-001 Phase 3 复审 pass（r4 @ cae6dca）",
-          "content": "R3 needs_fix（R-11..R-16）→ Phase 3 修复 → R4 needs_fix（R-17 SD-03）→ Spec 沉淀 → R5 pass。AC-01..05 全 pass；D-05/D-06 为登记债务。",
+          "title": "BLOG-001 Phase 5 最终复审 pass（r6 @ db207f2）",
+          "content": "R5 needs_fix（R-23..R-27）→ Phase 5 修复（54a7aa7）→ 最终复审 needs_fix（R-28 类型校验/R-29 键转义，RV 反例证实）→ 修复（db207f2）→ 复验 pass。AC-01..05 在 VM HTTP+Vue+store+真实 kill/restart 栈 pass。裁决：r4 PARTIAL_CANDIDATE 期望被 SD-05 冻结文本更替（维持 r6 协议）；Rust 后端/原生 VM UI 双端门禁显式 pending（前者 a2r 59 编译错误跨仓缺陷、后者环境不可驱动），移交用户裁决。",
           "status": "Published",
           "depends_on": [],
           "related": ["BLOG-001"],
           "priority": null,
           "assignee": null,
           "test_file": null,
-          "file": "docs/plans/archive/001-durable-drafts.md",
+          "file": "docs/plans/archived/001-durable-drafts.md",
           "milestone": "M1",
           "module": null,
           "tags": ["blog"],
           "created_at": 1791180000,
-          "modified_at": 1791180000,
-          "completed_at": 1791180000
+          "modified_at": 1793240784,
+          "completed_at": 1793240784
         }
       ]
     },
@@ -164,21 +164,21 @@
       "items": [
         {
           "id": "B001-6",
-          "title": "BLOG-001 work 报告（T-00~T-04）",
-          "content": "T-00 双轨能力探针（fs 面/假成功返回码/append_text 禁用/嵌套长串截断）；T-01 Work/revision/work_id/迁移；T-02 CRUD+条件 rev+冲突 UI；T-03 个人模式 / 与 Demo /demo 分离；T-04 中文/长稿/崩溃/负例证据。",
+          "title": "BLOG-001 Phase 5 存档报告（T-25~T-30）",
+          "content": "T-25/26 统一互斥+全字段确认（r5_store 11/11）；T-27 清单化提交+恢复协议+真实 kill/restart ALL_PASS；T-28 迁移身份/多映射一致+R-29 修复；T-29 完整 JSON/代理对/字段类型+R-28 修复；T-30 套件基线归因+复审 pass+双端门禁 pending 移交。交付提交 dcc392e（main，ff-only 自 08da633）。",
           "status": "Published",
           "depends_on": [],
           "related": ["BLOG-001"],
           "priority": null,
           "assignee": null,
           "test_file": null,
-          "file": "docs/plans/archive/001-durable-drafts.md",
+          "file": "docs/plans/archived/001-durable-drafts.md",
           "milestone": "M1",
           "module": null,
           "tags": ["blog"],
           "created_at": 1791180000,
-          "modified_at": 1791180000,
-          "completed_at": 1791180000
+          "modified_at": 1793240784,
+          "completed_at": 1793240784
         }
       ]
     }
