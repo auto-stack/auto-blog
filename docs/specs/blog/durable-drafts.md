@@ -1,6 +1,6 @@
 # durable-drafts — 个人作者模式与可靠草稿
 
-状态：current-state（BLOG-001 实现，AC-01–AC-05；Phase 3 SD-03）。日期：2026-10-06。
+状态：current-state（BLOG-001 实现，AC-01–AC-05；Phase 5 SD-05+SD-06）。日期：2026-10-29。
 来源计划：[docs/plans/001-durable-drafts.md](../../plans/001-durable-drafts.md)。
 
 ## 1. 职责与边界
@@ -33,22 +33,23 @@
   slug-map.json.bak-<ms>     # map 写失败前的备份
   pending-migrate.json       # 迁移 journal：slug→work_id，半成品可重试复用
   works/<work_id>/
-    current.txt              # 已提交 revision 号（提交指针）
+    current.txt              # 已提交 revision 号（提交指针=当前确认版本的权威引用）
+    high-water.txt           # 持久高水位（已观察最高 revision；只增）
     meta.json                # 便捷副本（best-effort；兼容 Phase1）
     body.txt                 # 便捷副本（best-effort；兼容 Phase1）
     revisions/rev-<N>.json   # 不可变 meta 快照（先写并回读确认）
     revisions/rev-<N>.body   # 不可变 body 快照（先写并回读确认）
+    revisions/rev-<N>.ok     # 提交清单 {"work_id","revision","body_len"}（body_len=fs.file_size 字节数）
 ```
 
-提交顺序：`rev-N.json` → `rev-N.body` → `current.txt`（每步 write_confirmed）。
+提交顺序：`rev-N.json` → `rev-N.body` → `rev-N.ok` 清单 → `current.txt` → 便利副本 → 高水位（每步 write_confirmed；指针仅在完整确认后写）。
 
-**读取顺序（Phase 3 R-13）**：
-1. 读 `current.txt` 指针 → 加载对应 revision（meta+body **成对**才算完整）。
-2. 指针缺失/为空/损坏 → 扫描最高**完整** revision。
-3. 指针指向的 revision **不完整**（缺 body）→ **拒绝**（返回 `work_id==""`），不静默降回便利副本或旧 revision。
-4. 无任何 revision 时才回退便捷 meta/body（Phase 1 兼容）。
+**读取协议（Phase 5 R-25）**：
+1. 指针存在且可解析 → 指针即权威：目标 revision 内容校验（meta/body 存在、可解析、meta.work_id 与请求一致、meta.revision 与文件名一致）；若 `.ok` 存在，清单逐项与磁盘核对（work_id/revision/body_len==fs.file_size）。校验失败 → **返回空 Work（可见恢复异常）**，不静默降级到旧版或便利副本。校验通过即服务该版本，并把 `.ok` 升级为清单形态、推进高水位（旧格式自愈）。
+2. 指针缺失/空/非法 → 扫描恢复：边界 = max(高水位, 最近见档+64) 动态扩展，**无固定版本上限**；有 `.ok` 且清单+内容双验的最高 revision 为确认版；撕裂候选（有文件无 `.ok`）不提升、也不阻断更高确认版；**整个 work 无任何 `.ok` 时视为 Phase 1–3 旧格式**，按内容校验取最高完整版并补写清单升级。
+3. 无 revisions 时回退便捷 meta/body（Phase 1 兼容，须 work_id 一致）。
 
-`revisions/rev-N.{json,body}` 成对存在才算完整 revision；缺文件不得当空正文有效稿。
+`rev-N.ok` 清单是提交完整性凭证：截断 body（长度不符）、错身份、错版本、损坏清单都使该 revision 不可作为确认版服务；纯文本 `.ok` 仅当内容等于该 revision 号时按旧格式接受。
 
 ## 4. 接口契约
 
@@ -67,22 +68,22 @@
 
 1. **双轨 fs 面**（Vue rust 后端 + VM）：只用 `fs.write_text` / `fs.read_text` / `fs.exists` / `fs.create_dir` / `fs.is_dir` / `fs.file_size`。
 2. **写后全文回读**（R-01）：`write_confirmed` = write + exists + `read_text == content`。`write_text` 返回码/exists 不足——锁文件会假成功。
-3. **版本指针提交**：新 revision 写入不可变 `revisions/rev-N.{json,body}` 并回读确认，再写 `current.txt` 指针。失败/半写保留上一确认版本；启动只读完整 revision。
+3. **清单化提交**（R-21/25）：新 revision 写 `revisions/rev-N.{json,body}` 后写 `.ok` 持久清单（身份/版本/正文字节数，回读校验），最后写 `current.txt` 指针。指针是当前确认版本的权威引用：目标损坏/清单矛盾 → 可见异常（空 Work），不静默降级；恢复扫描用持久高水位 + 动态边界，无固定上限；撕裂候选不提升、不阻断更高确认版；全 work 无 `.ok` 按旧格式内容校验升级。
 4. **禁用**：`fs.append_text`；`json.stringify`；`fs.read_dir` / `fs.join` / `fs.size` / `file.*` 裸前缀；逐字节 `slice(i,i+1)` 拼串（吞中文）。
-5. **JSON 转义**（R-04/15）：`json_escape` 用 replace；`json_unescape` 单遍状态机（find+区间 slice），**禁止占位符**（`_BS_` 等会与正文冲突）；支持 `\uXXXX` 与代理对（`json.parse` 解码）。`json_field_str` 允许冒号**前后**空白（pretty JSON）。
+5. **JSON 转义与校验**（R-04/15/27/28）：`json_escape` 用 replace；`json_unescape` 单遍状态机，**禁止占位符**；`\uXXXX` 解码——仅当前码点真实在 D800–DBFF 且紧随 `\uDC00–DFFF` 才成对消费 12 字符，其余逐个解码，孤立代理以 U+FFFD 替换（非代理区相邻 `\uXXXX` 不得吞字）。`json_field_str` 允许冒号前后空白。迁移前必须过完整 JSON 校验（迭代式：结构/逗号/冒号/转义含 `\b\f\uXXXX`/字面量/数字/嵌套；根数组元素必须是对象），且六个已知字段（slug/title/description/body/tagList/author）存在即必须为字符串——任何违规在任何副作用之前整批拒绝、零写入。
 6. **长串返回**：禁止把含长 `body` 的 Work 嵌进另一结构体返回；直接返回 `Work`。
 7. **结构体全量构造**：勿依赖字段赋值。
 8. **条件 revision**：并发同旧 rev → `conflict=true`，两版可恢复（保留本机 / 加载对方）。
-9. **迁移事务**（R-05/14）：先写 `pending-migrate.json` journal（可重试复用同 ID），再 work files，最后 `slug-map.json`（write_confirmed）。映射未确认不计成功；失败备份旧 map。括号扫描必须跳过字符串。**重试在已有 revision 时仍须 `index_add` 确认后才写 map**（index 缺失不得计成功）。
-10. **前端缓冲**（R-02/06/11/12）：保存串行化 + `edit_seq` 快照；回执仅当序号未变才清 dirty；**新建/打开/切稿/同 ID 重开前**保存未存缓冲，失败/冲突则**中止动作**并保留本机版；读回须校验 work_id+revision，空/错稿标 `readback_invalid`/`open_failed` 并保留编辑缓冲；`try/catch` 捕获网络异常，禁止停在 saving 或标虚假 saved；`has_current` 守卫空 Work（codegen 初值为 null）。
+9. **迁移事务与身份**（R-05/14/22/26/29）：先写 `pending-migrate.json` journal，再 work files + index，最后 source-map 与 slug-map（write_confirmed）；任一映射失败不计成功并备份旧 map。重试在已有 revision 时仍须 `index_add` 确认后才写 map。组合迁移键默认字面量 `author::slug`，任一组件含 `::` 时切换长度编码（两态文本空间不相交，整键单射）；**映射查找一律用转义后键**（与写入形态一致；无引号键为恒等）；`map_put` 键已存在时原位替换、不存在才追加（无重复键）。旧 slug-map 身份沿用前必须经 source-map 归属检查（已被其他来源认领的 ID 不沿用）；所有成功路径（含幂等早返回）核对/修复 index、slug-map 与作品文件。
+10. **前端缓冲与互斥**（R-02/06/11/12/19/20/23/24）：`save_in_flight` 互斥覆盖**保存+读回+最终切换全程**（不得在 save 回执后提前释放）；每个 await 前后核对 `edit_seq`——目标 create/open/reload 等待期发生编辑一律中止切换并保留本机缓冲；已确认保存必须把 `current` 推进到服务器确认版本（中止切换也不得留旧 rev 造成下次冲突）。普通/强制/切前保存共用同一全字段读回确认（work_id/revision/body/title/summary/tags），不符标 `readback_invalid` 且保留缓冲；初态 `has_current` 守卫；`try/catch` 捕获网络异常，禁止停在 saving 或标虚假 saved。
 11. **唯一默认入口**（R-03/07）：`/` 唯一作者路由（勿同时注册 `/author`）；Demo 固定 `/demo`。
-12. **完整性校验**（R-13）：revision meta+body 成对才算完整；缺 body 不得当空正文有效稿；指针损坏按 §3 顺序恢复，不静默降回便利副本。
+12. **完整性校验**（R-13/21/25）：revision meta+body 成对、身份/版本与请求一致、`.ok` 清单（若存在）与磁盘逐项相符，才算可服务；缺 body、截断 body、foreign work_id、损坏清单都不得当有效稿，指针目标受损时返回可见异常而非静默回退。
 
 ## 6. 迁移（旧 Article → Work）
 
-- `migrate_article(slug, …)` 幂等：`slug-map.json` 已有映射则返回原 `work_id`，不重复创建。
+- `migrate_article(slug, …)` 幂等：source-map（新键或旧格式键）命中即返回原 `work_id`，并核对/修复 index、slug-map 与作品文件；无 source-map 记录时沿用旧 slug-map 身份（经归属检查），不重复创建。
 - **不删除**源 demo 文章；迁移失败保留原件。
-- 批量 `migrate_articles_batch(items_json)`：解析对象数组，空/无 slug 跳过。
+- 批量 `migrate_articles_batch(items_json)`：完整 JSON 校验 + 字段类型校验全过才开始迁移；空/无 slug 跳过；幂等（含含引号 slug——键转义一致）。
 
 ## 7. UI（`src/front/draft_store.at` + `pages/author.at`）
 
@@ -99,6 +100,6 @@
 | D-01 | `source_refs`/`asset_refs` 仅类型+序列化，无写入 API | 功能边界 B03；本 Spec 即边界说明 |
 | D-02 | 测试目录用 `tests/probe/`（计划写 `tests/fixtures/drafts/`） | 等价隔离 fixture；后续统一可再迁 |
 | D-03 | 为接线修改源 demo 文件（api/db/app/article_store/editor/home/login） | demo 路由与 seed 保留；`.me.token`→`session_token` 修 bug |
-| D-04 | 纯 rust 后端（`auto run` 缺省）冷启动本机未完成实测 | companion 已过 a2r 转译；VM 轨全绿 |
+| D-04 | 纯 rust 后端门禁未闭：a2r 生成物编译失败 59 errors（E0433 `a2r_std` 缺 `time` 映射等） | 跨仓 a2r 转译缺陷，须独立能力计划修复；VM 轨（本 Spec 全部规则实证面）全绿 |
 | D-05 | demo smoke 子集（T1–T6/T9–T10/T12–T14）红 | 与 r3 基线同类（seed/auth/detail 异步）；非 BLOG-001 AC |
 | D-06 | 原生 `auto run -r vm` UI 窗口本环境不可交互驱动 | 后端 HTTP 22 routes 已启动验证 |

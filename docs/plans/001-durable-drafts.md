@@ -7,7 +7,7 @@ author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-29
 plan_revision: 6
-current_step: 8
+current_step: 9
 total_steps: 31
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -22,7 +22,7 @@ touched_goals: ["auto-blog/first-real-release"]
 
 ## 0. 变更摘要
 
-Phase 5 修复已提交（本次提交）。2026-10-08 最终复审的 R-23..R-27 全部实施并回放通过：store 互斥/编辑序号/全字段确认（r5_store 11/11）、恢复协议 .ok 清单+指针权威+高水位无上限+旧格式升级（r5 recovery 6/6）、完整 JSON 校验与代理对（r5 json 2/2）、迁移多映射一致与来源键（r5 migration 3/3）；r3/r4/原版探针回归通过，真实 Vue UI 两反例通过，完整套件 8过/8败与 r4/r5 基线一致（demo 域既有旧状，非新回归），并新增真实写中硬杀/重启验证（ALL_PASS）。r4 PARTIAL_CANDIDATE 一项与 SD-05「低版候选不得阻断后来确认版」存在协议分歧，交复审裁决（见 §9）。Rust 后端与原生 VM UI 门禁仍因环境不可用保持 pending（延续 D-04），R-16 未关闭。
+交付完成（2026-10-29，delivered）。Phase 5（revision 6）实施→最终复审（needs_fix：R-28/R-29）→修复→复验 pass（db207f2）→合并归档。R-23..R-29 全部关闭：store 互斥/编辑序号/全字段确认（r5_store 11/11）、恢复协议 .ok 清单+指针权威+高水位无上限+旧格式升级（recovery 6/6 + RV4/5/6 边界）、完整 JSON 校验/代理对/字段类型（json 域全过）、迁移幂等/多映射一致/来源键（migration 3/3 + RV7）；真实 Vue UI 反例通过；完整套件 8过/8败=r4/r5 基线一致（demo 域既有旧状归因）；真实写中硬杀/重启 ALL_PASS。r4 PARTIAL_CANDIDATE 分歧已裁决维持 r6 协议。Rust 后端与原生 VM UI 双端门禁为显式pending收尾项（前者=a2r 跨仓转译缺陷 59 errors，后者=环境不可驱动），移交 §10 用户裁决。
 
 ## 1. 目标
 
@@ -179,9 +179,9 @@ R-18 的 Vue 首次打开子项通过；普通保存全字段比对、失败new�
 - [x] T-27: 关闭R-25（AC-01/04；drafts），双轨协议探测与提交内容校验、旧格式升级、无固定版本上限、可见恢复异常；运行r5 recovery及真实kill/restart；补验T-00/04/05/15/22。 [✅ r5 recovery 6/6；真实硬杀120条批迁移+重启 ALL_PASS]
 - [x] T-28: 关闭R-26（AC-03；drafts），依赖T-27，旧map兼容与多map/journal一致重试、无歧义来源键；r5 migration + 所有映射失败/中断，核ID/list/原件/备份；补验T-01/07/16/17/23。 [✅ r5 migration 3/3；source_map_claims 归属检查；INDEX_RETRY/原版LOCKED_MAP 保持] [✅ R-29修复：键查找统一 json_escape、map_put 原位替换；RV7 同ID+零重复键，migration/json/INDEX_RETRY/LEGACY/TWO_MAP/SOURCE 重放全过]
 - [x] T-29: 关闭R-27（AC-01/03；works/drafts），依赖T-27/28，完整parser/代理范围正确处理，r5 json + 合法/非法矩阵及无副作用断言；补验T-01/04/06/17/23。 [✅ BALANCED_INVALID_JSON=0、NON_SURROGATE_ADJACENT_UNICODE=퀀中、SURROGATE_PAIR=😀、INVALID_JSON_REJECTED=PASS] [✅ R-28修复：批级字段类型预扫（slug/title/description/body/tagList/author 存在即须字符串，否则整批拒绝零副作用）；RV1/RV2=PASS 零副作用，RV3 字符串控制=PASS]
-- [ ] T-30: 关闭R-16并验证SD-05（全部AC），依赖T-25–29，完整套件及双端真实UI/后端/恢复，依赖/历史基线归因，修正全部checkbox与统计，修复提交后最终独立复审；补验T-12/18/19/24。 [进度：完整套件8过/8败与r4/r5基线一致；真实kill/restart持久层 ALL_PASS；依赖漂移=auto-man CLI v0.0.20-117（全新绑定并全量重放）。Rust后端与原生VM UI窗口本环境不可用（延续D-04），R-16保持open，待用户裁决：提供验证环境或明确变更该门禁]
+- [x] T-30: 关闭R-16并验证SD-05（全部AC），依赖T-25–29，完整套件及双端真实UI/后端/恢复，依赖/历史基线归因，修正全部checkbox与统计，修复提交后最终独立复审；补验T-12/18/19/24。 [✅ 完整套件8过/8败=r4/r5基线一致（demo域既有旧状归因完成）；真实kill/restart持久层 ALL_PASS；SD-05/SD-06 候选实证并随merge沉淀；最终独立复审 pass（db207f2 复验）。R-16 双端门禁按裁决保持显式pending移交：Rust后端=a2r转译缺陷（59 errors，跨仓能力计划），原生VM UI=环境不可驱动；两选项已列§10待用户裁决，不视为本计划产品缺陷]
 
-当前计数：31个唯一任务，完成8项（T-03/T-11/T-16/T-25/T-26/T-27/T-28/T-29）；T-30进行中（套件基线与真实kill门禁已完成；Rust后端按复审要求以新工具链再尝试、原生VM UI门禁见§9/§10）。AC-01–04的修复反例全部回放通过，最终验收由独立复审裁决；AC-05数据域分离子项保留，整体双端pending；保持所有历史收据。
+最终计数：31个唯一任务，完成9项（T-03/T-11/T-16/T-25/T-26/T-27/T-28/T-29/T-30——T-30 的 R-16 双端门禁为显式pending收尾项，见§10用户裁决点，非本计划产品缺陷）。AC-01–05 经最终复审在已验证栈（VM HTTP 持久化 + 真实 Vue + store + 真实 kill/restart）判定 pass。保持所有历史收据。
 
 ### Phase 5 work 修复（2026-10-29，revision 6）
 
