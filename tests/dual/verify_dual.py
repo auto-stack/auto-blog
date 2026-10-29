@@ -26,6 +26,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -43,7 +44,7 @@ SIBLINGS = {
     "auto-ui": Path(r"D:\autostack\auto-ui"),
     "auto-man": Path(r"D:\autostack\auto-man"),
 }
-READY_TIMEOUT_S = 180
+READY_TIMEOUT_S = 480  # run 路径首跑需冷编译完整依赖闭包（实测 >180s），超时=失败不可计 pass
 SCENARIO_TIMEOUT_S = 30
 
 
@@ -106,12 +107,16 @@ def http_json(method: str, url: str, body: dict | str | None = None) -> tuple[in
 
 
 class Service:
-    """正式入口 `auto service --server rust` 的受管封装；只清理自己 spawn 的进程树。"""
+    """正式入口受管封装（service=API 隔离；run=front+back 组合）；只清理自己 spawn 的进程树。"""
 
-    def __init__(self, back_port: int, data_dir: Path, log_path: Path, bad_port: bool = False):
+    def __init__(self, back_port: int, data_dir: Path, log_path: Path,
+                 mode: str = "service", front_port: int | None = None, bad_port: bool = False):
         self.back_port = back_port
+        self.front_port = front_port
         self.data_dir = data_dir
         self.log_path = log_path
+        self.mode = mode
+        self.front_url: str | None = None
         self.proc: subprocess.Popen | None = None
         self.bad_port = bad_port  # 负控注入：占用端口使启动必然失败
 
@@ -127,10 +132,12 @@ class Service:
             self._blocker = blocker  # 保持占用直到 stop
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         self._logf = open(self.log_path, "w", encoding="utf-8", errors="replace")
-        self.proc = subprocess.Popen(
-            [str(AUTO_EXE), "service", "--server", "rust", "-B", str(port), "-d", str(REPO)],
-            cwd=REPO, env=env, stdout=self._logf, stderr=subprocess.STDOUT,
-        )
+        if self.mode == "run":
+            argv = [str(AUTO_EXE), "run", "--server", "rust",
+                    "-F", str(self.front_port), "-B", str(port), "-d", str(REPO)]
+        else:
+            argv = [str(AUTO_EXE), "service", "--server", "rust", "-B", str(port), "-d", str(REPO)]
+        self.proc = subprocess.Popen(argv, cwd=REPO, env=env, stdout=self._logf, stderr=subprocess.STDOUT)
 
     def wait_ready(self) -> tuple[bool, str]:
         deadline = time.time() + READY_TIMEOUT_S
@@ -141,11 +148,48 @@ class Service:
             try:
                 with urllib.request.urlopen(url, timeout=3) as resp:
                     if resp.status == 200:
+                        if self.mode == "run" and self.front_url is None:
+                            self._parse_front_url()
+                            if self.front_url is None and self.front_port:
+                                # vite 实测遵守 -F；解析失败按 -F 回退，不再卡就绪门
+                                self.front_url = f"http://localhost:{self.front_port}"
+                            if self.front_url:
+                                self.front_url = self._resolve_reachable(self.front_url)
                         return True, "ready"
             except OSError:
                 pass
             time.sleep(1.5)
         return False, f"ready timeout after {READY_TIMEOUT_S}s (see {self.log_path.name})"
+
+    def _parse_front_url(self) -> None:
+        # Plan 401 端口缺口：auto run 不读 pac.at front_port，实际地址从输出解析；
+        # vite 输出带 ANSI 色码，须先剥离再匹配
+        try:
+            text = self.log_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return
+        text = re.sub(r"\x1b\[[0-9;]*m", "", text)
+        m = re.search(r"Local:\s*(http://[^\s\"']+)", text)
+        if m:
+            self.front_url = m.group(1).rstrip("/")
+
+    def _resolve_reachable(self, url: str) -> str:
+        """vite 在 Windows 常只绑 ::1（IPv6），chromium 走 IPv4 会被拒——
+        实测 127.0.0.1/[::1]/localhost 哪个真实可达就用哪个。"""
+        m = re.match(r"http://[^/:]+:(\d+)/?$", url)
+        if not m:
+            return url
+        port = m.group(1)
+        for host in ("127.0.0.1", "[::1]", "localhost"):
+            cand = f"http://{host}:{port}"
+            try:
+                with urllib.request.urlopen(cand, timeout=3):
+                    return cand
+            except urllib.error.HTTPError:
+                return cand  # 有 HTTP 响应即可达（404 也算）
+            except OSError:
+                continue
+        return url
 
     def stop(self) -> None:
         if getattr(self, "_blocker", None) is not None:
@@ -350,7 +394,11 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
     pendings = []
     for pname, owner in PENDING_SCENARIOS.items():
         phase_of = "vue-ui" if pname.startswith("vue-") else "vm-ui"
-        if phase_of in phases and (not tokens or any(t in pname for t in tokens)):
+        in_phase = phase_of in phases and (not tokens or any(t in pname for t in tokens))
+        # vue-ui.author_task 已在 T-05 实现：阶段被选中时执行而非 pending
+        if pname == "vue-ui.author_task" and in_phase:
+            continue
+        if in_phase:
             pendings.append({"name": pname, "owner": owner})
 
     run_dir = artifacts / f"{profile}-{datetime.now():%Y%m%d-%H%M%S}"
@@ -369,13 +417,22 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
     back = pick_port()
     log(f"ports: front={front}(预留) back={back} data={data_dir}")
 
+    # vue-ui 阶段激活条件与 pending 过滤保持同一口径；选中时以正式 run 入口（front+back）
+    def phase_selected(phase: str) -> bool:
+        return phase in phases and (not tokens or any(t in phase for t in tokens))
+
+    run_vue_ui = phase_selected("vue-ui")
+    spawn_mode = "run" if run_vue_ui else "service"
+
     results: list[dict] = []
-    svc = Service(back, data_dir, run_dir / "service-pre.log", bad_port=(inject == "port"))
+    svc = Service(back, data_dir, run_dir / "service-pre.log",
+                  mode=spawn_mode, front_port=front, bad_port=(inject == "port"))
     ctx = Ctx(f"http://127.0.0.1:{back}", data_dir, run_dir)
     ctx.created_id = ""
 
-    def record(name: str, ok: bool, detail: str):
-        results.append({"name": name, "phase": SCENARIOS[name]["phase"], "ok": ok, "detail": detail})
+    def record(name: str, ok: bool, detail: str, phase: str | None = None):
+        ph = phase or (SCENARIOS.get(name, {}) or {}).get("phase", "vue-ui")
+        results.append({"name": name, "phase": ph, "ok": ok, "detail": detail})
         log(f"  [{'PASS' if ok else 'FAIL'}] {name}: {detail}")
 
     try:
@@ -390,7 +447,7 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
             for n in selected:
                 record(n, False, f"service not ready: {why}")
             return finalize(profile, deps, exe_sha, results, pendings, run_dir)
-        log("  service ready")
+        log(f"  app ready (mode={spawn_mode} front={svc.front_url or '-'} back={svc.back_port})")
 
         pre = [n for n, s in selected.items() if s["phase"] == "pre-restart"]
         for name in pre:
@@ -406,30 +463,65 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                             "ok": False, "detail": "负控注入：人为判假，验证失败传播"})
             log("  [FAIL] injected.expectation_flip: 负控注入：人为判假，验证失败传播")
 
-        # post-restart 阶段：重启服务后执行（001 重启持久化语义）
+        wid = ""
+        if run_vue_ui:
+            ok, detail, wid = run_cjs(svc.front_url, ctx.base, "pre", "", run_dir)
+            record("vue-ui.author_task", ok, detail, phase="vue-ui")
+
+        # post-restart 阶段：重启应用后执行（001 重启持久化语义）
         post = [n for n, s in selected.items() if s["phase"] == "post-restart"]
-        if post:
+        if post or (run_vue_ui and wid):
             svc.stop()
-            svc2 = Service(back, data_dir, run_dir / "service-post.log")
+            svc2 = Service(back, data_dir, run_dir / "service-post.log",
+                           mode=spawn_mode, front_port=front)
             svc2.start()
             try:
                 ready2, why2 = svc2.wait_ready()
                 if not ready2:
                     for name in post:
-                        record(name, False, f"service restart failed: {why2}")
+                        record(name, False, f"app restart failed: {why2}")
+                    if run_vue_ui and wid:
+                        record("vue-ui.restart_backend_persists", False,
+                               f"app restart failed: {why2}", phase="vue-ui")
                 else:
+                    if svc2.front_url:
+                        ctx.base = f"http://127.0.0.1:{back}"
                     for name in post:
                         try:
                             ok, detail = selected[name]["fn"](ctx)
                         except Exception as e:
                             ok, detail = False, f"exception: {type(e).__name__}: {e}"
                         record(name, ok, detail)
+                    if run_vue_ui and wid:
+                        ok2, detail2, _ = run_cjs(svc2.front_url, ctx.base, "post", wid, run_dir)
+                        record("vue-ui.restart_backend_persists", ok2, detail2, phase="vue-ui")
             finally:
                 svc2.stop()
     finally:
         svc.stop()
 
     return finalize(profile, deps, exe_sha, results, pendings, run_dir)
+
+
+def run_cjs(front_url: str, api_base: str, phase: str, wid: str, run_dir: Path) -> tuple[bool, str, str]:
+    """驱动 tests/dual/vue_ui_scenarios.cjs（真浏览器输入/点击 → Vue store → Rust 后端）。
+
+    返回 (ok, 明细, work_id)。cjs 每场景一行 PASS/FAIL；汇总 SUMMARY；pre 阶段末尾 WID 行。
+    """
+    env = dict(os.environ)
+    env.update({"RW_URL": front_url, "RW_API": api_base, "DUAL_PHASE": phase, "DUAL_WID": wid})
+    proc = subprocess.run(
+        ["node", str(REPO / "tests" / "dual" / "vue_ui_scenarios.cjs")],
+        cwd=REPO, env=env, capture_output=True, text=True, timeout=600, encoding="utf-8", errors="replace",
+    )
+    (run_dir / f"vue-ui-{phase}.log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
+    lines = [ln for ln in proc.stdout.splitlines() if ln.startswith(("PASS", "FAIL"))]
+    wid_out = ""
+    for ln in proc.stdout.splitlines():
+        if ln.startswith("WID "):
+            wid_out = ln[4:].strip()
+    ok = proc.returncode == 0 and bool(lines)
+    return ok, f"rc={proc.returncode}; " + " | ".join(ln[:120] for ln in lines) or "no scenario lines", wid_out
 
 
 def finalize(profile, deps, exe_sha, results, pendings, run_dir: Path,
