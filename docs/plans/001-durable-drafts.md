@@ -7,7 +7,7 @@ author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-29
 plan_revision: 6
-current_step: 6
+current_step: 8
 total_steps: 31
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -67,6 +67,7 @@ AutoLang/AutoUI `.at`、既有Vue/VM宿主；后端纯.at。协议使用版本�
 | SD-03 | modify | docs/specs/blog/durable-drafts.md | current.txt 覆写提交、缺 body 仍读有效 Work、pending 重试跳过 index、前端新建/读回保护声明 → 修复后记录可恢复提交元数据、完整版本校验、迁移 index/map 一致成功条件、完整 JSON 转义及全切换/读回失败缓冲保护 | R-11–R-16 证明 Phase 2 尚未满足原可靠性门槛 | AC-01–AC-04 |
 | SD-04 | modify | docs/specs/blog/durable-drafts.md | Phase 3 声明扫描完整 revision、Unicode 解码和缓冲/读回保护 → 修复并验证后记录无固定版本上限的已提交完整性校验、所有保存/切换共用串行与编辑快照保护、ID/版本/内容精确确认、结构化 JSON 与代理对处理及来源身份迁移键；未完成双端门禁保留 pending | R-18–R-22 与重开 R-16 证明现有声明不足，保持 B01 原合同 | AC-01–AC-05 |
 | SD-05 | modify | docs/specs/blog/durable-drafts.md | Phase 3 canonical规则及未落地SD-04 → 修复验证后记录保存/读取/创建所有等待期的编辑保护与版本推进、强制保存同等字段校验、校验内容及身份的可恢复提交和旧格式升级、无固定恢复上限、完整JSON解析、旧映射兼容与多映射重试一致性；双端未验仍pending | R-23–R-27揭示Phase 4对原合同覆盖不足，沿原AC完善规范候选 | AC-01–AC-05 |
+| SD-06 | modify | docs/specs/blog/durable-drafts.md | SD-05 候选的复审补充（r6 work，2026-10-29）→ 记录迁移输入字段级类型校验（slug/title/description/body/tagList/author 存在即须 JSON 字符串，否则任何副作用之前整批拒绝）与组合键转义一致查找/映射原位替换（无重复键、含引号键幂等） | 最终复审独立反例 RV1/RV2/RV7 证实缺口；冻结 AC 不变 | AC-03、AC-01 |
 
 SD-01–SD-03 为已落地历史增量，SD-04 为前轮未完成候选；本轮候选为 SD-05。输入 hash 和冻结文本见 §9；复审不修改 canonical Spec 或 live ledger。SD-05 只能在修复及实测后沉淀，不能把方案当成已交付行为。
 
@@ -176,11 +177,11 @@ R-18 的 Vue 首次打开子项通过；普通保存全字段比对、失败new�
 - [x] T-25: 关闭R-23（AC-01/02/04；draft_store/author），统一完整操作互斥与每个await的编辑保护，确认版本推进；运行r5 store等待矩阵及r5真实Vue延迟open输入，补原生VM；补验T-02/08/13/20。 [✅ r5_store 11/11；r5_ui BROWSER_EDIT_IN_OPEN_WAIT=PASS；原生VM窗口门禁见T-30 pending]
 - [x] T-26: 关闭R-24（AC-01/04；draft_store），依赖T-25，普通/force/切前保存同等完整读回；独立错revision/summary/tags控制；补验T-10/14/21。 [✅ FORCE_MISMATCH_revision/summary/tags=PASS，NEW_PRE_SAVE_SUMMARY=PASS]
 - [x] T-27: 关闭R-25（AC-01/04；drafts），双轨协议探测与提交内容校验、旧格式升级、无固定版本上限、可见恢复异常；运行r5 recovery及真实kill/restart；补验T-00/04/05/15/22。 [✅ r5 recovery 6/6；真实硬杀120条批迁移+重启 ALL_PASS]
-- [ ] T-28: 关闭R-26（AC-03；drafts），依赖T-27，旧map兼容与多map/journal一致重试、无歧义来源键；r5 migration + 所有映射失败/中断，核ID/list/原件/备份；补验T-01/07/16/17/23。 [✅ r5 migration 3/3；source_map_claims 归属检查；INDEX_RETRY/原版LOCKED_MAP 保持] [🔁 复审R-29重开：键含引号时查找/写入转义不一致→重跑换ID且映射重复键（RV7）]
-- [ ] T-29: 关闭R-27（AC-01/03；works/drafts），依赖T-27/28，完整parser/代理范围正确处理，r5 json + 合法/非法矩阵及无副作用断言；补验T-01/04/06/17/23。 [✅ BALANCED_INVALID_JSON=0、NON_SURROGATE_ADJACENT_UNICODE=퀀中、SURROGATE_PAIR=😀、INVALID_JSON_REJECTED=PASS] [🔁 复审R-28重开：非字符串字段值静默丢值建稿，缺字段级类型校验（RV1/RV2）]
+- [x] T-28: 关闭R-26（AC-03；drafts），依赖T-27，旧map兼容与多map/journal一致重试、无歧义来源键；r5 migration + 所有映射失败/中断，核ID/list/原件/备份；补验T-01/07/16/17/23。 [✅ r5 migration 3/3；source_map_claims 归属检查；INDEX_RETRY/原版LOCKED_MAP 保持] [✅ R-29修复：键查找统一 json_escape、map_put 原位替换；RV7 同ID+零重复键，migration/json/INDEX_RETRY/LEGACY/TWO_MAP/SOURCE 重放全过]
+- [x] T-29: 关闭R-27（AC-01/03；works/drafts），依赖T-27/28，完整parser/代理范围正确处理，r5 json + 合法/非法矩阵及无副作用断言；补验T-01/04/06/17/23。 [✅ BALANCED_INVALID_JSON=0、NON_SURROGATE_ADJACENT_UNICODE=퀀中、SURROGATE_PAIR=😀、INVALID_JSON_REJECTED=PASS] [✅ R-28修复：批级字段类型预扫（slug/title/description/body/tagList/author 存在即须字符串，否则整批拒绝零副作用）；RV1/RV2=PASS 零副作用，RV3 字符串控制=PASS]
 - [ ] T-30: 关闭R-16并验证SD-05（全部AC），依赖T-25–29，完整套件及双端真实UI/后端/恢复，依赖/历史基线归因，修正全部checkbox与统计，修复提交后最终独立复审；补验T-12/18/19/24。 [进度：完整套件8过/8败与r4/r5基线一致；真实kill/restart持久层 ALL_PASS；依赖漂移=auto-man CLI v0.0.20-117（全新绑定并全量重放）。Rust后端与原生VM UI窗口本环境不可用（延续D-04），R-16保持open，待用户裁决：提供验证环境或明确变更该门禁]
 
-当前计数：31个唯一任务，完成6项（T-03/T-11/T-16/T-25/T-26/T-27）；T-28/T-29经最终复审R-29/R-28重开待修复；T-30进行中（套件基线与真实kill门禁已完成，Rust后端/原生VM UI环境门禁pending）。AC-01–04的修复反例全部回放通过，最终验收由独立复审裁决；AC-05数据域分离子项保留，整体双端pending；保持所有历史收据。
+当前计数：31个唯一任务，完成8项（T-03/T-11/T-16/T-25/T-26/T-27/T-28/T-29）；T-30进行中（套件基线与真实kill门禁已完成；Rust后端按复审要求以新工具链再尝试、原生VM UI门禁见§9/§10）。AC-01–04的修复反例全部回放通过，最终验收由独立复审裁决；AC-05数据域分离子项保留，整体双端pending；保持所有历史收据。
 
 ### Phase 5 work 修复（2026-10-29，revision 6）
 
@@ -572,6 +573,16 @@ Vue build exit0：vue-tsc+vite 673 modules
 - 其余独立检查：RV4 截断 meta→可见异常、RV5 高水位损坏→缺口扫描恢复、RV6 .ok 版本不符→拒绝，全 PASS（恢复协议边界未发现新缺口）；RV7 修正了初版断言（原仅比较 count，造成假 PASS——以磁盘映射重复键与跨调用 ID 证据纠正，探针已固化为持久判据）。
 - Spec 增量核验：SD-05 候选（§5 表行）与实现实质相符的部分=原子清单/指针权威/高水位/旧格式升级/来源键/代理对/结构校验；R-28/R-29 修复后需把「字段类型校验」「键转义一致」纳入候选文本（由 work 随修复更新候选行，canonical 沉淀仍归合并）。supersedes=new=空（同模块）、goal=auto-blog/first-real-release 不变。本轮不改 canonical Spec、不动 ledger。
 
+### Phase 5 work 修复·第二轮（2026-10-29，R-28/R-29 关闭）
+
+- `stage: goal | plan_id: BLOG-001 | plan_revision: 6 | round: 3 | from: executing | to: work | status: executing | outcome: pass | worktree: D:/autostack/.wt/blog-001/auto-blog | commit: 本次提交 | next: review`
+- `stage: work | plan_id: BLOG-001 | plan_revision: 6 | outcome: pass | worktree_path: D:/autostack/.wt/blog-001/auto-blog | branch: plan-001-dev | base_commit: 48b6a97e445b8bfb83d615c7fd013e562701f75c | code_commit: 本次提交 | dependency_revisions: auto CLI 0.1.0+v0.0.20-117-g873fa23（auto-man @ e6cc06f，binary SHA256=97CE3BDEDFC6C2A62FD71678D80B71003EC4985946FE406928308690FC2E4B19） | task_ids: T-28, T-29（R-28/R-29）、T-30（Rust 门禁证据） | evidence: 以下 | blockers: 原生 VM UI 门禁（环境）；Rust 门禁根因已定界为跨仓 a2r 缺陷 | next_responsible_role: review（受影响范围复验）`
+- **R-28/T-29 修复**（drafts.at）：`json_field_value_kind` + `batch_fields_valid` 批级预扫——六个已知字段存在即必须为 JSON 字符串，类型不符在任何副作用之前整批拒绝。RV1=PASS（count=0 零副作用）、RV2=PASS、RV3 字符串控制=PASS。
+- **R-29/T-28 修复**（drafts.at）：全部映射查找（source-map 新旧键/pending/slug-map/slug_to_work_id/legacy 沿用）统一 `json_escape` 后查找（无引号键为恒等，TWO_MAP_RETRY 字面量读取不受影响）；`map_put` 改为键已存在时原位替换 value、不存在才追加。RV7=PASS（两次迁移 same_id=True、键重复数=1）。
+- **受影响+回归重放（54a7aa7+本次修复，隔离 .tmp/review-r6b，VM 17836/17837）**：review_001_r6_review 7/7 ALL_PASS；r5 recovery 6/6、json 2/2、migration 3/3；r3_api 5/5（含 INDEX_RETRY）；drafts_api_probe 12 ALL_PASS；原版 review_001_api 四项全过；r4_api 6/7（唯一非绿为已裁决的 PARTIAL_CANDIDATE）。store 探针组不受本轮回影响（draft_store.at 未改，沿用 54a7aa7 证据）。
+- **Rust 后端门禁新鲜证据（按复审要求以新工具链再尝试）**：`auto run`（默认 rust api）由 CLI 生成 `rust-workspace/auto-blog-back/`（a2r 转译自当前 .at）后 cargo 冷构建；CLI 120s 就绪看门狗先行超时后手动 `cargo build` 续建至编译终结：**59 errors**（E0433 `cannot find time in a2r_std` ×7 于 works.rs/drafts.rs 的 time.now_* 调用，及 E0308/E0061/E0277/E0599 于 db.rs 等）——a2r-std 缺少 time 映射等转译缺陷，属**跨仓框架问题**（plan §1/T-00 约定：跨仓改动单独设计/计划登记，不得在本计划内偷偷改框架或以 stub 顶替）。R-16 的 Rust 门禁因此定界：非本仓产品缺陷、非环境偶发，需独立 a2r 能力计划修复后才能验收；保持 pending 并入 §10 用户裁决点。
+- SD-06 候选行已按复审裁决加入 §5（字段类型校验 + 键转义一致/原位替换）；canonical 沉淀归合并。
+
 [整体roadmap](../roadmap-v0.6.md) · [agent执行说明](../README.md)
 
 ## 10. 待澄清事项
@@ -579,7 +590,7 @@ Vue build exit0：vue-tsc+vite 673 modules
 T-00需核实实际平台/运行时能力，负责者为本计划执行agent；输出具体API、可复现实验与独立阻塞提案。不存在先执行全局重构的隐含前置。核心验收变更须明确提出，不能用mock替换真实结果。
 
 Phase 5 work（2026-10-29）留交复审与用户的两个裁决点：
-1. R-16 双端门禁环境：Rust 后端冷构建与原生 `auto run -r vm` 可交互 UI 连续四轮在本机不可用（CLI 已迁至 auto-man 仓，旧 auto-lang 工具链产物不存在）。请用户提供可完成的 Rust 构建环境与可驱动原生 VM UI 的验证环境，或明确将该双端门禁变更为等效可验证据（如 VM HTTP + Vue 已覆盖的成功/失败/恢复矩阵 + 真实 kill/restart），否则该项保持 pending、不能宣布 AC 全体通过。
+1. R-16 双端门禁环境（2026-10-29 更新：Rust 门禁根因已定界）——a2r 生成的 Rust 后端（rust-workspace/auto-blog-back）在当前工具链下编译失败 59 errors（E0433 `a2r_std` 缺 `time` 映射等），属跨仓 a2r 转译缺陷，须独立能力计划修复；原生 `auto run -r vm` 可交互 UI 连续四轮本机不可驱动。请用户裁决：登记跨仓 a2r 能力计划并提供原生 VM 验证环境（沿用原双端门禁），或明确将该双端门禁变更为等效可验证据（VM HTTP + Vue 全矩阵 + 真实 kill/restart 已覆盖），否则该项保持 pending、不能宣布 AC 全体通过。
 2. r4 PARTIAL_CANDIDATE 协议分歧：见 §9 Phase 5 work 收据。r4 探针期望（清指针+撕裂候选下返回 rev1）与 SD-05「不因低版候选阻断后来确认版」不能同时成立；请复审确认 r6 协议语义（返回最高确认版 rev201）为准，或给出替代裁决。
 
 历史草案交接（revision 2）：stage=new；outcome=pass（草案，非代码验收）；next=work。当前状态以 Phase 5 与 frontmatter 为准；历史交付后重新激活，待修复。
