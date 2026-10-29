@@ -1,6 +1,6 @@
 # auto-blog 产品规划与执行入口
 
-本轮文档是2026-10-04的设计基线；它们不表示功能已实现。
+更新2026-10-29：产品设计保留2026-10-04基线；001的本地草稿能力已交付并归档，默认Rust后端与原生VM运行验收由004接续，不因归档宣称双端全通过。
 
 - [需求、模块设计与UI/UX](design/01-product-design.md)
 - [第一版roadmap](roadmap-v0.6.md)
@@ -9,15 +9,16 @@
 
 ## 首批计划
 
-1. [BLOG-001：个人作者模式与可靠草稿](plans/001-durable-drafts.md)
+1. [BLOG-001：个人作者模式与可靠草稿](plans/archived/001-durable-drafts.md)
 2. [BLOG-002：编辑器复用、资料与预览](plans/002-editor-assets-preview.md)
 3. [BLOG-003：固定版本与本地发布包](plans/003-snapshots-export.md)
+4. [BLOG-004：Rust后端与原生VM界面运行及验收补齐](plans/004-dual-runtime-acceptance.md)（当前优先，关联auto-lang/885、auto-ui/003）
 
 ## 给执行agent
 
-先读仓根README、SOURCE-IMPORT.json、对应计划和产品设计，再核对当前git状态及源码。所有计划暂为drafting；选定计划后按现有auto-plan规则确认并翻为executing，按任务执行，留证据，经独立复审才合入v0.6-dev。不要执行全部roadmap，不要以写过文档为验收。
+先读仓根README、对应计划及当前Spec，核对实际HEAD/WIP/依赖版本。001保持归档，004为drafting/r1、仅起草；当前授权为计划准备，不自动执行002/003/004。功能执行按new/work/review/merge及既有验收纪律，不以文档或勾选代替用户任务。
 
-本轮在各独立应用仓内从001–003编号，plan_id带应用前缀；核对本仓活动/归档计划为空后独占创建，不占用AutoLang/AutoOS的.next-id，也不与主力机739/740共用编号。新建后续计划按本仓取号机制检查活动及归档目录；本批不重新分配已存在ID。工作位置按2026-10-04用户约定，统一为D:/autostack/auto-os/apps/023-realworld；在该检出的v0.6-dev编写计划和实施，不使用外部临时clone作为工作入口。不同app可并行，同app保持一个写入者，禁止junction/symlink。
+本轮在各独立应用仓内从001–003编号，plan_id带应用前缀；核对本仓活动/归档计划为空后独占创建，不占用AutoLang/AutoOS的.next-id，也不与主力机739/740共用编号。新建后续计划按本仓取号机制检查活动及归档目录；本批不重新分配已存在ID。工作位置按2026-10-04用户约定，统一使用D:/autostack/auto-blog独立clone的main；AutoOS内apps/auto-blog仅固定已交付pin，修改推送后再集成。旧apps/023-realworld与v0.6-dev仅作历史，不作为当前开发入口。不同app可并行，同app保持一个写入者，禁止junction/symlink。
 
 跨仓框架依赖按AUTO_LANG_ROOT → 组内兄弟auto-lang → D:/autostack/auto-lang解析；不得用文件系统链接补依赖。Notes富文本需固定AutoDown子模块，其他应用按各自实际依赖准备；app修改在上述子模块工作分支完成；语言/框架核心修改仍遵守其专用worktree规约。持久化/截图等验证用临时独立数据目录，不接触用户真实知识库。
 
