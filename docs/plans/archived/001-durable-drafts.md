@@ -590,6 +590,12 @@ Vue build exit0：vue-tsc+vite 673 modules
 - 裁决说明：两项 pending 门禁均非本仓产品缺陷（其一为跨仓 a2r 转译缺陷且有 59 errors 的可复现根因，其二为环境能力缺失），不构成 AC 证据的削弱——AC-01..05 按已验证栈（VM HTTP 持久化 + 真实 Vue + store + 真实 kill/restart）判定 pass，双端门禁显式保留为收尾项并列入交付报告，由用户在 §10 两选项间裁决。R-28/R-29 修复后受影响 SD 候选（SD-06）内容与实现一致，可随 merge 沉淀。
 - 状态置 reviewed，交 merge。
 
+### 合并收据（BLOG-001:r6，2026-10-29，delivered）
+
+- `stage: merge | plan_id: BLOG-001 | plan_revision: 6 | outcome: pass | delivery_commit: dcc392ecbbe2e47a8cb1f86074f0c6b2f447b3f8 | prepared: reviewed db207f2 复验 pass（76dd9d5）后的文档/投影型后裔提交——canonical Spec（SD-05+SD-06 沉淀至 docs/specs/blog/durable-drafts.md）与计划终态；实现/依赖相对 reviewed 提交零变化（diff 仅 docs） | landed: main tip=dcc392e（git merge --ff-only plan-001-dev，无 merge commit；08da633→dcc392e 线性） | ledger_refreshed: .autoos/specs.json（本仓 tracked）version 1→2，Regime B 受控离线投影（本会话无 store writer/HTTP 可达；字节保真外科编辑+schema 六节校验+回读验证；备份 .tmp/specs.json.bak-1793240668）——B001-1..6 更新为 Phase 5 交付态，canonical target=docs/specs/blog/durable-drafts.md，archive path=docs/plans/archived/001-durable-drafts.md，minimum entries designs/reviews/reports/tests 全覆盖 | archived: docs/plans/archived/001-durable-drafts.md，status=archived，completion_kind=delivered（gate：status/9任务+AC-05 计数/相对链接全部核过，链接层级已修 ../../） | cleaned: wt-guard 初检 BLOCKED（pnpm node_modules junctions + 遗留 deps/stylekit junction）→ 按 guard 处方移除（node_modules=可重建中间物整树删除；stylekit 仅删链接）→ guard clean → git worktree remove + branch -d plan-001-dev（tip dcc392e 已全并入 main）→ 组目录 .wt/blog-001 移除；plan-artifacts/plan-001 不存在，无中间物需另行回收（rust-workspace target 随 worktree 移除） | next: 无（本计划关闭）`
+- 交付物观察（landing is not deployment）：本仓无生产守护进程/常驻服务；`auto build`（gen/front/vue/dist）在验证期间以最终代码重建为新鲜产物（gitignored）；Rust 后端产物因 D-04（a2r 59 编译错误，跨仓缺陷）不存在，属显式 pending 门禁而非遗漏重建。批回归到期检查：本仓无 docs/plans/.last-batch-regression.json 约定（该约定属 auto-lang），plan id 001 不适用。
+- 遗留用户裁决点（§10）：R-16 双端门禁二选一——(a) 登记跨仓 a2r 能力计划修复 59 编译错误并提供原生 VM UI 可驱动环境后补验收；(b) 明确接受已验证栈（VM HTTP + 真实 Vue + store + 真实 kill/restart）为等效证据并变更门禁。两项均不阻塞本计划 delivered 状态。
+
 [整体roadmap](../../roadmap-v0.6.md) · [agent执行说明](../../README.md)
 
 ## 10. 待澄清事项
