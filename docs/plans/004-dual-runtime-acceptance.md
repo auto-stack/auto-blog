@@ -1,12 +1,12 @@
 ---
 plan_id: BLOG-004
-status: executing
+status: execution_done
 feature_name: dual-runtime-acceptance
 author: [Codex]
 created_at: 2026-10-29
 updated_at: 2026-10-30
 plan_revision: 2
-current_step: 6
+current_step: 8
 total_steps: 10
 depends_on: ["BLOG-001", "auto-lang/PLAN-885", "auto-ui/PLAN-003"]
 supersedes_spec_components: ["docs/specs/blog/durable-drafts.md"]
@@ -119,8 +119,8 @@ T-02/T-03消费实际前置回执（已交付commit＋适用生成/运行证据�
 - [x] T-04（owner_stage=work；依赖T-02；AC-02/05）：建立tests/dual/verify_dual.py调度/隔离/失败传播，接真实Rust API电池及001存储负例，不建立第二套存储实现。证据：`tests/dual/verify_dual.py`（487 行，纯 stdlib）——`--profile vue-rust|native-vm-rust` 固定入口；预检（auto.exe SHA256/四仓 HEAD/临时端口绑定分配）；隔离数据目录 `.tmp/dual/<profile>-<pid>/data`（AUTO_BLOG_DATA 直达后端）；每 run 独立 artifacts `attachments/004/dual/<profile>-<ts>/`（service-pre/post.log、report.json，不入库）；服务树只清理本次 spawn 的 PID（taskkill /T 定向）；场景注册表 13 项（中文/引号/换行创建、epoch 有效性、列表/打开回读、条件保存 rev2、陈旧 rev 冲突、迁移幂等、4690 字长中文回读 + not_found/外层坏 body 4xx/内层坏 JSON→0/空 slug→0 存储负例 + 数据目录隔离 oracle + post-restart 自动重启持久化）；V-06 内置负控 `--inject-failure {port,expectation}`。验证（正控→负控→完整 profile）：`--scenarios api,neg,store` 13/13 EXIT=0；`--inject-failure expectation` EXIT=1（失败保留于 report）；`--inject-failure port` EXIT=1（启动失败具名 service-pre.log）；完整 `--profile native-vm-rust` 13 绿+vm-ui pending EXIT=2（owner=T-06 具名，不静默跳过；0 场景路径 EXIT=3）。仅 HTTP+数据目录存在性/子串 oracle，未建第二套存储实现；每轮清成员源+工作区清单强制依赖重解析（对冲 §11 陈旧清单观察），target/ 保留增量编译。原始报告 attachments/004/dual/（不入库）。
 - [x] T-05（owner_stage=work；依赖T-04；AC-03/05）：Vue＋Rust真实交互、自动/手动保存、冲突/错误/重启回放，保存有区分力的UI与数据证据。**已关闭（2026-10-29 22:11）**：前置 auto-ui/PLAN-010 交付后，`verify_dual.py --profile vue-rust` **15/15 EXIT=0**——真实浏览器全链路：中文/引号/换行创建、**3秒自动保存（tickSaved=true rev=3）**、独立 HTTP 读回（同 work_id/数据一致）、改标题手动保存、外部抢写→"保存冲突"可见且不显示已保存、保留本机版本恢复（后端为 UI 内容 rev=6）、**刷新重开（len=18）**、**后端重启重开（rev=6 bodyMatch=true）**；API 电池 13 项与服务级重启持久化全绿。报告 `attachments/004/dual/vue-rust-20261029-221135/`（report cf 级 hash 见附件；UI 截图 .tmp/dual/vue-ui-*.png）。此前部分状态（手动保存绿/自动保存红）及其根因（auto-ui 渲染器多 store 裸调用绑错 store → App.vue mounted 抛错中断 post-flush → 页面 mounted 回调丢失）已由 PLAN-010 关闭，历史证据保留于本行 git 历史与 attachments/004/timer_probe*.cjs。原始部分证据文本：`tests/dual/vue_ui_scenarios.cjs`（真浏览器 Playwright 驱动，NET 捕获+截图+独立 HTTP 对照）经 `verify_dual.py --profile vue-rust`（正式 `auto run --server rust`，front 由 vite 实测 `::1`）实跑——**绿**：真实输入创建（中文/引号/换行）、手动保存、独立 HTTP 读回（同 work_id，UI 与后端数据一致）、改标题保存、外部抢写→UI 显示"保存冲突"且不显示已保存、保留本机版本恢复→后端为 UI 内容；API 电池 13 项与重启持久化（服务级）全绿。**红（同一根因，owner auto-ui）**：`ui.autosave_3s` tick 永不触发（15s 零 PUT；页面内手动调 `store.AutosaveTick()` 立即 PUT 成功——机制正常、timer 未注册）；`ui.refresh_reopen_persists`/`ui.restart_backend_persists` 刷新/重启后列表不可达（页面 mounted 钩子未运行→LoadList 不执行）。根因证据：生成的 `gen/front/vue/src/pages/author.vue` 含两处 onMounted（LoadList+setInterval(3000)）但运行时不生效；App.vue mounted 抛 `store.LoadFeed is not a function` 与 `Cannot read properties of null (reading 'token')`（probe 脚本与输出 attachments/004/timer_probe*.cjs、dual/vue-rust-20261029-210029/ report `cf8c9fad` pre.log `40258229`）。非自动保存路径全绿证明 Vue 组件/状态机/API 客户端接线本身健康；缺陷在页面级 mounted 接线，属 auto-ui Vue 渲染器（auto-ui-tools）层，Blog 侧不越仓修补。
 - [x] T-06（owner_stage=work；依赖T-03/T-04；AC-04/05）：原生VM＋Rust真实窗口任务及退出恢复；缺驱动/环境则具名阻塞，不用Vue、API或mock顶替。
-- [ ] T-07（owner_stage=work；依赖T-05/T-06；AC-05）：冻结双方profile场景与独立数据oracle，验证负控非零/正控通过；核查001保稿、恢复/迁移与下次恢复操作，无未执行必需门。
-- [ ] T-08（owner_stage=work；依赖T-07；AC-01..05）：准备SD-01/02可审查增量，提交实现/测试/摘要，复核HEAD/依赖未漂移，转execution_done；本步不把尚未关闭的门算完成。
+- [x] T-07（owner_stage=work；依赖T-05/T-06；AC-05）：冻结双方profile场景与独立数据oracle，验证负控非零/正控通过；核查001保稿、恢复/迁移与下次恢复操作，无未执行必需门。**冻结完成（2026-10-30，HEAD 73f3594）**：冻结基线=CLI `da0558e7` + tool `563afa4a`（已部署发现路径）+ auto-blog 73f3594 + auto-ui 交付面 `df39593`/c11015c + auto-lang 交付面 `dacd00184`；冻结证据：`--profile vue-rust` **15/15 EXIT=0**（vue-rust-20261030-111303，冻结 HEAD 上重绑）、`--profile native-vm-rust` **22/22 EXIT=0**（native-vm-rust-20261030-110613，独立复跑，真实窗口 MCP 作者任务全链）；负控非零：vue expectation 注入 14/13/1 EXIT=1（vue-rust-20261030-111806）、native port 注入 EXIT=1（native-vm-rust-20261030-112342）+ 另一会话聚合器变异灵敏度（exit1/exit0/exit3，见 §11 消费回执）；001 链核查：条件保存/陈旧 rev 冲突/迁移幂等/重启持久化/恢复后下一操作（vue conflict_recovery rev5、native forced_reopen rev6 bodyMatch）全部在场景注册表内，两 profile 场景清单即冻结 oracle（runtime-acceptance.md §3）。
+- [x] T-08（owner_stage=work；依赖T-07；AC-01..05）：准备SD-01/02可审查增量，提交实现/测试/摘要，复核HEAD/依赖未漂移，转execution_done；本步不把尚未关闭的门算完成。**完成（2026-10-30）**：SD-01=`docs/specs/blog/durable-drafts.md` D-04/D-06 更新为经版本绑定证据关闭的准确支持范围；SD-02=`docs/specs/blog/runtime-acceptance.md` 新增（永久入口/退出码合同/工具前置与部署纪律/场景合同/原生会话附加合同/证据口径）。漂移复核：验收二进制钉定（auto.exe `da0558e7`、tool `563afa4a` 部署 `71503100→563afa4a`），冻结 HEAD 73f3594 未变；auto-lang/auto-ui master 在验收后有他 会话推进，但不影响已构建验收二进制（静态闭包）。簿记补齐：另一会话 T-03/T-06 关闭未写 §9 回执——本提交一并补记（见 §9）。**转 execution_done**：AC-01..05 全部有当前代码绑定的通过证据，无未执行必需门（T-09 复审/T-10 合并门除外，owner 另计）。
 - [ ] T-09（owner_stage=review；依赖T-08；AC-06）：同一clone停止实现，按冻结输入做最终复审；记录上下文独立性限制；无pass不进入merge。
 - [ ] T-10（owner_stage=merge；依赖T-09；AC-07）：完成必要统一门、Spec/索引/归档、app推送和AutoOS精确pin/组合健康验证；更新总表并显式detach组合子模块，独立clone留main。
 

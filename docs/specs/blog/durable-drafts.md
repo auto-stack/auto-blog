@@ -100,6 +100,6 @@
 | D-01 | `source_refs`/`asset_refs` 仅类型+序列化，无写入 API | 功能边界 B03；本 Spec 即边界说明 |
 | D-02 | 测试目录用 `tests/probe/`（计划写 `tests/fixtures/drafts/`） | 等价隔离 fixture；后续统一可再迁 |
 | D-03 | 为接线修改源 demo 文件（api/db/app/article_store/editor/home/login） | demo 路由与 seed 保留；`.me.token`→`session_token` 修 bug |
-| D-04 | 纯 rust 后端门禁未闭：a2r 生成物编译失败 59 errors（E0433 `a2r_std` 缺 `time` 映射等） | 跨仓 a2r 转译缺陷，须独立能力计划修复；VM 轨（本 Spec 全部规则实证面）全绿 |
+| D-04 | ~~纯 rust 后端门禁未闭：a2r 生成物编译失败 59 errors~~ **已关闭（BLOG-004 T-02/T-05，2026-10-29）**：auto-lang/PLAN-885（交付 `dacd00184`）修复生成器/runtime 四组根因（time 路径/字符串借用/int 宽度签名/模块类型路径）后，纯 .at 冷生成→编译 exit 0，59 errors 归零 | 经版本绑定证据关闭：CLI 重建（`da0558e7`，链 auto-lang master 交付面）后正式入口 `auto service --server rust` 下 13/13 API 电池（创建/列表/打开/条件保存/陈旧 rev 冲突/迁移幂等/5 负例）+ `AUTO_BLOG_DATA` 隔离 + 重启持久化全绿（`verify_dual.py --profile vue-rust` 15/15，含 Vue 全交互） |
 | D-05 | demo smoke 子集（T1–T6/T9–T10/T12–T14）红 | 与 r3 基线同类（seed/auth/detail 异步）；非 BLOG-001 AC |
-| D-06 | 原生 `auto run -r vm` UI 窗口本环境不可交互驱动 | 后端 HTTP 22 routes 已启动验证 |
+| D-06 | ~~原生 `auto run -r vm` UI 窗口本环境不可交互驱动~~ **已关闭（BLOG-004 T-03/T-06，2026-10-30）**：链式修复 auto-ui/PLAN-003（原生控制夹具）→ BLOG-004 T-03（app.at 多 store 裸调用歧义限定，plan-446 A1）→ auto-ui/PLAN-015（VM 路由页动态加载静默失败，交付 `df39593`）后，原生窗口可完整驱动 | 经版本绑定证据关闭：`auto run -r vm --server rust` 真实窗口"博客"经 MCP 完成作者任务（创建/3s 自动保存/外部抢写冲突保稿/保留本机恢复）、正常 q 退出与强制杀树均回收、重开数据逐字节一致（`verify_dual.py --profile native-vm-rust` 22/22 EXIT=0，两次独立会话复现） |
