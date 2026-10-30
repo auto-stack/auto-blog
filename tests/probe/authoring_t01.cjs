@@ -40,14 +40,14 @@ const settle = async (page) => {
 
     // T01-01 新建：空稿起稿面 = textarea（+空稿提示），格式默认 markdown
     await page.getByRole('button', { name: '新建草稿' }).click();
-    await page.locator('textarea').waitFor({ timeout: 20000 });
+    await page.getByPlaceholder('正文（Markdown 语法可直接输入；自动保存）').waitFor({ timeout: 20000 });
     const idText = await page.getByText(/ID w-/).textContent();
     wid = (idText.match(/w-\d+-\d+/) || [''])[0];
     const hint = await page.getByText('空稿可直接输入；正文非空后可切引擎编辑器').isVisible();
     record('T01-01-new-empty-startface', wid !== '' && hint, { wid, hint });
 
     // T01-02 textarea 起稿（Markdown 语法文本）→ 切引擎 → 引擎渲染
-    await page.locator('textarea').fill(MD_V1);
+    await page.getByPlaceholder('正文（Markdown 语法可直接输入；自动保存）').fill(MD_V1);
     await page.getByRole('button', { name: '编辑器：降级 · 切引擎' }).click();
     await page.locator('.autodown-editor').waitFor({ timeout: 20000 });
     const edH1 = await page.locator('.autodown-editor h1', { hasText: '探针标题' }).count();
@@ -78,7 +78,7 @@ const settle = async (page) => {
 
     // T01-05 降级保稿（AC-02 应用内臂）：切降级 → 内容保留 → 追加 → 保存
     await page.getByRole('button', { name: '编辑器：引擎 · 切降级' }).click();
-    const ta = page.locator('textarea');
+    const ta = page.getByPlaceholder('正文（Markdown 语法可直接输入；自动保存）');
     await ta.waitFor({ timeout: 10000 });
     const kept = (await ta.inputValue()).includes('引擎内追加T01');
     await ta.fill((await ta.inputValue()) + '\n\n降级追加段落T01');

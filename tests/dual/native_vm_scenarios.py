@@ -247,7 +247,7 @@ def run(v, profile, deps, exe_sha, selected, inject, run_dir, data_dir, front, b
         text_wait("文章标题")
         for kind, placeholder, value in [
             ("input", "文章标题", expected["title"]), ("input", "摘要（可选）", expected["summary"]),
-            ("textarea", "正文（支持中文、长稿；自动保存）", expected["body"]),
+            ("textarea", "正文（Markdown 语法可直接输入；自动保存）", expected["body"]),
             ("input", "标签（逗号分隔）", expected["tags"]),
         ]:
             fill(kind, placeholder, value)
@@ -259,7 +259,7 @@ def run(v, profile, deps, exe_sha, selected, inject, run_dir, data_dir, front, b
         assert wait(readback, "UI-created draft differs from HTTP readback")
         record("vm-ui.author_task", True, {"work_id": wid, "disk": disk_check()})
         expected["body"] += "\n自动保存段落。"
-        fill("textarea", "正文（支持中文、长稿；自动保存）", expected["body"])
+        fill("textarea", "正文（Markdown 语法可直接输入；自动保存）", expected["body"])
         assert wait(readback, "native timer did not autosave", 12)
         text_wait("● 已保存")
         record("vm-ui.autosave", True, disk_check())
@@ -268,11 +268,11 @@ def run(v, profile, deps, exe_sha, selected, inject, run_dir, data_dir, front, b
         current = wait(readback, "pre-conflict readback missing")
         status, stolen = v.http_json("PUT", f"{api}/api/drafts/{wid}", {
             "title": "external competitor", "summary": "", "body": "external body",
-            "tags": "", "expected_rev": current["revision"],
+            "tags": "", "cover": "", "format": "text", "expected_rev": current["revision"],
         })
         assert status == 200 and stolen.get("ok"), stolen
         expected["body"] += "\n冲突期间保留的本机编辑。"
-        fill("textarea", "正文（支持中文、长稿；自动保存）", expected["body"])
+        fill("textarea", "正文（Markdown 语法可直接输入；自动保存）", expected["body"])
         press("保存")
         text_wait("保存冲突：")
         conflict = snapshot("conflict")
@@ -286,13 +286,18 @@ def run(v, profile, deps, exe_sha, selected, inject, run_dir, data_dir, front, b
         record("vm-ui.normal_exit_and_closed_mcp", True, lifecycle[-1])
         svc = start("after-q")
         reopen("normal-reopen")
+        # BLOG-002：有内容 markdown 稿重开默认引擎形态（VM 快照中引擎壳呈现为
+        # textarea、占位符不同）——切降级统一回可定位/可填的 textarea
+        if "编辑器：引擎 · 切降级" in client.snapshot():
+            press("编辑器：引擎 · 切降级")
+            text_wait("正文（Markdown 语法可直接输入；自动保存）")
         record("vm-ui.normal_reopen_persists", True, {"work_id": wid, "disk": disk_check()})
         for name, case in selected.items():
             if case["phase"] == "post-restart":
                 ok, detail = case["fn"](ctx)
                 record(name, ok, detail)
         expected["body"] += "\n强制退出前已确认保存。"
-        fill("textarea", "正文（支持中文、长稿；自动保存）", expected["body"])
+        fill("textarea", "正文（Markdown 语法可直接输入；自动保存）", expected["body"])
         press("保存")
         assert wait(readback, "pre-force save not confirmed")
         text_wait("● 已保存")
@@ -300,6 +305,9 @@ def run(v, profile, deps, exe_sha, selected, inject, run_dir, data_dir, front, b
         record("vm-ui.forced_exit_and_closed_mcp", True, lifecycle[-1])
         svc = start("after-force")
         reopen("forced-reopen")
+        if "编辑器：引擎 · 切降级" in client.snapshot():
+            press("编辑器：引擎 · 切降级")
+            text_wait("正文（Markdown 语法可直接输入；自动保存）")
         record("vm-ui.forced_reopen_persists", True, {"work_id": wid, "disk": disk_check()})
         close(svc)
         if inject == "expectation":

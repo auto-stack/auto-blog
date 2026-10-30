@@ -39,14 +39,14 @@
 ## 5. 引擎依赖（vendor）
 
 - `vendor/auto-down/autodown/packages/engine` = @autodown/engine 固定副本（pin c3464d0，src+dist；PROVENANCE.md 记录来源与更新规则）；pac.at `npm_deps: file:../../../vendor/...`。
-- Vue 轨构建：**vite build + preview**（见计划 F-2：dev 模式对 linked engine 的传递 CJS 依赖互操作断裂，属 auto-ui 代码生成器跨仓提案）。
+- Vue 轨：**验收/统一门一律 vite build + preview 服务前端**。`auto run`（vite dev）下含引擎的路由页动态加载失败（F-2：engine 源链 mermaid→dayjs CJS 互操作断裂 → author 路由组件求值抛错 → outlet 空，导航壳正常——2026-10-30 复审实测复现，修复属 auto-ui 代码生成器跨仓提案）。构建模式 rollup commonjs 互操作正常。
 - VM 轨：CLI default features 含 autodown（Plan 040 裁定），框架内渲染，无 app 侧依赖。
 
 ## 6. 已知边界与偏差
 
 | ID | 内容 | 影响 |
 |---|---|---|
-| F-2 | vue dev 模式 linked engine 传递 CJS 互操作断裂 | 产品 vue 验收走 build+preview；修复属 auto-ui 代码生成器（跨仓提案） |
+| F-2 | vue dev 模式 linked engine 传递 CJS 互操作断裂（复审复核确认：产品 vendor 相对 file: 集成同样复现——路由页动态加载失败、outlet 空、导航壳正常；早期"推翻"系仅校验导航的假阳性） | 产品 vue 验收/统一门一律 build+preview；dev 修复属 auto-ui 代码生成器（跨仓提案） |
 | F-6 | VM 轨 `use <module>: <Widget>` 子件实例化静默失败 | 写作面内联于 author.at；跨仓提案另行登记 |
 | F-7 | 引擎空文档 0 块不可输入 | 空稿起稿规则（应用层）；引擎空态占位属跨仓提案 |
 | F-8 | `.len()`/.slice()` 单位多字节错位 | JSON Lines + find 基规避；json_array_valid（migrate）中文敏感保持 001 原状登记 |

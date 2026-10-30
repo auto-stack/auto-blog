@@ -21,7 +21,7 @@ const BODY_V2 = '自动保存追加的段落：3秒tick应将其持久化。';
 const TITLE_V2 = '改后的标题——手动保存';
 const BODY_V3 = 'UI 本机新输入——冲突期间不得丢失';
 const TITLE_BOX = '文章标题';
-const BODY_BOX = '正文（支持中文、长稿；自动保存）';
+const BODY_BOX = '正文（Markdown 语法可直接输入；自动保存）';
 
 const results = [];
 function record(name, ok, detail) {
@@ -38,7 +38,7 @@ function record(name, ok, detail) {
     page.on('requestfailed', r => { if (r.url().includes('/api/')) console.log('NETFAIL ' + r.method() + ' ' + r.url() + ' :: ' + ((r.failure() || {}).errorText || '?')); });
     page.on('response', r => { if (r.url().includes('/api/')) console.log('NET ' + r.request().method() + ' ' + r.url() + ' -> ' + r.status()); });
     await page.goto(URL + '/#/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.getByText('我的草稿', { exact: true }).waitFor({ timeout: 30000 });
+    await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 30000 });
 
     // tick 过去 + 冲突恢复，回到 saved 稳态
     const settle = async () => {
@@ -109,7 +109,7 @@ function record(name, ok, detail) {
       // 5) 可见冲突：外部客户端以当前 rev 抢写成功 → UI 保存必须显示冲突而非已保存
       const uiRev = parseInt((await page.getByText(/ID w-.* · rev/).innerText()).match(/rev (\d+)/)[1], 10);
       const steal = await (await api.put('/api/drafts/' + wid, { data: {
-        title: '外部抢写版本', summary: '', body: '另一客户端在UI保存前写入', tags: '', expected_rev: uiRev,
+        title: '外部抢写版本', summary: '', body: '另一客户端在UI保存前写入', tags: '', cover: '', format: 'text', expected_rev: uiRev,
       } })).json();
       if (!steal.ok) throw new Error('setup: external write failed ' + JSON.stringify(steal));
       await bodyBox.fill(BODY_V3);
@@ -131,10 +131,13 @@ function record(name, ok, detail) {
       // 7) 页面刷新：已确认数据不丢（重开）。mounted 钩子若未运行（见 autosave 场景注），
       //    LoadList 不执行→列表空→重开不可达——此时按同根因记失败。
       await page.reload({ waitUntil: 'domcontentloaded' });
-      await page.getByText('我的草稿', { exact: true }).waitFor({ timeout: 30000 });
+      await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 30000 });
       let reopenOk = false, reopenDetail = {};
       try {
         await page.getByText(TITLE_V2, { exact: true }).click({ timeout: 8000 });
+        // BLOG-002：有内容 markdown 稿重开默认引擎形态——切降级后经 textarea 读字节值
+        await page.locator('.autodown-editor').waitFor({ timeout: 15000 });
+        await page.getByRole('button', { name: /编辑器：引擎 · 切降级/ }).click({ timeout: 8000 });
         const box = page.getByPlaceholder(BODY_BOX);
         await box.waitFor({ timeout: 15000 });
         const reopened = await box.inputValue();
@@ -153,6 +156,9 @@ function record(name, ok, detail) {
       let ok = false, detail = {};
       try {
         await page.getByText(TITLE_V2, { exact: true }).first().click({ timeout: 8000 });
+        // BLOG-002：同上——重开为引擎形态，切降级后读取
+        await page.locator('.autodown-editor').waitFor({ timeout: 15000 });
+        await page.getByRole('button', { name: /编辑器：引擎 · 切降级/ }).click({ timeout: 8000 });
         const box = page.getByPlaceholder(BODY_BOX);
         await box.waitFor({ timeout: 15000 });
         const body = await box.inputValue();

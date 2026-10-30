@@ -382,6 +382,78 @@ PROFILE_PHASES = {
 }
 
 
+_PREVIEW_PROCS: list = []
+
+
+def _stop_previews() -> None:
+    for proc in _PREVIEW_PROCS:
+        try:
+            proc.kill()
+        except OSError:
+            pass
+    _PREVIEW_PROCS.clear()
+
+
+def ensure_preview_front(front_port: int, back_port: int, log) -> str | None:
+    """F-2 适配：构建前端并以 vite preview 服务（/api 代理到后端）。
+
+    项目 package.json 含 @autodown/engine 时启用；返回 preview URL 或 None
+    （无引擎依赖→沿用原 run/dev 路径）。preview 进程登记进 _PREVIEW_PROCS。
+    """
+    vue_dir = REPO / "gen" / "front" / "vue"
+    pkg = vue_dir / "package.json"
+    if not pkg.is_file():
+        return None
+    try:
+        if "@autodown/engine" not in pkg.read_text(encoding="utf-8"):
+            return None
+    except OSError:
+        return None
+    env = dict(os.environ)
+    env["AUTO_HTTP_PORT"] = str(back_port)
+    build = subprocess.run(
+        ["cmd", "/c", "npx", "vite", "build"], cwd=str(vue_dir), env=env,
+        capture_output=True, text=True, timeout=600,
+    )
+    if build.returncode != 0:
+        log(f"  vue 腿构建失败 rc={build.returncode}: {build.stdout[-400:]} {build.stderr[-200:]}")
+        return None
+    cfg = vue_dir / "vite.config.verify-preview.mjs"
+    base = (vue_dir / "vite.config.ts").read_text(encoding="utf-8")
+    preview_port = pick_port()
+    anchor = "export default defineConfig({"
+    inject = (
+        "export default defineConfig({\n"
+        f"  preview: {{ port: {preview_port}, strictPort: true, "
+        "proxy: { '/api': { target: 'http://127.0.0.1:" + str(back_port) + "', changeOrigin: true } } },\n"
+    )
+    if anchor not in base:
+        log("  vue 腿预览配置生成失败：vite.config.ts 锚点缺失")
+        return None
+    cfg.write_text(base.replace(anchor, inject, 1), encoding="utf-8")
+    logf_preview = open(vue_dir / ".verify-preview.log", "w", encoding="utf-8", errors="replace")
+    proc = subprocess.Popen(
+        ["cmd", "/c", "npx", "vite", "preview", "--config", "vite.config.verify-preview.mjs"],
+        cwd=str(vue_dir), env=env, stdout=logf_preview, stderr=subprocess.STDOUT,
+    )
+    _PREVIEW_PROCS.append(proc)
+    url = f"http://localhost:{preview_port}"
+    deadline = time.time() + 60
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            log("  vue 腿 preview 提前退出")
+            return None
+        try:
+            with urllib.request.urlopen(url + "/", timeout=3) as resp:
+                if resp.status == 200:
+                    return url
+        except OSError:
+            pass
+        time.sleep(1.0)
+    log("  vue 腿 preview 60s 未就绪")
+    return None
+
+
 def run_profile(profile: str, only: str | None, inject: str | None, artifacts: Path) -> int:
     preflight_fail: list[str] = []
     if not AUTO_EXE.is_file():
@@ -465,6 +537,15 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
             return finalize(profile, deps, exe_sha, results, pendings, run_dir)
         log(f"  app ready (mode={spawn_mode} front={svc.front_url or '-'} back={svc.back_port})")
 
+        # F-2（BLOG-002）：含引擎项目 vue 腿一律构建模式服务；preview 跨 pre/post 复用
+        if run_vue_ui:
+            preview_url = ensure_preview_front(front, back, log)
+            if preview_url:
+                svc.front_url = preview_url
+                log(f"  vue 腿 F-2 适配：build+preview {preview_url}")
+            else:
+                log("  vue 腿 F-2 适配未启用（无引擎依赖或构建失败），沿用 run/dev 前端")
+
         pre = [n for n, s in selected.items() if s["phase"] == "pre-restart"]
         for name in pre:
             try:
@@ -500,6 +581,9 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                         record("vue-ui.restart_backend_persists", False,
                                f"app restart failed: {why2}", phase="vue-ui")
                 else:
+                    if svc2.front_url and _PREVIEW_PROCS:
+                        svc2.front_url = svc.front_url
+                        log(f"  vue 腿 post 复用 preview {svc2.front_url}")
                     if svc2.front_url:
                         ctx.base = f"http://127.0.0.1:{back}"
                     for name in post:
@@ -515,6 +599,7 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                 svc2.stop()
     finally:
         svc.stop()
+        _stop_previews()
 
     return finalize(profile, deps, exe_sha, results, pendings, run_dir)
 
