@@ -283,5 +283,21 @@ pub fn migration_status() str {
     return db.migration_status()
 }
 
+// --- BLOG-002 T-02：资产引用与来源导入 ---
+
+/// POST /api/drafts/:work_id/asset-ref — 追加图片资产引用（说明=caption）；
+/// 正文同步追加 ![caption](storage_ref) 图片行；条件 revision 写。
+#[api(method = "POST", path = "/api/drafts/:work_id/asset-ref")]
+pub fn add_asset_ref(work_id str, storage_ref str, caption str, mode str, expected_rev int) SaveResult {
+    return db.add_asset_ref(work_id, storage_ref, caption, mode, expected_rev)
+}
+
+/// POST /api/drafts/import-compose — 从多个来源 envelope 组合新作品。
+/// items 为 JSON 数组串（producer/body 必填；mode 缺省 copy）；原来源零写入。
+#[api(method = "POST", path = "/api/drafts/import-compose")]
+pub fn import_compose(items str) Work {
+    return db.import_compose(items)
+}
+
 // NOTE: no /api/tags endpoint — tags are derived client-side (a2r has no
 // List<str>, and aggregating Strings server-side hits borrow-checker issues).

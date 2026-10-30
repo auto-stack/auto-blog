@@ -1,0 +1,10 @@
+{
+  "producer": "notes",
+  "title": "会议纪要：AutoDown 集成",
+  "body": "与 auto-down 团队对齐了编辑器接入方式。\n\n- 引擎按源消费（development 条件）\n- VM 轨走 autodown-core 原生渲染",
+  "original_uri": "notes://local/inbox/mtg-autodown",
+  "captured_at": 1793200000,
+  "locator": "inbox/2026/mtg-autodown#L1-L6",
+  "source_revision": 3,
+  "mode": "copy"
+}

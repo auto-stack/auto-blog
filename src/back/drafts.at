@@ -1275,3 +1275,183 @@ pub fn migration_status() str {
     out = out + "}"
     return out
 }
+
+// --- BLOG-002 T-02：资产引用与来源导入 ---
+
+/// 向 asset_refs 追加一条图片资产（服务端组合 JSON，前端不拼串）。
+/// 条目形态（设计跨应用契约 v1 AssetRef 的应用内落地；缺失值显式 null）：
+/// {"asset_id","kind","storage_ref","caption","mime","mode"}，mode: "copy"|"reference"。
+/// 条件 revision 写（expected_rev=0 强制）；成功推进 revision。
+pub fn add_asset_ref(work_id str, storage_ref str, caption str, mode str, expected_rev int) SaveResult {
+    let root str = data_root()
+    let cur Work = load_work(root, work_id)
+    if cur.work_id == "" {
+        return SaveResult { ok: false, work_id: work_id, revision: 0, conflict: false, error: "not_found" }
+    }
+    if expected_rev > 0 && cur.revision != expected_rev {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: true, error: "conflict" }
+    }
+    if storage_ref == "" {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "empty_ref" }
+    }
+    if mode != "copy" && mode != "reference" {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "bad_mode" }
+    }
+    let asset_id str = "a-" + time.now_ms().to_string() + "-" + (cur.revision + 1).to_string()
+    var entry str = "{\"asset_id\":\"" + json_escape(asset_id) + "\",\"kind\":\"image\",\"storage_ref\":\"" + json_escape(storage_ref) + "\",\"caption\":\"" + json_escape(caption) + "\",\"mime\":\"\",\"sha256\":null,\"size\":null,\"mode\":\"" + mode + "\"}"
+    // JSON Lines 追加（零索引；.len() 字节与 .slice() 字符单位在中文下错位=F-8，
+    // 任何基于 len/slice 的尾部改写都被禁——001 规则 4 同源）
+    var refs str = cur.asset_refs
+    if refs == "[]" || refs == "" {
+        refs = entry
+    } else {
+        refs = refs + "
+" + entry
+    }
+    // 正文同步追加图片行（说明=alt 文本），资产与正文一致可见
+    var body str = cur.body
+    if caption != "" {
+        body = body + "\n\n![" + caption + "](" + storage_ref + ")\n"
+    } else {
+        body = body + "\n\n![](" + storage_ref + ")\n"
+    }
+    let next_rev int = cur.revision + 1
+    let now int = time.now_sec()
+    let next Work = make_work(work_id, cur.title, cur.summary, body, cur.tags, cur.status, next_rev, cur.created_at, now, cur.body_format, cur.cover_asset)
+    // asset_refs 不走 make_work 参数，直接构造后覆写
+    let next2 Work = Work {
+        work_id: next.work_id,
+        kind: next.kind,
+        title: next.title,
+        summary: next.summary,
+        body_format: next.body_format,
+        body: next.body,
+        tags: next.tags,
+        cover_asset: next.cover_asset,
+        asset_refs: refs,
+        source_refs: cur.source_refs,
+        revision: next.revision,
+        status: next.status,
+        created_at: next.created_at,
+        updated_at: next.updated_at
+    }
+    if !write_work_files(root, next2) {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "save_failed" }
+    }
+    return SaveResult { ok: true, work_id: work_id, revision: next_rev, conflict: false, error: "" }
+}
+
+/// 从多个来源 envelope 组合创建新作品（显式导入副本；原 envelope/笔记零写入）。
+/// items_json = JSON 数组，每项：
+/// {"producer","title","body","original_uri","captured_at","locator","source_revision","mode"}
+/// producer/body 必填；mode 缺省 "copy"（显式导入副本），"reference" 仅登记来源不并入正文。
+/// 成功返回新 Work（source_refs 精确记录各来源）；无任何有效来源返回 blank_work("")。
+pub fn compose_from_sources(items_json str) Work {
+    // 结构门（compose 专用）：首尾括号 + find 基逐对象提取。不逐字节扫描
+    // （001 规则 4：逐字节 slice 拼串吞中文；T-02 实证字节扫描在中文输入下
+    // 错位 → count=0 空返回，登记 F-8）。对象值含 "{" 或 "}" 时该对象不
+    // 可靠——envelope 契约字段为纯文本，此类输入被跳过（边界写入 spec）。
+    // count==0 时在任何写副作用之前返回空（拒绝零写入）。
+    let tn int = items_json.len()
+    if tn < 2 {
+        return blank_work("")
+    }
+    var rest str = items_json
+    var body str = ""
+    var refs str = ""
+    var count int = 0
+    var title str = "导入合成"
+    var guard int = 0
+    while guard < 64 {
+        guard = guard + 1
+        let lb int = rest.find("{")
+        if lb < 0 {
+            break
+        }
+        let tail str = rest.slice(lb + 1, rest.len())
+        let rb int = tail.find("}")
+        if rb < 0 {
+            break
+        }
+        let obj str = tail.slice(0, rb)
+        rest = tail.slice(rb + 1, tail.len())
+        let producer str = json_field_str(obj, "producer")
+        let sbody str = json_field_str(obj, "body")
+        if producer != "" && sbody != "" {
+            let stitle str = json_field_str(obj, "title")
+            let uri str = json_field_str(obj, "original_uri")
+            let cap int = json_field_int(obj, "captured_at")
+            let loc str = json_field_str(obj, "locator")
+            let srev int = json_field_int(obj, "source_revision")
+            var mode str = json_field_str(obj, "mode")
+            if mode != "reference" {
+                mode = "copy"
+            }
+            count = count + 1
+            if count == 1 && stitle != "" {
+                title = "导入：" + stitle
+            }
+            if mode == "copy" {
+                if body != "" {
+                    body = body + "
+
+---
+
+"
+                }
+                if stitle != "" {
+                    body = body + "## " + stitle + "
+
+"
+                }
+                body = body + sbody
+            }
+            if refs != "" {
+                refs = refs + "
+"
+            }
+            var uri_j str = "null"
+            if uri != "" {
+                uri_j = "\"" + json_escape(uri) + "\""
+            }
+            var loc_j str = "null"
+            if loc != "" {
+                loc_j = "\"" + json_escape(loc) + "\""
+            }
+            var stitle_j str = "null"
+            if stitle != "" {
+                stitle_j = "\"" + json_escape(stitle) + "\""
+            }
+            var r str = "{\"producer\":\"" + json_escape(producer) + "\",\"original_uri\":" + uri_j + ",\"captured_at\":" + cap.to_string() + ",\"locator\":" + loc_j + ",\"source_revision\":" + srev.to_string() + ",\"mode\":\"" + mode + "\",\"title\":" + stitle_j + "}"
+            refs = refs + r
+        }
+    }
+    if count == 0 {
+        return blank_work("")
+    }
+    let root str = data_root()
+    fs.create_dir(works_dir(root))
+    let work_id str = new_work_id()
+    let now int = time.now_sec()
+    let w Work = make_work(work_id, title, "", body, "imported", "draft", 1, now, now, "markdown", "")
+    let w2 Work = Work {
+        work_id: w.work_id,
+        kind: w.kind,
+        title: w.title,
+        summary: w.summary,
+        body_format: w.body_format,
+        body: w.body,
+        tags: w.tags,
+        cover_asset: w.cover_asset,
+        asset_refs: "[]",
+        source_refs: refs,
+        revision: w.revision,
+        status: w.status,
+        created_at: w.created_at,
+        updated_at: w.updated_at
+    }
+    if !write_work_files(root, w2) {
+        return blank_work("")
+    }
+    return w2
+}

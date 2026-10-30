@@ -11,7 +11,8 @@ widget author {
     msg {
         Init, AutosaveTick, GoNew, GoOpen(str), TitleChanged(str),
         SummaryChanged(str), TagsChanged(str), CoverChanged(str), DoSave,
-        KeepMine, KeepTheirs, GoDemo, ToggleEngine, FormatText, FormatMd
+        KeepMine, KeepTheirs, GoDemo, ToggleEngine, FormatText, FormatMd,
+        AssetRefInput(str), AssetCaptionInput(str), AddAsset, ImportItems(str), DoCompose
     }
 
     model {
@@ -19,6 +20,10 @@ widget author {
         // force_engine=空稿起稿后显式请求进入引擎（仅正文非空时可用）。
         var use_engine bool = true
         var force_engine bool = false
+        // T-02 输入缓冲（视图本地态）
+        var asset_ref_input str = ""
+        var asset_caption_input str = ""
+        var import_items str = ""
     }
 
     timer {
@@ -190,6 +195,49 @@ widget author {
                             oninput: .CoverChanged($event),
                             style: input_field
                         }
+                        // ── 资产（图片/说明，T-02）──────────────────────
+                        row {
+                            style: "gap-2"
+                            input {
+                                placeholder: "图片引用（URL/路径）",
+                                value: .asset_ref_input,
+                                oninput: .AssetRefInput($event),
+                                style: "flex-1 px-3 py-1.5 border border-border rounded text-sm"
+                            }
+                            input {
+                                placeholder: "图片说明（可选）",
+                                value: .asset_caption_input,
+                                oninput: .AssetCaptionInput($event),
+                                style: "flex-1 px-3 py-1.5 border border-border rounded text-sm"
+                            }
+                            button "添加图片" {
+                                onclick: .AddAsset,
+                                style: "px-3 py-1.5 rounded border border-border text-sm"
+                            }
+                        }
+                        // ── 来源导入（Notes/Reader envelope，T-02）────────
+                        col {
+                            style: "gap-2 border border-border rounded p-3"
+                            text "导入资料（粘贴 envelope JSON 数组；显式导入副本，原笔记零写入）" {
+                                style: "text-xs text-muted-foreground"
+                            }
+                            textarea {
+                                placeholder: "[{producer:notes, title:标题, body:正文, locator:位置, source_revision:3}]",
+                                value: .import_items,
+                                oninput: .ImportItems($event),
+                                style: "w-full px-3 py-2 border border-border rounded text-xs min-h-[72px] font-mono"
+                            }
+                            row {
+                                style: "justify-between items-center"
+                                text "producer+body 必填；mode 缺省 copy（引用=reference 只登记不并入正文）" {
+                                    style: "text-xs text-muted-foreground"
+                                }
+                                button "组合为新作品" {
+                                    onclick: .DoCompose,
+                                    style: "px-3 py-1.5 rounded bg-brand-green text-white text-sm"
+                                }
+                            }
+                        }
                         row {
                             style: "justify-between items-center"
                             text f"ID ${.store.current.work_id} · rev ${.store.current.revision}" {
@@ -245,5 +293,21 @@ widget author {
         }
         .FormatText -> { .store.FormatEdit("text") }
         .FormatMd -> { .store.FormatEdit("markdown") }
+        .AssetRefInput(v str) -> { .asset_ref_input = v }
+        .AssetCaptionInput(v str) -> { .asset_caption_input = v }
+        .AddAsset -> {
+            if .asset_ref_input != "" {
+                .store.AddAssetRef(.asset_ref_input, .asset_caption_input)
+                .asset_ref_input = ""
+                .asset_caption_input = ""
+            }
+        }
+        .ImportItems(v str) -> { .import_items = v }
+        .DoCompose -> {
+            if .import_items != "" {
+                .store.ComposeImport(.import_items)
+                .import_items = ""
+            }
+        }
     }
 }

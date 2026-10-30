@@ -1,0 +1,32 @@
+// compose_probe.at — T-02 compose_from_sources 单元探针（VM 直跑，AUTO_BLOG_DATA 隔离）。
+use drafts: compose_from_sources, add_asset_ref, data_root
+
+fn main() {
+    print("data_root=" + data_root())
+    // 两来源（copy）
+    let items1 = "[{\"producer\":\"notes\",\"title\":\"会议纪要：AutoDown 集成\",\"body\":\"与 auto-down 团队对齐了编辑器接入方式。\",\"original_uri\":\"notes://local/inbox/mtg\",\"captured_at\":1793200000,\"locator\":\"inbox/2026/mtg#L1\",\"source_revision\":3,\"mode\":\"copy\"},{\"producer\":\"reader\",\"title\":\"《写作工具》摘录\",\"body\":\"好的写作是把段落当作有机单元。\",\"original_uri\":\"reader://book/zg/ch4\",\"captured_at\":1793210000,\"locator\":\"ch4#para-12\",\"source_revision\":1,\"mode\":\"copy\"}]"
+    let w1 = compose_from_sources(items1)
+    print("A1 id=" + w1.work_id + " fmt=" + w1.body_format + " refs=" + w1.source_refs)
+    print("A1 body=[" + w1.body + "]")
+
+    // reference 模式单来源
+    let items2 = "[{\"producer\":\"reader\",\"title\":\"仅引用\",\"body\":\"第四章 目录\",\"original_uri\":\"\",\"captured_at\":1793210500,\"locator\":\"\",\"source_revision\":2,\"mode\":\"reference\"}]"
+    let w2 = compose_from_sources(items2)
+    print("A2 id=" + w2.work_id + " body=[" + w2.body + "] refs=" + w2.source_refs)
+
+    // 负例
+    let w3 = compose_from_sources("{broken")
+    print("A3-badjson id=[" + w3.work_id + "]")
+    let w4 = compose_from_sources("[{\"producer\":\"\",\"body\":\"x\"}]")
+    print("A3-empty id=[" + w4.work_id + "]")
+
+    // 资产追加（对 A1）
+    if w1.work_id != "" {
+        let r1 = add_asset_ref(w1.work_id, "https://example.com/i.png", "图一", "copy", w1.revision)
+        print("B1 ok=" + r1.ok.to_string() + " err=" + r1.error + " rev=" + r1.revision.to_string())
+        let r2 = add_asset_ref(w1.work_id, "", "", "copy", r1.revision)
+        print("B2-empty ok=" + r2.ok.to_string() + " err=" + r2.error)
+        let r3 = add_asset_ref(w1.work_id, "x", "", "paste", r1.revision)
+        print("B2-mode ok=" + r3.ok.to_string() + " err=" + r3.error)
+    }
+}

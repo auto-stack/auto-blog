@@ -3,7 +3,7 @@
 // Phase 5（R-23）：互斥锁覆盖保存+读回+切换全程；每个 await 前后核对编辑序号，
 // 等待期编辑一律中止切换并保留本机缓冲；已确认保存推进 current.revision。
 // Phase 5（R-24）：普通/强制/切前保存统一为同一全字段读回确认（ID/rev/正文/标题/摘要/标签）。
-use back.api: create_draft, open_draft, save_draft, list_drafts
+use back.api: create_draft, open_draft, save_draft, list_drafts, add_asset_ref, import_compose
 
 store DraftStore {
     model {
@@ -28,6 +28,7 @@ store DraftStore {
         LoadList, NewDraft, OpenDraft(str), SaveCurrent, ForceSave,
         TitleEdit(str), BodyEdit(str), SummaryEdit(str), TagsEdit(str),
         CoverEdit(str), FormatEdit(str),
+        AddAssetRef(str, str), ComposeImport(str),
         AutosaveTick, ResolveKeepMine, ResolveKeepTheirs
     }
 
@@ -266,6 +267,100 @@ store DraftStore {
                 .dirty = true
                 .save_state = "dirty"
                 .edit_seq = .edit_seq + 1
+            }
+        }
+        .AddAssetRef(ref str, caption str) -> {
+            // 资产追加=修订写：与保存同一互斥与读回确认（T-02）
+            if .save_in_flight {
+                .save_state = "error"
+                .error = "busy"
+            } else {
+                if .has_current == false || .current.work_id == "" {
+                    .save_state = "error"
+                    .error = "no_work"
+                } else {
+                    .save_in_flight = true
+                    .save_state = "saving"
+                    let snap_id str = .current.work_id
+                    let snap_rev int = .current.revision
+                    try {
+                        let r = add_asset_ref(snap_id, ref, caption, "copy", snap_rev)
+                        if r.ok {
+                            let back = open_draft(snap_id)
+                            if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision {
+                                .save_state = "error"
+                                .error = "readback_invalid"
+                            } else {
+                                .current = back
+                                .editing_title = back.title
+                                .editing_body = back.body
+                                .editing_summary = back.summary
+                                .editing_tags = back.tags
+                                .editing_cover = back.cover_asset
+                                .editing_format = back.body_format
+                                .body_was_empty = back.body == ""
+                                .dirty = false
+                                .save_state = "saved"
+                                .error = ""
+                                .drafts = list_drafts()
+                            }
+                        } else {
+                            if r.conflict {
+                                .save_state = "conflict"
+                                .error = "conflict rev " + r.revision.to_string()
+                            } else {
+                                .save_state = "error"
+                                .error = r.error
+                            }
+                        }
+                        .save_in_flight = false
+                    } catch {
+                        .save_in_flight = false
+                        .save_state = "error"
+                        .error = "network_error"
+                    }
+                }
+            }
+        }
+        .ComposeImport(items str) -> {
+            // 有未存编辑时先显式保存（导入创建新稿，不覆盖当前缓冲）
+            if .dirty && .has_current {
+                .save_state = "error"
+                .error = "save_before_import"
+            } else {
+                if .save_in_flight {
+                    .save_state = "error"
+                    .error = "busy"
+                } else {
+                    .save_in_flight = true
+                    try {
+                        let w = import_compose(items)
+                        .save_in_flight = false
+                        if w.work_id == "" {
+                            .save_state = "error"
+                            .error = "compose_failed"
+                        } else {
+                            .current = w
+                            .has_current = true
+                            .editing_title = w.title
+                            .editing_body = w.body
+                            .editing_summary = w.summary
+                            .editing_tags = w.tags
+                            .editing_cover = w.cover_asset
+                            .editing_format = w.body_format
+                            .body_was_empty = w.body == ""
+                            .dirty = false
+                            .save_state = "saved"
+                            .error = ""
+                            .edit_seq = .edit_seq + 1
+                            .drafts = list_drafts()
+                        }
+                    } catch {
+                        .save_in_flight = false
+                        .save_state = "error"
+                        .error = "compose_failed"
+                    }
+                }
             }
         }
         .SaveCurrent -> {

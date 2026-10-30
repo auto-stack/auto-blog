@@ -341,3 +341,13 @@ pub fn migrate_drafts(items str) int {
 pub fn migration_status() str {
     return drafts.migration_status()
 }
+
+// --- BLOG-002 T-02 委托 ---
+
+pub fn add_asset_ref(work_id str, storage_ref str, caption str, mode str, expected_rev int) SaveResult {
+    return drafts.add_asset_ref(work_id, storage_ref, caption, mode, expected_rev)
+}
+
+pub fn import_compose(items str) Work {
+    return drafts.compose_from_sources(items)
+}
