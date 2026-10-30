@@ -1,0 +1,1485 @@
+/* ─── Editor Chrome ─── */
+/* Accent tokens (plan 039 T2 → PLAN-051 T3 single-sourced): the one
+   definition feeding BOTH pane roots (.autodown-editor here and
+   .streaming-document in StreamingRenderer — this stylesheet is loaded by
+   every engine consumer via the style.css export). Values are the indigo
+   row of the accent palette spec (auto-lang Design 22 §7.2); per-accent
+   overrides ride [data-accent] groups below. */
+.autodown-editor,
+.streaming-document {
+  --ad-fg: #111827;
+  --ad-muted: #6b7280;
+  --ad-border: #e5e7eb;
+  --ad-surface: #ffffff;
+  --ad-accent: #4f46e5;
+  --ad-accent-strong: #4338ca;
+  --ad-accent-soft: #eef2ff;
+  --ad-accent-rgb: 79 70 229;
+  --ad-accent-strong-dark: #818cf8;
+}
+
+/* ─── Theme tokens (PLAN-051 T4) ───
+   The neutral tokens above re-declare the numbers every rule already used
+   as its var() fallback — defining them on the dual pane root changes
+   nothing visually in light mode, but lets `.is-dark` flip the whole
+   document face by re-declaring once. Values are the spec rows of auto-lang
+   Design 22 §7 (light = the shipped vue values; dark = the VM track's zinc
+   baseline — FENCE_BG/HEADER/BORDER family — so the two tracks share one
+   dark truth). Per-accent groups below carry each palette's triple plus the
+   dark-only derivations (strong→400 step, soft→accent@15% via --ad-accent-rgb). */
+
+.autodown-editor[data-accent='indigo'],
+.streaming-document[data-accent='indigo'] {
+  --ad-accent: #4f46e5;
+  --ad-accent-strong: #4338ca;
+  --ad-accent-soft: #eef2ff;
+  --ad-accent-rgb: 79 70 229;
+  --ad-accent-strong-dark: #818cf8;
+}
+
+.autodown-editor[data-accent='coral'],
+.streaming-document[data-accent='coral'] {
+  --ad-accent: #e11d48;
+  --ad-accent-strong: #be123c;
+  --ad-accent-soft: #fff1f2;
+  --ad-accent-rgb: 225 29 72;
+  --ad-accent-strong-dark: #fb7185;
+}
+
+.autodown-editor[data-accent='ocean'],
+.streaming-document[data-accent='ocean'] {
+  --ad-accent: #0284c7;
+  --ad-accent-strong: #0369a1;
+  --ad-accent-soft: #f0f9ff;
+  --ad-accent-rgb: 2 132 199;
+  --ad-accent-strong-dark: #38bdf8;
+}
+
+.autodown-editor[data-accent='sage'],
+.streaming-document[data-accent='sage'] {
+  --ad-accent: #059669;
+  --ad-accent-strong: #047857;
+  --ad-accent-soft: #ecfdf5;
+  --ad-accent-rgb: 5 150 105;
+  --ad-accent-strong-dark: #34d399;
+}
+
+.autodown-editor[data-accent='amber'],
+.streaming-document[data-accent='amber'] {
+  --ad-accent: #d97706;
+  --ad-accent-strong: #b45309;
+  --ad-accent-soft: #fffbeb;
+  --ad-accent-rgb: 217 119 6;
+  --ad-accent-strong-dark: #fbbf24;
+}
+
+.autodown-editor.is-dark,
+.streaming-document.is-dark {
+  --ad-fg: #fafafa;
+  --ad-muted: #a1a1aa;
+  --ad-border: #3f3f46;
+  --ad-surface: #09090b;
+  --ad-accent-strong: var(--ad-accent-strong-dark);
+  --ad-accent-soft: rgb(var(--ad-accent-rgb) / 0.15);
+}
+
+.autodown-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 320px;
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--ad-surface, #ffffff);
+  overflow: hidden;
+}
+
+.autodown-editor.is-focused {
+  border-color: hsl(var(--ad-primary, 220 90% 56%) / 0.5);
+  box-shadow: 0 0 0 2px hsl(var(--ad-primary, 220 90% 56%) / 0.1);
+}
+
+.autodown-editor-content-wrapper {
+  flex: 1;
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+}
+
+.autodown-editor-content-wrapper::-webkit-scrollbar {
+  width: 6px;
+}
+
+.autodown-editor-content-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.autodown-editor-content-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+}
+
+.autodown-editor-content-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.autodown-editor-content {
+  outline: none;
+  min-height: 100%;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--ad-fg, #111827);
+}
+
+.autodown-editor-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--ad-muted, #6b7280);
+  pointer-events: none;
+  height: 0;
+}
+
+/* ─── Editor Actions ─── */
+.autodown-editor-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--ad-border, #e5e7eb);
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.03);
+}
+
+.autodown-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: none;
+  background: hsl(var(--ad-primary, 220 90% 56%));
+  color: white;
+  cursor: pointer;
+}
+
+.autodown-save-btn:hover {
+  opacity: 0.9;
+}
+
+.autodown-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.83rem;
+  border-radius: 6px;
+  border: 1px solid var(--ad-border, #e5e7eb);
+  background: transparent;
+  color: var(--ad-muted, #6b7280);
+  cursor: pointer;
+}
+
+.autodown-cancel-btn:hover {
+  color: var(--ad-fg, #111827);
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.05);
+}
+
+/* ─── Typography ─── */
+.autodown-editor-content h1,
+.autodown-editor-content h2,
+.autodown-editor-content h3 {
+  font-weight: 700;
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+  /* plan 039 T2: accent-strong (the streaming pane's heading hue), not fg */
+  color: var(--ad-accent-strong, #4338ca);
+}
+
+.autodown-editor-content h1 {
+  font-size: 1.58rem;
+}
+
+.autodown-editor-content h2 {
+  font-size: 1.33rem;
+}
+
+.autodown-editor-content h3 {
+  font-size: 1.18rem;
+}
+
+/* musk plan 072: h4-h6 were left to the CSS reset (margin 0) — glued to the
+   surrounding blocks. Same descending rhythm as the streaming pane. */
+.autodown-editor-content h4,
+.autodown-editor-content h5,
+.autodown-editor-content h6 {
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ad-accent-strong, #4338ca);
+}
+
+.autodown-editor-content h4 {
+  font-size: 1.05rem;
+  margin-top: 1.2rem;
+  margin-bottom: 0.45rem;
+}
+
+.autodown-editor-content h5 {
+  font-size: 1rem;
+  margin-top: 1.1rem;
+  margin-bottom: 0.45rem;
+}
+
+.autodown-editor-content h6 {
+  font-size: 0.95rem;
+  margin-top: 1rem;
+  margin-bottom: 0.45rem;
+}
+
+.autodown-editor-content p {
+  margin: 0.5rem 0;
+}
+
+
+/* ─── Container family widget chrome (plan 042 T2) — pane-agnostic ───
+   The family widgets render these class names in EVERY face (edit/stream/
+   view) and EVERY pane (editor column, streaming panes), so the chrome
+   rides the widget classes, not the pane — one source serves both columns
+   of the parity pin (demo/e2e/family-parity.spec.ts). Where the retired
+   per-pane rulesets had drifted (editor 1.5rem/0.5rem vs streaming
+   1.25rem/0.25rem list gutters), the streaming pane's established look
+   wins — the fence family's mirror-the-streaming-truth ruling (plan 039
+   T5) applied to the container families. */
+.list-node {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+ul.list-node {
+  list-style-type: disc;
+}
+
+ol.list-node {
+  list-style-type: decimal;
+}
+
+.list-item {
+  margin: 0.25rem 0;
+}
+
+.blockquote {
+  margin: 0.75rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--ad-border, #e5e7eb);
+  color: var(--ad-muted, #6b7280);
+}
+
+.table-node {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+}
+
+.table-node th,
+.table-node td {
+  border: 1px solid var(--ad-border, #e5e7eb);
+  padding: 0.9rem 0.6rem;
+  text-align: left;
+  box-sizing: border-box;
+  font-size: 0.95rem;
+}
+
+.table-node th {
+  background: var(--ad-accent-soft, #eef2ff);
+  font-weight: 600;
+}
+
+.table-node tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.autodown-editor-content pre {
+  margin: 0.75rem 0;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border: 1px solid var(--ad-border, #e5e7eb);
+  overflow-x: auto;
+}
+
+.autodown-editor-content pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  background: none;
+  padding: 0;
+  border: none;
+  color: var(--ad-fg, #111827);
+}
+
+.autodown-editor-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85em;
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.08);
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  color: var(--ad-fg, #111827);
+}
+
+.autodown-editor-content hr {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid var(--ad-border, #e5e7eb);
+}
+
+.autodown-editor-content a.autodown-link {
+  color: hsl(var(--ad-primary, 220 90% 56%));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.autodown-editor-content a.autodown-link:hover {
+  opacity: 0.8;
+}
+
+.autodown-editor-content .autodown-image-wrapper {
+  display: inline-flex;
+  max-width: 100%;
+  position: relative;
+}
+
+.autodown-editor-content .autodown-image-wrapper img.autodown-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 0.5rem 0;
+  display: block;
+}
+
+/* Broken image fallback */
+.autodown-editor-content .autodown-image-wrapper.autodown-image-fallback {
+  display: flex;
+  width: 100%;
+  min-height: 100px;
+  margin: 0.5rem 0;
+}
+
+.autodown-editor-content .autodown-image-wrapper.autodown-image-fallback img.autodown-image {
+  display: none !important;
+}
+
+.autodown-editor-content .autodown-image-wrapper.autodown-image-fallback::after {
+  content: '🖼️ Image failed to load';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 100px;
+  padding: 0.5rem 1rem;
+  background: hsl(220 9% 46% / 0.06);
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #9ca3af;
+  font-size: 0.85rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ─── Task List ─── */
+.autodown-task-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.autodown-task-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.25rem 0;
+}
+
+.autodown-task-list li > label {
+  display: flex;
+  align-items: center;
+  margin-top: 0;
+}
+
+.autodown-task-list li > div {
+  flex: 1;
+}
+
+.autodown-task-item {
+  display: flex;
+  align-items: center;
+}
+
+/* ─── Slash Menu ─── */
+.autodown-slash-menu {
+  position: absolute;
+  z-index: 50;
+  background: var(--ad-surface, #ffffff);
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0.35rem;
+  min-width: 240px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.autodown-slash-menu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.autodown-slash-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ad-fg, #111827);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-size: 0rem;
+  transition: background 0.1s ease;
+}
+
+.autodown-slash-menu-item:hover,
+.autodown-slash-menu-item.active {
+  background: hsl(var(--ad-primary, 220 90% 56%) / 0.1);
+}
+
+.autodown-slash-menu-icon {
+  flex-shrink: 0;
+  color: var(--ad-muted, #6b7280);
+}
+
+.autodown-slash-menu-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.autodown-slash-menu-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.autodown-slash-menu-desc {
+  font-size: 0rem;
+  color: var(--ad-muted, #6b7280);
+}
+
+.autodown-slash-menu-empty {
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--ad-muted, #6b7280);
+  font-size: 0.88rem;
+}
+
+/* ─── Bubble Menu ─── */
+.autodown-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.35rem;
+  background: var(--ad-surface, #ffffff);
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  /* above the block-boundary hover strips (z-index 10 stacking context) —
+     the menu floats over the gap above the selection and its buttons must
+     stay clickable there (plan 028 P2T3) */
+  z-index: 30;
+}
+
+.autodown-bubble-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ad-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.autodown-bubble-btn:hover {
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.08);
+  color: var(--ad-fg, #111827);
+}
+
+.autodown-bubble-btn.active {
+  background: hsl(var(--ad-primary, 220 90% 56%) / 0.15);
+  color: hsl(var(--ad-primary, 220 90% 56%));
+}
+
+/* ── Codeblock node host (plan 026 P2; menu anchor retired with TableMenu —
+   adjudication #1) ─── */
+/* Host-side DOM contract of CodeBlockMenu: the focused fence edit face sits
+   in a positioned wrapper carrying data-language. plan 039 T7 merged the
+   wrapper with the view container chrome (code-block-container) and moved
+   the badge affordance INTO the title bar (.code-header-trigger, widget
+   scoped style) — the old absolutely-positioned outside badge is gone. */
+.autodown-codeblock-node {
+  position: relative;
+}
+
+/* ─── Table Menu ─── */
+.autodown-table-menu {
+  position: absolute;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem;
+  background: var(--ad-surface, #ffffff);
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  pointer-events: auto;
+}
+
+.autodown-table-menu-group {
+  display: flex;
+  align-items: center;
+  gap: 0.1rem;
+}
+
+.autodown-table-menu-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--ad-border, #e5e7eb);
+  margin: 0 0.1rem;
+}
+
+.autodown-table-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ad-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.autodown-table-menu-btn:hover {
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.08);
+  color: var(--ad-fg, #111827);
+}
+
+.autodown-table-menu-btn.danger:hover {
+  background: hsl(var(--ad-error, 0 84% 60%) / 0.08);
+  color: hsl(var(--ad-error, 0 84% 60%));
+}
+
+/* ─── Callout / Admonition ─── */
+.autodown-callout {
+  position: relative;
+  margin: 1rem 0;
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 12px;
+  background: var(--ad-surface, #ffffff);
+  overflow: visible;
+  padding: 1.1rem 1rem 1rem;
+}
+
+.autodown-callout-header {
+  position: absolute;
+  top: 0;
+  left: 0.75rem;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0 0.5rem;
+  background: var(--ad-surface, #ffffff);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  line-height: 1;
+  user-select: none;
+  border-radius: 4px;
+}
+
+.autodown-callout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.autodown-callout-icon-note {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cline x1='16' y1='13' x2='8' y2='13'/%3E%3Cline x1='16' y1='17' x2='8' y2='17'/%3E%3Cline x1='10' y1='9' x2='8' y2='9'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z'/%3E%3Cpolyline points='14 2 14 8 20 8'/%3E%3Cline x1='16' y1='13' x2='8' y2='13'/%3E%3Cline x1='16' y1='17' x2='8' y2='17'/%3E%3Cline x1='10' y1='9' x2='8' y2='9'/%3E%3C/svg%3E");
+}
+.autodown-callout-icon-info {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='16' x2='12' y2='12'/%3E%3Cline x1='12' y1='8' x2='12.01' y2='8'/%3E%3C/svg%3E");
+}
+.autodown-callout-icon-tip {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5'/%3E%3Cpath d='M9 18h6'/%3E%3Cpath d='M10 22h4'/%3E%3C/svg%3E");
+}
+.autodown-callout-icon-warning,
+.autodown-callout-icon-caution {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z'/%3E%3Cline x1='12' y1='9' x2='12' y2='13'/%3E%3Cline x1='12' y1='17' x2='12.01' y2='17'/%3E%3C/svg%3E");
+}
+.autodown-callout-icon-danger,
+.autodown-callout-icon-error {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cline x1='12' y1='8' x2='12' y2='12'/%3E%3Cline x1='12' y1='16' x2='12.01' y2='16'/%3E%3C/svg%3E");
+}
+
+.autodown-callout-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autodown-callout-content {
+  padding: 0;
+  color: var(--ad-fg, #111827);
+}
+
+/* Type accents */
+.autodown-callout-note {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+.autodown-callout-note .autodown-callout-header {
+  color: #2563eb;
+}
+.autodown-callout-info {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+}
+.autodown-callout-info .autodown-callout-header {
+  color: #0284c7;
+}
+.autodown-callout-tip {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+.autodown-callout-tip .autodown-callout-header {
+  color: #16a34a;
+}
+.autodown-callout-warning,
+.autodown-callout-caution {
+  background: #fffbeb;
+  border-color: #fcd34d;
+}
+.autodown-callout-warning .autodown-callout-header,
+.autodown-callout-caution .autodown-callout-header {
+  color: #d97706;
+}
+.autodown-callout-danger,
+.autodown-callout-error {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+.autodown-callout-danger .autodown-callout-header,
+.autodown-callout-error .autodown-callout-header {
+  color: #dc2626;
+}
+
+.autodown-details {
+  margin: 0.75rem 0;
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--ad-surface, #ffffff);
+  overflow: hidden;
+}
+
+.autodown-details-summary {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.06);
+  border-bottom: 1px solid transparent;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--ad-fg, #111827);
+  user-select: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.autodown-details[data-open='true'] .autodown-details-summary {
+  border-bottom-color: var(--ad-border, #e5e7eb);
+}
+
+.autodown-details-summary:hover {
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.1);
+}
+
+.autodown-details-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  font-size: 0.7rem;
+  color: var(--ad-muted, #6b7280);
+  border-radius: 4px;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.autodown-details-marker:hover {
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.18);
+  color: var(--ad-fg, #111827);
+}
+
+.autodown-details-summary-text {
+  flex: 1;
+  min-width: 0;
+  padding-right: 1.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  /* reserve the edit face's AttrHost affordance pixel (its 1px transparent
+     dashed bottom border) so both faces' summary rows box identically —
+     the fence family's same-box-metrics-minus-affordances rule (plan 042) */
+  border-bottom: 1px solid transparent;
+}
+
+.autodown-details-summary-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.15rem 0.35rem;
+  border: 1px solid var(--ad-primary, #3b82f6);
+  border-radius: 4px;
+  background: var(--ad-surface, #ffffff);
+  color: var(--ad-fg, #111827);
+  font: inherit;
+  font-weight: 500;
+  outline: none;
+}
+
+/* ─── AttrHost (plan 030 T7): borderless in-place attr editing ─── */
+.autodown-editor-content .autodown-attr-host {
+  outline: none;
+  min-width: 2rem;
+  border-bottom: 1px dashed transparent;
+  /* the summary row is user-select:none (DetailsNodeView parity) — the host
+     inside it must stay selectable/editable */
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+}
+
+.autodown-editor-content .autodown-attr-host:hover {
+  border-bottom-color: var(--ad-border, #e5e7eb);
+}
+
+.autodown-editor-content .autodown-attr-host:focus {
+  border-bottom-color: var(--ad-primary, #3b82f6);
+}
+
+.autodown-editor-content .autodown-attr-host:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+/* the callout title host keeps the palette title's single-line ellipsis */
+.autodown-callout .autodown-attr-host.autodown-callout-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autodown-details .autodown-attr-host.autodown-details-summary-text {
+  flex: 1;
+  min-width: 0;
+  padding-right: 1.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ─── Task list checkboxes (plan 030 T4/T7; pane-agnostic since musk plan 072) ───
+   No `.autodown-editor-content` prefix: the read/stream panes render the same
+   widget classes (`li.list-item.task-item` from listItemsOfPanel), and the
+   view li is an inline checkbox input followed by a BLOCK markdown-renderer
+   div — without the flex row the content drops a line below the checkbox. */
+.list-item.task-item {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.list-item.task-item > .task-checkbox {
+  margin-top: 0.35em;
+  accent-color: var(--ad-primary, #3b82f6);
+  flex-shrink: 0;
+  /* the editing copy is live (pointer + stopPropagation); the view/stream
+     copy carries `disabled` and keeps the default cursor */
+  cursor: pointer;
+}
+
+.list-item.task-item > .task-checkbox:disabled {
+  cursor: default;
+}
+
+.list-item.task-item > .markdown-renderer {
+  flex: 1;
+  min-width: 0;
+}
+
+
+.autodown-details-edit-btn {
+  position: absolute;
+  right: 0.4rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ad-muted, #6b7280);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+.autodown-details-summary:hover .autodown-details-edit-btn,
+.autodown-details-edit-btn:focus-visible {
+  opacity: 1;
+}
+
+.autodown-details-edit-btn:hover {
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.14);
+  color: var(--ad-fg, #111827);
+}
+
+.autodown-details-content {
+  padding: 0.75rem 0.75rem 0.75rem 2rem;
+  background: hsl(var(--ad-muted, 220 9% 46%) / 0.02);
+}
+
+.autodown-editor-content .autodown-math-block {
+  margin: 0.75rem 0;
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 8px;
+  background: #f8f9fa;
+  overflow-x: auto;
+}
+
+.autodown-editor-content .autodown-math-block pre {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+}
+
+.autodown-editor-content .autodown-math-block code.math-block-source {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  background: none;
+  padding: 0;
+  color: var(--ad-fg, #111827);
+}
+
+/* ─── Code Block Menu ─── */
+.autodown-codeblock-menu {
+  position: absolute;
+  z-index: 50;
+  background: var(--ad-surface, #ffffff);
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 200px;
+  max-height: 320px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.autodown-codeblock-menu-header {
+  padding: 0.35rem;
+  border-bottom: 1px solid var(--ad-border, #e5e7eb);
+}
+
+.autodown-codeblock-menu-search {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--ad-border, #e5e7eb);
+  border-radius: 4px;
+  font-size: 0.83rem;
+  outline: none;
+  background: transparent;
+  color: var(--ad-fg, #111827);
+  box-sizing: border-box;
+}
+
+.autodown-codeblock-menu-search:focus {
+  border-color: hsl(var(--ad-primary, 220 90% 56%) / 0.5);
+}
+
+.autodown-codeblock-menu-search::placeholder {
+  color: var(--ad-muted, #9ca3af);
+}
+
+.autodown-codeblock-menu-list {
+  overflow-y: auto;
+  padding: 0.2rem;
+  scrollbar-width: thin;
+}
+
+.autodown-codeblock-menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ad-fg, #111827);
+  font-size: 0.83rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.autodown-codeblock-menu-item:hover,
+.autodown-codeblock-menu-item.active {
+  background: hsl(var(--ad-primary, 220 90% 56%) / 0.1);
+}
+
+.autodown-codeblock-menu-item.selected {
+  font-weight: 600;
+}
+
+.autodown-codeblock-menu-item-label {
+  flex: 1;
+}
+
+.autodown-codeblock-menu-check {
+  flex-shrink: 0;
+  color: hsl(var(--ad-primary, 220 90% 56%));
+}
+
+.autodown-codeblock-menu-empty {
+  padding: 0.75rem;
+  text-align: center;
+  color: var(--ad-muted, #6b7280);
+  font-size: 0.83rem;
+}
+
+/* ─── Code Block — family widget chrome (editor pane; plan 039 T5) ───
+   The retired builtin panel hung its chrome off pre[data-language] (the
+   header lived INSIDE the pre). The 033 family widget renders
+   .code-block-container > header + pre[data-language], so the pane's
+   chrome is scoped to the container — values mirror StreamingRenderer's
+   :deep rules so the editor pane matches the streaming pane visually
+   (pinned by code-block-parity.spec.ts). */
+
+.autodown-editor-content .code-block-container {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f9fafb;
+}
+
+.autodown-editor-content .code-block-container .code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 36px;
+  padding: 0 0.75rem;
+  background: #e5e7eb;
+  border-bottom: 1px solid #d1d5db;
+  color: #374151;
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+.autodown-editor-content .code-block-container .code-header-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.autodown-editor-content .code-block-container .code-header-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.autodown-editor-content .code-block-container .code-header-title {
+  line-height: 1;
+}
+
+.autodown-editor-content .code-block-container pre[data-language] {
+  margin: 0;
+  padding: 0.85em 1em;
+  background: #f9fafb;
+  border: none;
+}
+
+/* plan 039 T13: NO display:block on the code element — the streaming pane
+   renders it inline, where the line boxes take the PRE's line-height
+   (24.32px); a block code forced its own 1.5 (21.12px) and the two panes
+   drifted ~3px per line. Same inline box, same pitch, pixel-equal panels. */
+
+/* ─── Code block header actions (plan 039 T14) ───
+   Copy + collapse live in the family widget's header (both panes render the
+   same widget, so one rule set here covers the editor and the streaming
+   pane). Handlers: CodeBlockMenu (editor) / StreamingRenderer
+   handleContainerClick (read pane). */
+.code-block-container .code-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #4b5563;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.code-block-container .code-action-btn:hover {
+  background: hsl(220 9% 46% / 0.14);
+  color: #111827;
+}
+
+.code-block-container .codeblock-copy-icon,
+.code-block-container .codeblock-expand-icon {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  background-color: currentColor;
+  transition: transform 0.15s ease;
+}
+
+.code-block-container .codeblock-copy-icon {
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iOSIgeT0iOSIgd2lkdGg9IjEzIiBoZWlnaHQ9IjEzIiByeD0iMiIgcnk9IjIiLz48cGF0aCBkPSJNNSAxNUg0YTIgMiAwIDAgMS0yLTJWNGEyIDIgMCAwIDEgMi0yaDlhMiAyIDAgMCAxIDIgMnYxIi8+PC9zdmc+");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHJlY3QgeD0iOSIgeT0iOSIgd2lkdGg9IjEzIiBoZWlnaHQ9IjEzIiByeD0iMiIgcnk9IjIiLz48cGF0aCBkPSJNNSAxNUg0YTIgMiAwIDAgMS0yLTJWNGEyIDIgMCAwIDEgMi0yaDlhMiAyIDAgMCAxIDIgMnYxIi8+PC9zdmc+");
+}
+
+.code-block-container .codeblock-expand-icon {
+  -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBvbHlsaW5lIHBvaW50cz0iNiA5IDEyIDE1IDE4IDkiLz48L3N2Zz4=");
+  mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNCIgaGVpZ2h0PSIxNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBvbHlsaW5lIHBvaW50cz0iNiA5IDEyIDE1IDE4IDkiLz48L3N2Zz4=");
+}
+
+.code-block-container:has(pre.is-collapsed) .codeblock-expand-icon {
+  transform: rotate(180deg);
+}
+
+.code-block-container pre.is-collapsed code {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+/* ─── Lowlight syntax highlighting tokens (editor) ───
+   These match the light theme used by markstream's preview renderer. */
+.autodown-editor-content pre code .hljs-keyword,
+.autodown-editor-content pre code .hljs-selector-tag,
+.autodown-editor-content pre code .hljs-doctag,
+.autodown-editor-content pre code .hljs-section {
+  color: #d73a49;
+  font-weight: 600;
+}
+
+.autodown-editor-content pre code .hljs-title,
+.autodown-editor-content pre code .hljs-title.function_,
+.autodown-editor-content pre code .hljs-function .hljs-title {
+  color: #6f42c1;
+}
+
+.autodown-editor-content pre code .hljs-string,
+.autodown-editor-content pre code .hljs-regexp,
+.autodown-editor-content pre code .hljs-addition {
+  color: #032f62;
+}
+
+.autodown-editor-content pre code .hljs-number,
+.autodown-editor-content pre code .hljs-literal,
+.autodown-editor-content pre code .hljs-variable,
+.autodown-editor-content pre code .hljs-template-variable,
+.autodown-editor-content pre code .hljs-attr,
+.autodown-editor-content pre code .hljs-attribute {
+  color: #005cc5;
+}
+
+.autodown-editor-content pre code .hljs-comment,
+.autodown-editor-content pre code .hljs-quote,
+.autodown-editor-content pre code .hljs-deletion {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.autodown-editor-content pre code .hljs-meta,
+.autodown-editor-content pre code .hljs-meta-keyword,
+.autodown-editor-content pre code .hljs-meta-string {
+  color: #176f2c;
+}
+
+.autodown-editor-content pre code .hljs-tag,
+.autodown-editor-content pre code .hljs-name,
+.autodown-editor-content pre code .hljs-built_in,
+.autodown-editor-content pre code .hljs-type {
+  color: #22863a;
+}
+
+.autodown-editor-content pre code .hljs-emphasis {
+  font-style: italic;
+}
+
+.autodown-editor-content pre code .hljs-strong {
+  font-weight: 700;
+}
+
+/* Block boundary insert handle
+   The widget sits between top-level blocks. The hover area is anchored upward
+   so that hovering near the bottom edge of a block reveals the handle, and
+   clicking it inserts a new paragraph below that block. */
+.autodown-editor-content .autodown-block-boundary {
+  position: relative;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.autodown-editor-content .autodown-block-boundary::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: 0;
+  right: 0;
+  height: 28px;
+  pointer-events: auto;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.autodown-editor-content .autodown-block-boundary-line {
+  position: absolute;
+  top: -7px;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background: linear-gradient(
+    to bottom,
+    transparent calc(50% - 0.5px),
+    hsl(var(--ad-primary, 220 90% 56%) / 0.5) calc(50% - 0.5px),
+    hsl(var(--ad-primary, 220 90% 56%) / 0.5) calc(50% + 0.5px),
+    transparent calc(50% + 0.5px)
+  );
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.autodown-editor-content .autodown-block-boundary-plus {
+  position: absolute;
+  top: -8px;
+  left: 0;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: hsl(var(--ad-primary, 220 90% 56%));
+  color: #ffffff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  pointer-events: auto;
+}
+
+.autodown-editor-content .autodown-block-boundary:hover .autodown-block-boundary-line,
+.autodown-editor-content .autodown-block-boundary:hover .autodown-block-boundary-plus {
+  opacity: 1;
+}
+
+.autodown-editor-content .autodown-block-boundary-plus:hover {
+  background: hsl(var(--ad-primary, 220 90% 56%) / 0.85);
+}
+
+/* ─── Editor Preview Wikilinks (plan 020 Phase 3) ───
+   [[title]] / [[title#block]] in non-focused preview blocks — clickable
+   labels emitting open-wiki-link; the focused block stays raw source. */
+.autodown-editor .autodown-wikilink-label {
+  color: hsl(var(--ad-primary, 220 90% 56%));
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+.autodown-editor .autodown-wikilink-label:hover {
+  text-decoration-style: solid;
+}
+
+/* Focused edit host hygiene (plan 029): the semantic hosts (h1-h6 / p)
+   draw the browser focus outline like any focusable — suppress it, the
+   caret is the focus indicator (matches the old tiptap build). */
+.autodown-editor-content .autodown-block-host {
+  outline: none;
+}
+
+/* ─── Open-state skeleton family (plan 032 P3) ───
+   The fence-open (loading) code block carries .autodown-block-placeholder
+   .is-loading on its .code-block-container — the same family the scroll-sync
+   editing placeholder uses. v1 contract is equal-height reservation only:
+   a min-height snapshot ≈ a closed panel's first screen, so the open→closed
+   flip never collapses layout; no transition animation by design (待澄清③
+   ruling: CSS constant over JS measurement). */
+.autodown-block-placeholder.is-loading {
+  min-height: 5.5rem;
+}
+
+/* ─── Dark theme overrides (PLAN-051 T4; values = Design 22 §7.4 深色列,
+   the VM track's zinc baseline — FENCE_BG (9,9,11) / FENCE_HEADER_BG
+   (39,39,42) / FENCE_BORDER (63,63,70) / FENCE_BODY_FG (250,250,250) etc).
+   Only faces whose dark value is NOT a plain token flip live here; anything
+   reading var(--ad-*) goes dark via the .is-dark token rule above. Editor
+   pane scoping (.autodown-editor-content) matches the light rules' shape;
+   pane-agnostic widget classes take both roots (plan 042 discipline). ─── */
+
+.autodown-editor.is-dark .autodown-editor-content pre {
+  background: #09090b;
+  border-color: #3f3f46;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre code {
+  color: #fafafa;
+}
+
+.autodown-editor.is-dark .autodown-editor-content code {
+  background: rgb(161 161 170 / 0.12);
+  color: #fafafa;
+}
+
+.autodown-editor.is-dark .autodown-editor-content .code-block-container {
+  border-color: #3f3f46;
+  background: #09090b;
+}
+
+.autodown-editor.is-dark .autodown-editor-content .code-block-header {
+  background: #27272a;
+  border-bottom-color: #3f3f46;
+  color: #a1a1aa;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre[data-language] {
+  background: #09090b;
+}
+
+.autodown-editor.is-dark .code-action-btn,
+.streaming-document.is-dark .code-action-btn {
+  color: #a1a1aa;
+}
+
+.autodown-editor.is-dark .code-action-btn:hover,
+.streaming-document.is-dark .code-action-btn:hover {
+  background: rgb(161 161 170 / 0.14);
+  color: #fafafa;
+}
+
+.autodown-editor.is-dark .table-node tr:nth-child(even),
+.streaming-document.is-dark .table-node tr:nth-child(even) {
+  background: #18181b;
+}
+
+/* Callout dark = the VM alpha scheme (callout_kind_classes: *-500/50 border,
+   *-500/10 bg, *-400 header) — the structural divergence row of §7.4: vue's
+   solid pastel is the LIGHT spec, VM's alpha scheme is the DARK spec.
+   Dual-scoped (PLAN-053 T5): the widget face is pane-agnostic, so the dark
+   flip must reach the streaming pane too (same pattern as the table row
+   above) — editor-only scoping left the view arm stuck on the light pastel. */
+.autodown-editor.is-dark .autodown-callout-note,
+.streaming-document.is-dark .autodown-callout-note {
+  background: rgb(59 130 246 / 0.1);
+  border-color: rgb(59 130 246 / 0.5);
+}
+
+.autodown-editor.is-dark .autodown-callout-note .autodown-callout-header,
+.streaming-document.is-dark .autodown-callout-note .autodown-callout-header {
+  color: #60a5fa;
+}
+
+.autodown-editor.is-dark .autodown-callout-info,
+.streaming-document.is-dark .autodown-callout-info {
+  background: rgb(14 165 233 / 0.1);
+  border-color: rgb(14 165 233 / 0.5);
+}
+
+.autodown-editor.is-dark .autodown-callout-info .autodown-callout-header,
+.streaming-document.is-dark .autodown-callout-info .autodown-callout-header {
+  color: #38bdf8;
+}
+
+.autodown-editor.is-dark .autodown-callout-tip,
+.streaming-document.is-dark .autodown-callout-tip {
+  background: rgb(16 185 129 / 0.1);
+  border-color: rgb(16 185 129 / 0.5);
+}
+
+.autodown-editor.is-dark .autodown-callout-tip .autodown-callout-header,
+.streaming-document.is-dark .autodown-callout-tip .autodown-callout-header {
+  color: #34d399;
+}
+
+.autodown-editor.is-dark .autodown-callout-warning,
+.autodown-editor.is-dark .autodown-callout-caution,
+.streaming-document.is-dark .autodown-callout-warning,
+.streaming-document.is-dark .autodown-callout-caution {
+  background: rgb(245 158 11 / 0.1);
+  border-color: rgb(245 158 11 / 0.5);
+}
+
+.autodown-editor.is-dark .autodown-callout-warning .autodown-callout-header,
+.autodown-editor.is-dark .autodown-callout-caution .autodown-callout-header,
+.streaming-document.is-dark .autodown-callout-warning .autodown-callout-header,
+.streaming-document.is-dark .autodown-callout-caution .autodown-callout-header {
+  color: #fbbf24;
+}
+
+.autodown-editor.is-dark .autodown-callout-danger,
+.autodown-editor.is-dark .autodown-callout-error,
+.streaming-document.is-dark .autodown-callout-danger,
+.streaming-document.is-dark .autodown-callout-error {
+  background: rgb(239 68 68 / 0.1);
+  border-color: rgb(239 68 68 / 0.5);
+}
+
+.autodown-editor.is-dark .autodown-callout-danger .autodown-callout-header,
+.autodown-editor.is-dark .autodown-callout-error .autodown-callout-header,
+.streaming-document.is-dark .autodown-callout-danger .autodown-callout-header,
+.streaming-document.is-dark .autodown-callout-error .autodown-callout-header {
+  color: #f87171;
+}
+
+.autodown-editor.is-dark .autodown-editor-content .autodown-math-block {
+  background: #09090b;
+}
+
+.autodown-editor.is-dark .autodown-image-fallback::after {
+  background: rgb(161 161 170 / 0.06);
+  border-color: #3f3f46;
+  color: #a1a1aa;
+}
+
+/* Editor-shell scrollbar flips with the pane (thumb rgba black→white). */
+.autodown-editor.is-dark .autodown-editor-content-wrapper {
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+}
+
+.autodown-editor.is-dark .autodown-editor-content-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.autodown-editor.is-dark .autodown-editor-content-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+/* ─── hljs dark tokens (editor side; PLAN-051 T4) — values from the
+   dual-track single source (packages/engine/rust/src/hljs_scope_map.rs
+   hljs_group_rgb(_, dark), github-dark palette; Design 22 §7.5). ─── */
+
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-keyword,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-selector-tag,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-doctag,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-section {
+  color: #ff7b72;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-title,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-title.function_,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-function .hljs-title {
+  color: #d2a8ff;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-string,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-regexp,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-addition {
+  color: #a5d6ff;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-number,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-literal,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-variable,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-template-variable,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-attr,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-attribute {
+  color: #79c0ff;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-comment,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-quote,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-deletion {
+  color: #8b949a;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-meta,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-meta-keyword,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-meta-string {
+  color: #7ee787;
+}
+
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-tag,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-name,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-built_in,
+.autodown-editor.is-dark .autodown-editor-content pre code .hljs-type {
+  color: #7ee787;
+}

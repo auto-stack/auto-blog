@@ -1,13 +1,24 @@
 // pages/author.at — BLOG-001 个人作者入口（默认）。
 // 列表 + 写作；不依赖 demo 登录。demo 社区经独立入口。
+// BLOG-002 T-01：正文区 = Markdown 引擎/纯文本降级写作面（内联于本件）+ 封面输入。
+// 写作面不拆子件：VM 轨对 `use <module>: <Widget>` 子件实例化静默失败（F-6，
+// 同目录/调用式均不复现 auto-notes 的单层结构），内联保证双轨同构；vue 轨
+// 行为不变（同一视图树）。
 use draft_store: DraftStore
 use stylekit.styles: input_field
 
 widget author {
     msg {
-        Init, AutosaveTick, GoNew, GoOpen(str), TitleChanged(str), BodyChanged(str),
-        SummaryChanged(str), TagsChanged(str), DoSave,
-        KeepMine, KeepTheirs, GoDemo
+        Init, AutosaveTick, GoNew, GoOpen(str), TitleChanged(str),
+        SummaryChanged(str), TagsChanged(str), CoverChanged(str), DoSave,
+        KeepMine, KeepTheirs, GoDemo, ToggleEngine, FormatText, FormatMd
+    }
+
+    model {
+        // 写作面形态（视图本地态，不落盘）：use_engine=用户引擎偏好；
+        // force_engine=空稿起稿后显式请求进入引擎（仅正文非空时可用）。
+        var use_engine bool = true
+        var force_engine bool = false
     }
 
     timer {
@@ -114,16 +125,69 @@ widget author {
                             oninput: .SummaryChanged($event),
                             style: input_field
                         }
-                        textarea {
-                            placeholder: "正文（支持中文、长稿；自动保存）",
-                            value: .store.editing_body,
-                            oninput: .BodyChanged($event),
-                            style: "w-full px-3 py-2 border border-border rounded text-sm min-h-[320px] font-serif"
+                        // ── 写作面（Markdown 引擎 / 纯文本降级，T-01）──────────
+                        // 格式行：text 稿（BLOG-001 存量）恒 textarea；
+                        // markdown 稿：打开时正文非空默认引擎，空稿先 textarea
+                        // 起稿（引擎空文档 0 块不可输入——T-01 实证），正文
+                        // 非空后「切引擎」点亮；分支只随采纳/显式切换翻转。
+                        row {
+                            style: "gap-2 items-center"
+                            if .store.editing_format == "markdown" {
+                                button "格式：Markdown · 切纯文本" {
+                                    onclick: .FormatText,
+                                    style: "px-2 py-1 rounded border border-border text-xs"
+                                }
+                            } else {
+                                button "格式：纯文本 · 切Markdown" {
+                                    onclick: .FormatMd,
+                                    style: "px-2 py-1 rounded border border-border text-xs"
+                                }
+                            }
+                            if .store.editing_format == "markdown" {
+                                if .use_engine && (.store.body_was_empty == false || .force_engine) {
+                                    button "编辑器：引擎 · 切降级" {
+                                        onclick: .ToggleEngine,
+                                        style: "px-2 py-1 rounded border border-border text-xs text-muted-foreground"
+                                    }
+                                } else {
+                                    if .store.editing_body != "" {
+                                        button "编辑器：降级 · 切引擎" {
+                                            onclick: .ToggleEngine,
+                                            style: "px-2 py-1 rounded border border-border text-xs text-amber-600"
+                                        }
+                                    } else {
+                                        text "空稿可直接输入；正文非空后可切引擎编辑器" {
+                                            style: "text-xs text-muted-foreground"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if .store.editing_format == "markdown" && .use_engine && (.store.body_was_empty == false || .force_engine) {
+                            autodown_editor {
+                                content: .store.editing_body,
+                                placeholder: "正文（Markdown；自动保存）",
+                                class: "min-h-[320px]",
+                                oninput: .BodyChanged
+                            }
+                        } else {
+                            textarea {
+                                value: .store.editing_body,
+                                oninput: .BodyChanged,
+                                placeholder: "正文（Markdown 语法可直接输入；自动保存）",
+                                style: "w-full px-3 py-2 border border-border rounded text-sm min-h-[320px] font-serif"
+                            }
                         }
                         input {
                             placeholder: "标签（逗号分隔）",
                             value: .store.editing_tags,
                             oninput: .TagsChanged($event),
+                            style: input_field
+                        }
+                        input {
+                            placeholder: "封面（图片 URL 或资产引用，可选）",
+                            value: .store.editing_cover,
+                            oninput: .CoverChanged($event),
                             style: input_field
                         }
                         row {
@@ -151,17 +215,35 @@ widget author {
         }
         .GoNew -> {
             .store.NewDraft()
+            .use_engine = true
+            .force_engine = false
         }
         .GoOpen(id str) -> {
             .store.OpenDraft(id)
+            .use_engine = true
+            .force_engine = false
         }
         .GoDemo -> { router.push("/demo") }
         .TitleChanged(v str) -> { .store.TitleEdit(v) }
         .BodyChanged(v str) -> { .store.BodyEdit(v) }
         .SummaryChanged(v str) -> { .store.SummaryEdit(v) }
         .TagsChanged(v str) -> { .store.TagsEdit(v) }
+        .CoverChanged(v str) -> { .store.CoverEdit(v) }
         .DoSave -> { .store.SaveCurrent() }
         .KeepMine -> { .store.ResolveKeepMine() }
         .KeepTheirs -> { .store.ResolveKeepTheirs() }
+        .ToggleEngine -> {
+            if .use_engine && (.store.body_was_empty == false || .force_engine) {
+                .use_engine = false
+                .force_engine = false
+            } else {
+                if .store.editing_body != "" {
+                    .use_engine = true
+                    .force_engine = true
+                }
+            }
+        }
+        .FormatText -> { .store.FormatEdit("text") }
+        .FormatMd -> { .store.FormatEdit("markdown") }
     }
 }

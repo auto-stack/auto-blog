@@ -1,0 +1,183 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`roundtrip layer (b): serialize(parse(x)) byte stability > snapshot edge-blocks.md > edge-blocks.md 1`] = `
+"# 构造边界:多语言代码块 + 行内代码 + 表格 + 引用 + 列表
+
+行内 \`code\` 与 **粗体**、*斜体*、[链接](https://example.com)。
+
+## Rust
+
+\`\`\`rust
+fn main() {
+    let s = String::from("hello");
+    println!("{s}");
+}
+\`\`\`
+
+## TypeScript
+
+\`\`\`typescript
+export function i18nT(locale: string, key: string, params: obj): string {
+    return key.split('.').reduce((o, p) => o?.[p], catalog[locale]) ?? key
+}
+\`\`\`
+
+## Bash
+
+\`\`\`bash
+for f in *.md; do
+  echo "processing $f"
+done
+\`\`\`
+
+## SQL
+
+\`\`\`sql
+SELECT id, name FROM plans WHERE status = 'executing' ORDER BY created_at DESC;
+\`\`\`
+
+> 引用块:渲染真源切换对拍。
+>
+> 第二段引用。
+
+| 列 A | 列 B |
+| :--- | :--- |
+| 1 | 2 |
+| 3 | 4 |
+
+- 无序列表项一
+- 无序列表项二
+  1. 嵌套有序项
+  2. 嵌套有序项二
+
+普通段落结尾。
+"
+`;
+
+exports[`roundtrip layer (b): serialize(parse(x)) byte stability > snapshot empty.md > empty.md 1`] = `""`;
+
+exports[`roundtrip layer (b): serialize(parse(x)) byte stability > snapshot plan-report.md > plan-report.md 1`] = `
+"---
+
+plan_id: PLAN-033
+status: review_done
+feature_name: 计划模块 UI/UX 改进（过滤/状态/徽标/归档语义/MetaBlock）
+author: [zhaopuming]
+created_at: 2026-08-22T10:40:25+08:00
+updated_at: 2026-08-23T15:12:00+08:00
+
+supersedes_spec_components:
+
+- “backend/crates/musk/src/plans.rs: PlanStatus 状态机与 archive 语义重定义（reviewed/archived 单一终态）”
+- “web/src/views/PlansView.vue: 计划页过滤/头部/操作区重构（下拉过滤+转移按钮组+归档沉淀互斥）”
+- “web/src/types/plans.ts: 前端状态模型与状态机对齐（ALLOWED_TRANSITIONS/planStatusKey）”
+- “docs/designs/008-auto-plan.md: §7.2 状态机修订（reviewed 经 merge 进 archived 单一终态）”
+- “.agents/skills/auto-plan-*: 状态名与终态流程文案同步”
+  new_spec_components:
+- “web/src/components/plan/PlanMetaBlock.vue: 计划 frontmatter 元数据折叠概要/展开表格组件”
+- “web/src/utils/frontmatter.ts: 轻量 frontmatter 解析器（含 7 项单测）”
+  touched_goals: []
+
+current_step: 12
+total_steps: 12
+---
+
+# [PLAN-033] 计划模块 UI/UX 改进：过滤开关、状态重命名、徽标 i18n、归档语义统一、MetaBlock
+
+## 变更摘要
+
+针对 Auto/vue（\`web/\`，musk-web）"计划"页的五项 UI/UX 与状态模型改进：
+
+1. 左侧列表过滤从"包含归档"checkbox 改为 **Active / All 下拉**，默认 Active，选择持久化。
+2. 状态枚举重命名：\`merged\` → \`archived\`、\`review_done\` → \`reviewed\`（全栈 + 旧文件兼容映射）。
+3. 状态徽标接入 i18n（中文模式显示中文）；删除头部冗余的全量状态下拉，状态展示以徽标为唯一来源，状态转移改为"仅列出合法目标"的按钮组。
+4. 统一"归档 / 沉淀到 Spec"语义为**单一终态模型**：终态只有 \`archived\`；reviewed 的唯一出口是"沉淀到 Spec"（沉淀即归档），非 reviewed 计划走"归档"（搁置不沉淀）；两按钮互斥展示，后端同步门禁。
+5. 计划正文不再渲染 frontmatter 黑体块；新增 **PlanMetaBlock** 组件：折叠时概要一行，展开后表格显示全部 meta 属性。
+
+## 目标
+
+- 消除状态信息的三处冗余/混排：英文徽标 vs 中文下拉 vs archived 灰标签。
+- 让按钮与状态机语义一致：任一时刻"终态动作"按钮至多一个，且名称与结果状态对应。
+- 旧数据零迁移成本：磁盘上 \`status: merged\` / \`review_done\` 的历史文件读取时自动映射，写入时自愈为新枚举。
+- frontmatter 作为元数据被结构化呈现，正文渲染区只渲染正文。
+
+## 架构方案
+
+不改 API 形状（路由、请求/响应 DTO 均不变），只改语义：
+
+- **后端** \`backend/crates/musk/src/plans.rs\`：\`PlanStatus\` 枚举变体重命名 + \`from_str_lossy\` 兼容旧值；\`can_transition\` 状态机去掉 \`reviewed → archived\` 手动转移；\`archive()\` 升级为"置状态 + 移档"并拒绝 reviewed 计划；\`merge_plan_stores()\` 沉淀后经同一助手进入终态。
+- **前端** \`web/src/types/plans.ts\` 保持为前端单一事实源（枚举、转移表、色调、i18n key 映射），\`PlansView.vue\` 只做视图编排；新增 \`web/src/utils/frontmatter.ts\`（纯函数解析）与 \`web/src/components/plan/PlanMetaBlock.vue\`（展示组件）。
+- 跨栈一致性继续靠 \`backend/crates/musk/tests/parity_plans.rs\` 与约定（无共享常量文件，本计划不引入）。
+
+## 技术栈
+
+Rust（axum hand-written routes）、Vue 3 \`<script setup>\` + TS、vue-i18n 9（legacy:false）、原生 \`<select>\`/按钮（无新增 UI 依赖）、Vitest + vue-tsc。**不引入 yaml 依赖**——frontmatter 为扁平键值 + 简单数组，自写 ~40 行解析器并配单测。
+
+## 需求分析与背景调查
+
+Specs 台账（\`docs/specs/\`：\`00-overview.md\`、\`01-architecture.md\`、\`03-front-component-groups.md\`、\`goals/\`、\`modules/\`、\`reviews/\`、\`index.json\`）中与本计划相关的是 \`03-front-component-groups.md\` 所辖的 web 组件分组——新增 \`PlanMetaBlock\` 组件、改 \`PlansView\`/\`PlanStatusBadge\` 属于该分组的扩展，merge 时需回填。
+
+现状事实（已逐一核对源码）：
+"
+`;
+
+exports[`roundtrip layer (b): serialize(parse(x)) byte stability > snapshot spec-overview.md > spec-overview.md 1`] = `
+"# auto-musk 项目概览
+
+> 本 spec 基于 2026-08-14 全量代码扫描（后端 Rust + 双前端 + codegen），从代码提炼而非从文档推导。
+
+## 定位
+
+auto-musk 是 Forge 继任者——Rust 后端的 AI 编码 agent。既是 CLI（\`musk run/chat\`）也是 HTTP 服务（\`musk serve\` :8080），经 auto-ai-daemon（aaid）代理调 LLM，工具在进程内本地执行。
+
+## 关键能力
+
+1. **Agent 运行**：基于 \`auto-ai-agent\` 的 ReAct 循环（一次性 / 流式 SSE），9 基础工具 + 5 spec 工具 + 5 编排工具，path confinement 安全沙箱。
+2. **Spec 双落点**：结构化 ledger（\`.autoos/specs.json\` 6 区 + 状态机）+ 文件树知识层（\`docs/specs/\`，本目录）。
+3. **Plans 动态执行**：\`docs/plans/NNN-*.md\` 文件树，5 态状态机（drafting→executing→execution_done→review_done→merged），merge 沉淀到 Spec。
+4. **Relay 编排**：PipelineEngine 流水线 + TaskPlan DAG + 子会话（spawn_relay/dispatch/bring_in）。
+5. **双前端 parity**：原生 \`web/\`（Vue3 手写 SPA）+ Auto 轨 \`.at\` 源（\`src/front/*.at\` → \`auto build\` → \`gen/front/vue/\`）。Block 组件组已全量原生化（Plan 028）：纯函数/SSE/HTTP/样式以 .at 为单一真源，平台强依赖（markdown 渲染/SSE/HTTP）经平台协议声明（\`platform:markdown\`、\`Sse.*\`、\`Http.*\`），同源 .at 未来可直接复用于 VM/Rust 后端。
+
+## 架构总览
+
+\`\`\`
+auto-ai（LLM 层）               auto-lang（codegen 工具）
+  aaid daemon :17654              auto build（.at → Vue SFC + Rust）
+       ↑                               ↑
+       |                          auto-musk（主项目）
+  musk serve :8080 ←── backend/crates/musk（Rust axum）
+       |                               ↑
+       ├── web/ :3333（原生 Vue3 手写 SPA）
+       └── gen/front/vue/ :3334（Auto 轨 .at 生成）
+\`\`\`
+
+## workspace 数据隔离
+
+每个工作区数据落 \`{root}/.autoos/\`：specs.json / chats.json / conversations/ / relay/ / wiki/ / raw/ / handoffs/ / task_plans/。Plans 例外落 \`{root}/docs/plans/\`。全局索引在 \`~/.config/autoos/workspaces.json\`。
+
+## 关键依赖
+
+| 依赖 | 路径 | 职责 |
+| :--- | :--- | :--- |
+| auto-ai-agent | \`../auto-ai/crates/auto-ai-agent\` | ReAct loop + ToolError + StreamEvent + Role/Skill |
+| auto-ai-client | \`../auto-ai/crates/auto-ai-client\` | aaid daemon 连接（HTTP） |
+| auto-atom / auto-val | \`../auto-lang/crates/auto-atom\` | .at 解析 + 值系统 |
+"
+`;
+
+exports[`roundtrip layer (b): serialize(parse(x)) byte stability > snapshot streaming-prefix.md > streaming-prefix.md 1`] = `
+"# 流式前缀构造:截断的标题/段落/未闭合代码块(模拟 chat 流式 draft 中间态)
+
+流式渲染中的 assistant 消息前缀——句子尚未
+
+## 已完成的段落
+
+这段是完整段落,含 \`行内代码\` 与 **加粗**。
+
+\`\`\`rust
+// 代码块流式中——fence 未闭合
+fn streaming_example(x: i32) -> i32 {
+    x * 2
+\`\`\`
+"
+`;

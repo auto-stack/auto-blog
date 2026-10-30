@@ -11,4 +11,9 @@ back_port: 17827
 dep stylekit {
     path: "vendor/stylekit"
 }
+
+// BLOG-002 T-01：Markdown 编辑/预览引擎（vendor 固定副本，pin 见 vendor/auto-down/PROVENANCE.md）。
+npm_deps: {
+    "@autodown/engine": "file:../../../vendor/auto-down/autodown/packages/engine"
+}
 desktop: "true"

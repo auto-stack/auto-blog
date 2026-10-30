@@ -29,16 +29,21 @@ pub fn new_work_id() str {
     return "w-" + ms.to_string() + "-" + n.to_string()
 }
 
-pub fn make_work(work_id str, p_title str, p_summary str, p_body str, p_tags str, p_status str, p_rev int, p_created int, p_updated int) Work {
+pub fn make_work(work_id str, p_title str, p_summary str, p_body str, p_tags str, p_status str, p_rev int, p_created int, p_updated int, p_format str, p_cover str) Work {
+    // body_format 规范化（BLOG-002 T-01）：仅接受 text/markdown，其余一律 text。
+    var bf str = p_format
+    if bf != "text" && bf != "markdown" {
+        bf = "text"
+    }
     return Work {
         work_id: work_id,
         kind: "article",
         title: p_title,
         summary: p_summary,
-        body_format: "text",
+        body_format: bf,
         body: p_body,
         tags: p_tags,
-        cover_asset: "",
+        cover_asset: p_cover,
         asset_refs: "[]",
         source_refs: "[]",
         revision: p_rev,
@@ -50,7 +55,7 @@ pub fn make_work(work_id str, p_title str, p_summary str, p_body str, p_tags str
 
 pub fn blank_work(work_id str) Work {
     let now int = time.now_sec()
-    return make_work(work_id, "", "", "", "", "draft", 1, now, now)
+    return make_work(work_id, "", "", "", "", "draft", 1, now, now, "text", "")
 }
 
 pub fn json_escape(s str) str {
@@ -331,7 +336,11 @@ pub fn work_from_meta_json(meta str, body str) Work {
     let wid str = json_field_str(meta, "work_id")
     let t str = json_field_str(meta, "title")
     let sm str = json_field_str(meta, "summary")
-    let bf str = json_field_str(meta, "body_format")
+    var bf str = json_field_str(meta, "body_format")
+    // 旧 revision meta 无 body_format 字段（BLOG-001）→ 缺省 text
+    if bf == "" {
+        bf = "text"
+    }
     let tg str = json_field_str(meta, "tags")
     let ca str = json_field_str(meta, "cover_asset")
     let ar str = json_field_str(meta, "asset_refs")

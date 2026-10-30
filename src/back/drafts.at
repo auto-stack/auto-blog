@@ -436,19 +436,20 @@ fn index_add(root str, work_id str) bool {
 
 // --- 对外 API ---
 
-/// 新建草稿。失败返回 blank_work("")。
-pub fn create_draft(p_title str, p_body str) Work {
+/// 新建草稿。p_format 仅接受 text/markdown（其余归一为 text，BLOG-002 T-01）。
+/// 失败返回 blank_work("")。
+pub fn create_draft(p_title str, p_body str, p_format str) Work {
     let root str = data_root()
     fs.create_dir(works_dir(root))
     let work_id str = new_work_id()
     let now int = time.now_sec()
-    let w Work = make_work(work_id, p_title, "", p_body, "", "draft", 1, now, now)
+    let w Work = make_work(work_id, p_title, "", p_body, "", "draft", 1, now, now, p_format, "")
     let ok bool = write_work_files(root, w)
     if !ok {
         return blank_work("")
     }
     // 直接返回 Work（勿嵌套——长串会被截断）
-    return make_work(work_id, p_title, "", p_body, "", "draft", 1, now, now)
+    return make_work(work_id, p_title, "", p_body, "", "draft", 1, now, now, p_format, "")
 }
 
 /// 打开草稿。失败返回 blank_work("")。
@@ -458,7 +459,8 @@ pub fn open_draft(work_id str) Work {
 }
 
 /// 保存（条件 revision）。expected_rev=0 强制；>0 条件写。
-pub fn save_draft(work_id str, p_title str, p_summary str, p_body str, p_tags str, expected_rev int) SaveResult {
+/// p_cover/p_format：格式仅接受 text/markdown，空或非法值保留当前值（不静默改格式）。
+pub fn save_draft(work_id str, p_title str, p_summary str, p_body str, p_tags str, p_cover str, p_format str, expected_rev int) SaveResult {
     let root str = data_root()
     let cur Work = load_work(root, work_id)
     if cur.work_id == "" {
@@ -467,9 +469,13 @@ pub fn save_draft(work_id str, p_title str, p_summary str, p_body str, p_tags st
     if expected_rev > 0 && cur.revision != expected_rev {
         return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: true, error: "conflict" }
     }
+    var fmt str = p_format
+    if fmt != "text" && fmt != "markdown" {
+        fmt = cur.body_format
+    }
     let next_rev int = cur.revision + 1
     let now int = time.now_sec()
-    let next Work = make_work(work_id, p_title, p_summary, p_body, p_tags, cur.status, next_rev, cur.created_at, now)
+    let next Work = make_work(work_id, p_title, p_summary, p_body, p_tags, cur.status, next_rev, cur.created_at, now, fmt, p_cover)
     let ok bool = write_work_files(root, next)
     if !ok {
         return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "save_failed" }
@@ -705,7 +711,7 @@ pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_t
         }
         if read_current_rev(root, existing) <= 0 && !fs.exists(meta_path(root, existing)) {
             let now int = time.now_sec()
-            let w Work = make_work(existing, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
+            let w Work = make_work(existing, p_title, p_description, p_body, p_tagList, "draft", 1, now, now, "text", "")
             if !write_work_files(root, w) {
                 return ""
             }
@@ -733,7 +739,7 @@ pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_t
     let now int = time.now_sec()
     let cur_rev int = read_current_rev(root, work_id)
     if cur_rev <= 0 {
-        let w Work = make_work(work_id, p_title, p_description, p_body, p_tagList, "draft", 1, now, now)
+        let w Work = make_work(work_id, p_title, p_description, p_body, p_tagList, "draft", 1, now, now, "text", "")
         if !write_work_files(root, w) {
             return ""
         }

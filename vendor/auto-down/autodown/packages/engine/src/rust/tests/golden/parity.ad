@@ -1,0 +1,23 @@
+=== heading_paragraph_list ===
+# Hello
+
+a **bold** move
+
+- one
+- two
+=== table_with_ial ===
+| a |
+| --- |
+| 1 |
+{cols:[120,"auto"], rows:[40]}
+=== emit_ids ===
+## Title ^title-1
+
+kept ^my-anchor
+=== hardbreak_and_fence ===
+line one  
+line two
+
+```ts
+const x = 1
+```

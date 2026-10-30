@@ -254,7 +254,7 @@ HARD_BODY = "正文第一段：中文与 \"引号\"。\n正文第二段：换行
 
 @scenario("api.create_cn_quote_newline")
 def s_create(ctx: Ctx):
-    st, created = http_json("POST", f"{ctx.base}/api/drafts", {"title": HARD_TITLE, "body": HARD_BODY})
+    st, created = http_json("POST", f"{ctx.base}/api/drafts", {"title": HARD_TITLE, "body": HARD_BODY, "format": "text"})
     if st != 200:
         return False, f"create status={st} body={created}"
     ctx.created_id = created["work_id"]
@@ -265,7 +265,7 @@ def s_create(ctx: Ctx):
 @scenario("api.epoch_valid")
 def s_epoch(ctx: Ctx):
     now = int(time.time())
-    st, created = http_json("POST", f"{ctx.base}/api/drafts", {"title": "epoch探针", "body": "时间语义"})
+    st, created = http_json("POST", f"{ctx.base}/api/drafts", {"title": "epoch探针", "body": "时间语义", "format": "text"})
     if st != 200:
         return False, f"create status={st}"
     ca = created.get("created_at", 0)
@@ -287,7 +287,7 @@ def s_list_open(ctx: Ctx):
 @scenario("api.save_conditional_rev")
 def s_save(ctx: Ctx):
     st, saved = http_json("PUT", f"{ctx.base}/api/drafts/{ctx.created_id}", {
-        "title": HARD_TITLE + "改", "summary": "摘要", "body": "条件保存后的正文。", "tags": "a,b", "expected_rev": 1,
+        "title": HARD_TITLE + "改", "summary": "摘要", "body": "条件保存后的正文。", "tags": "a,b", "cover": "", "format": "text", "expected_rev": 1,
     })
     ok = st == 200 and saved.get("ok") and saved.get("revision") == 2 and saved.get("work_id") == ctx.created_id
     ctx.rev2 = saved.get("revision")
@@ -297,7 +297,7 @@ def s_save(ctx: Ctx):
 @scenario("api.stale_rev_conflict")
 def s_conflict(ctx: Ctx):
     st, saved = http_json("PUT", f"{ctx.base}/api/drafts/{ctx.created_id}", {
-        "title": "旧客户端", "summary": "", "body": "陈旧写必须被拒绝", "tags": "", "expected_rev": 1,
+        "title": "旧客户端", "summary": "", "body": "陈旧写必须被拒绝", "tags": "", "cover": "", "format": "text", "expected_rev": 1,
     })
     ok = st == 200 and not saved.get("ok") and saved.get("conflict") and saved.get("revision") == 2
     return ok, f"status={st} resp={saved}"
@@ -317,7 +317,7 @@ def s_migrate(ctx: Ctx):
 @scenario("api.long_cn_body")
 def s_long(ctx: Ctx):
     body = "".join(f"第{i}段：中文长文测试内容，验证持久化完整性。" for i in range(200))
-    st, created = http_json("POST", f"{ctx.base}/api/drafts", {"title": "长稿测试", "body": body})
+    st, created = http_json("POST", f"{ctx.base}/api/drafts", {"title": "长稿测试", "body": body, "format": "text"})
     if st != 200:
         return False, f"create status={st}"
     st2, got = http_json("GET", f"{ctx.base}/api/drafts/{created['work_id']}")
@@ -327,7 +327,7 @@ def s_long(ctx: Ctx):
 @scenario("neg.save_not_found")
 def s_neg_nf(ctx: Ctx):
     st, saved = http_json("PUT", f"{ctx.base}/api/drafts/w-no-such-id", {
-        "title": "x", "summary": "", "body": "y", "tags": "", "expected_rev": 1,
+        "title": "x", "summary": "", "body": "y", "tags": "", "cover": "", "format": "text", "expected_rev": 1,
     })
     ok = st == 200 and not saved.get("ok") and saved.get("error") == "not_found" and not saved.get("conflict")
     return ok, f"resp={saved}"

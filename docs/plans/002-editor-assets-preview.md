@@ -7,7 +7,7 @@ author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-04T00:00:00Z
 plan_revision: 2
-current_step: 1
+current_step: 2
 total_steps: 5
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -62,7 +62,8 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 
 - [x] T-00: T0核实固定AutoDown版本、Vue/VM可用能力和依赖安装；不直接依赖其他app未提交代码。
   [✅ 已完成] 探针app tests/probe/autodown_cap/（端口17836-17839，种子覆盖中文标题/加粗/引用/列表/表格/代码/远程图片）。**Vue轨 6/6**（engine编辑器挂载/渲染预览/编辑回传/降级保稿/切回可逆/零页面错误，`node tests/probe/autodown_cap/probe_vue.cjs`，build+preview，evidence `attachments/002/t00-vue-probe.log` 70774872）；**VM轨 5/5**（原生窗口双面渲染/降级/切回/q退出 exit 0，`python -I tests/probe/autodown_cap/probe_vm.py`，`t00-vm-probe.log` 859E63EE、快照 FDE1BCEE）。能力结论：部署CLI（da0558e7，autodown default feature）双轨原生支持 `autodown_editor`/`autodown` widget（vue=@autodown/engine SFC import；VM=框架内 autodown-core，零额外app依赖）；引擎基面 c3464d0（dist已建）与生成SFC导入面兼容；auto-notes vendor pin c39ac7f9 同源（其后仅fmt提交）。**发现 F-1..F-5**（run 120s就绪窗<冷编译需预编译；vue dev模式 linked engine 传递CJS依赖断裂、build模式正常→产品vue验收走build+preview；pnpm多级相对路径不稳用绝对/3层vendor形式；vite dev绑IPv6；npm镜像断、离线store可用）详见 `attachments/002/t00-findings.md` B6370E14。F-2的产品vue验收路径约束已入T-03/T-04验证设计依据。T-02资产通道事实：a2r类型映射无二进制（int/str/bool）；生成后端自带 auto-media-core 管线（/api/__auto/media/:id/:revision）population为Rust/UI侧，.at不可控；VM渲染markdown图片→View::Image{src}透传。
-- [ ] T-01: 实现标题/摘要/标签/封面、常见Markdown编辑和纯文本fallback；无引擎可基本写稿。
+- [x] T-01: 实现标题/摘要/标签/封面、常见Markdown编辑和纯文本fallback；无引擎可基本写稿。
+  [✅ 已完成] 后端合同扩展：`create_draft(+format)`/`save_draft(+cover,+format)`（api/db/drafts 三层；格式仅接受 text/markdown，非法值保存时保留当前、创建时归一 text；旧 revision meta 缺 body_format 读回归一 text；迁移路径恒 text）。前端：draft_store 增 editing_cover/editing_format/body_was_empty（采纳时刻快照），CoverEdit/FormatEdit 消息，全部保存路径（普通/强制/切前）扩为全字段快照+读回确认（含 cover/format）；author.at 内联写作面（格式切换、引擎/降级切换、空稿起稿规则：空稿先 textarea+提示，正文非空后「切引擎」点亮，有内容稿重开默认引擎；引擎空文档 0 块不可输入=F-7，VM 子件静默失败=F-6 内联规避）。vendor：@autodown/engine 固定副本 vendor/auto-down（pin c3464d0，PROVENANCE.md，src+dist 2.3MB），pac.at npm_deps `file:../../../vendor/...`。**Vue 轨 8/8**（空稿起稿/起稿后切引擎渲染/引擎内输入+保存/独立HTTP读回全字段含 body_format=markdown+cover/降级保稿 rev 推进/格式切换落盘/刷新重开引擎回读/页面错误=0（已知 auth token null 时序除外，BLOG-004 登记），`node tests/probe/authoring_t01.cjs`，evidence `attachments/002/t01-vue-probe.log`）；**VM 轨 7/7**（原生窗口同链+磁盘 rev meta body_format=markdown+q 退出 exit 0，`python -I tests/probe/probe_vm_t01.py`，`t01-vm-probe.log`）。既有 battery 随合同更新（verify_dual.py 6 处 payload、drafts_api_probe.ps1 加 cover/format，语义不变）。
 - [ ] T-02: 实现图片/说明及AssetRef；Notes/Reader导入保留来源rev/locator，区分引用与副本。
 - [ ] T-03: 实现桌面/窄屏本地预览、缺资源/断链提示；禁止预览主动执行文章脚本。
 - [ ] T-04: 验证切换编辑/预览仍保存同work_id/revision，不把渲染转换悄悄写回原稿。
@@ -111,3 +112,5 @@ T-00需核实实际平台/运行时能力，负责者为本计划执行agent；�
 草案交接：stage=new；plan_revision=2；outcome=pass（可审查的草案，非代码验收）；next=work（选定计划并确认实施范围后）。当前均未实施。
 
 stage: work | plan_id: BLOG-002 | plan_revision: 2 | outcome: partial（T-00完成；T-01..T-04未开始） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一开发/复审检出） | branch: main | base_commit: 0c90951 | code_commit: 本提交（tests/probe/autodown_cap/ 探针app+双轨驱动脚本+计划簿记；产品源码零改动） | dependency_revisions: CLI da0558e7、tool 563afa4a（004冻结基线，当日复核一致）、auto-lang 28f6170be、auto-ui c11015c、auto-man e6cc06f、auto-down c3464d0（探针引擎消费面） | task_ids: T-00（已勾选附证据） | evidence: vue轨 build+preview 6/6（probe_vue.cjs）、VM轨 5/5（probe_vm.py，q退出 exit 0）；证据文件 attachments/002/（t00-vue-probe.log 70774872、t00-vm-probe.log 859E63EE、t00-vm-snapshot.txt FDE1BCEE、t00-findings.md B6370E14、diag-page.png 3878570F，均不入库） | blockers: 无阻塞项；F-2（vue dev互操作）以build+preview路径绕行，跨仓修复另行提案不阻塞 | next_responsible_role: work（T-01 编辑器主体）
+
+stage: work | plan_id: BLOG-002 | plan_revision: 2 | outcome: partial（T-01完成；T-02..T-04未开始） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一开发/复审检出） | branch: main | base_commit: 5882b51 | code_commit: 本提交（src/back api/db/drafts/works 合同扩展、src/front draft_store/author 写作面、pac.at npm_deps、vendor/auto-down 引擎固定副本、既有 battery 合同跟随；探针脚本 tests/probe/authoring_t01.cjs+probe_vm_t01.py） | dependency_revisions: CLI da0558e7、tool 563afa4a（004冻结基线）、auto-lang 28f6170be、auto-ui c11015c、auto-man e6cc06f、auto-down 引擎快照 c3464d0（vendor pin，PROVENANCE.md） | task_ids: T-01（已勾选附证据） | evidence: Vue 8/8（build+preview+Playwright，t01-vue-probe.log）+ VM 7/7（原生窗口 MCP+磁盘落盘，t01-vm-probe.log）；新发现 F-6（VM 子件静默失败→内联规避）/F-7（引擎空文档 0 块→空稿起稿规则），见 attachments/002/t00-findings.md；纯 .at 后端 a2r 冷生成编译 exit 0（auto run 内置） | blockers: 无阻塞项；F-6/F-7 跨仓提案另行登记不阻塞 | next_responsible_role: work（T-02 资产与来源导入）

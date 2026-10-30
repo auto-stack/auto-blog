@@ -245,10 +245,10 @@ pub fn unfollow(username str) bool {
 
 // --- BLOG-001 drafts（个人作者，不依赖 demo 登录）---
 
-/// POST /api/drafts — 新建草稿。未登录即可用。
+/// POST /api/drafts — 新建草稿。未登录即可用。format 仅接受 text/markdown。
 #[api(method = "POST", path = "/api/drafts")]
-pub fn create_draft(title str, body str) Work {
-    return db.create_draft(title, body)
+pub fn create_draft(title str, body str, format str) Work {
+    return db.create_draft(title, body, format)
 }
 
 /// GET /api/drafts — 草稿列表（body 为空）。
@@ -264,9 +264,10 @@ pub fn open_draft(work_id str) Work {
 }
 
 /// PUT /api/drafts/:work_id — 保存（条件 revision）。expected_rev>0 时冲突不覆盖。
+/// cover/format：格式仅接受 text/markdown，空或非法值保留当前值。
 #[api(method = "PUT", path = "/api/drafts/:work_id")]
-pub fn save_draft(work_id str, title str, summary str, body str, tags str, expected_rev int) SaveResult {
-    return db.save_draft(work_id, title, summary, body, tags, expected_rev)
+pub fn save_draft(work_id str, title str, summary str, body str, tags str, cover str, format str, expected_rev int) SaveResult {
+    return db.save_draft(work_id, title, summary, body, tags, cover, format, expected_rev)
 }
 
 /// POST /api/drafts/migrate — 迁移旧 Article（slug→work_id，幂等）。

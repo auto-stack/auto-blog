@@ -1,0 +1,28 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`op sequence snapshot > a small editing session stays deterministic 1`] = `
+[
+  "doc",
+  "Paragraph",
+  "",
+  [
+    [
+      "p1",
+      "Heading",
+      "hello",
+    ],
+    [
+      "q1",
+      "Blockquote",
+      "",
+      [
+        [
+          "p2",
+          "Paragraph",
+          " world!",
+        ],
+      ],
+    ],
+  ],
+]
+`;

@@ -17,6 +17,9 @@ store DraftStore {
         var editing_body str = ""
         var editing_summary str = ""
         var editing_tags str = ""
+        var editing_cover str = ""
+        var editing_format str = "text"
+        var body_was_empty bool = false
         var edit_seq int = 0
         var save_in_flight bool = false
     }
@@ -24,6 +27,7 @@ store DraftStore {
     msg {
         LoadList, NewDraft, OpenDraft(str), SaveCurrent, ForceSave,
         TitleEdit(str), BodyEdit(str), SummaryEdit(str), TagsEdit(str),
+        CoverEdit(str), FormatEdit(str),
         AutosaveTick, ResolveKeepMine, ResolveKeepTheirs
     }
 
@@ -49,12 +53,14 @@ store DraftStore {
                     let snap_body str = .editing_body
                     let snap_summary str = .editing_summary
                     let snap_tags str = .editing_tags
+                    let snap_cover str = .editing_cover
+                    let snap_format str = .editing_format
                     try {
-                        let r0 = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_rev)
+                        let r0 = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_cover, snap_format, snap_rev)
                         if r0.ok {
                             let back = open_draft(snap_id)
-                            // 全字段读回确认（R-24：含 summary/tags）
-                            if back.work_id != snap_id || back.revision != r0.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags {
+                            // 全字段读回确认（R-24：含 summary/tags/cover/format）
+                            if back.work_id != snap_id || back.revision != r0.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags || back.cover_asset != snap_cover || back.body_format != snap_format {
                                 can_create = false
                                 .save_state = "error"
                                 .error = "readback_invalid"
@@ -93,7 +99,7 @@ store DraftStore {
                     .save_in_flight = true
                     let pre_seq int = .edit_seq
                     try {
-                        let nw = create_draft("未命名草稿", "")
+                        let nw = create_draft("未命名草稿", "", "markdown")
                         if .edit_seq != pre_seq {
                             // 创建等待期发生编辑：放弃采纳新稿，保留本机缓冲（R-23）
                             .save_in_flight = false
@@ -111,6 +117,9 @@ store DraftStore {
                                 .editing_body = ""
                                 .editing_summary = ""
                                 .editing_tags = ""
+                                .editing_cover = ""
+                                .editing_format = "markdown"
+                                .body_was_empty = true
                                 .dirty = false
                                 .save_state = "saved"
                                 .error = ""
@@ -142,11 +151,13 @@ store DraftStore {
                     let snap_body str = .editing_body
                     let snap_summary str = .editing_summary
                     let snap_tags str = .editing_tags
+                    let snap_cover str = .editing_cover
+                    let snap_format str = .editing_format
                     try {
-                        let r0 = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_rev)
+                        let r0 = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_cover, snap_format, snap_rev)
                         if r0.ok {
                             let back = open_draft(snap_id)
-                            if back.work_id != snap_id || back.revision != r0.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags {
+                            if back.work_id != snap_id || back.revision != r0.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags || back.cover_asset != snap_cover || back.body_format != snap_format {
                                 can_open = false
                                 .save_state = "error"
                                 .error = "readback_invalid"
@@ -201,6 +212,9 @@ store DraftStore {
                                 .editing_body = w.body
                                 .editing_summary = w.summary
                                 .editing_tags = w.tags
+                                .editing_cover = w.cover_asset
+                                .editing_format = w.body_format
+                                .body_was_empty = w.body == ""
                                 .dirty = false
                                 .save_state = "saved"
                                 .error = ""
@@ -239,6 +253,21 @@ store DraftStore {
             .save_state = "dirty"
             .edit_seq = .edit_seq + 1
         }
+        .CoverEdit(c str) -> {
+            .editing_cover = c
+            .dirty = true
+            .save_state = "dirty"
+            .edit_seq = .edit_seq + 1
+        }
+        .FormatEdit(f str) -> {
+            // 格式切换即编辑（markdown↔text 不改正文；落盘走保存；非法值忽略）
+            if f == "text" || f == "markdown" {
+                .editing_format = f
+                .dirty = true
+                .save_state = "dirty"
+                .edit_seq = .edit_seq + 1
+            }
+        }
         .SaveCurrent -> {
             // has_current 守卫 + 统一互斥；锁覆盖保存+读回（R-23）
             if .save_in_flight {
@@ -256,15 +285,17 @@ store DraftStore {
                     let snap_body str = .editing_body
                     let snap_summary str = .editing_summary
                     let snap_tags str = .editing_tags
+                    let snap_cover str = .editing_cover
+                    let snap_format str = .editing_format
                     let snap_rev int = .current.revision
                     let snap_id str = .current.work_id
                     try {
-                        let r = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_rev)
+                        let r = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_cover, snap_format, snap_rev)
                         if r.ok {
                             if .has_current && snap_id == .current.work_id {
                                 let back = open_draft(snap_id)
-                                // 全字段读回确认（R-20/24：ID/rev/正文/标题/摘要/标签）
-                                if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags {
+                                // 全字段读回确认（R-20/24：ID/rev/正文/标题/摘要/标签/封面/格式）
+                                if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags || back.cover_asset != snap_cover || back.body_format != snap_format {
                                     .save_state = "error"
                                     .error = "readback_invalid"
                                 } else {
@@ -317,13 +348,15 @@ store DraftStore {
                     let snap_body str = .editing_body
                     let snap_summary str = .editing_summary
                     let snap_tags str = .editing_tags
+                    let snap_cover str = .editing_cover
+                    let snap_format str = .editing_format
                     let snap_id str = .current.work_id
                     try {
-                        let r = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, 0)
+                        let r = save_draft(snap_id, snap_title, snap_summary, snap_body, snap_tags, snap_cover, snap_format, 0)
                         if r.ok {
                             if .has_current && snap_id == .current.work_id {
                                 let back = open_draft(snap_id)
-                                if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags {
+                                if back.work_id == "" || back.work_id != snap_id || back.revision != r.revision || back.body != snap_body || back.title != snap_title || back.summary != snap_summary || back.tags != snap_tags || back.cover_asset != snap_cover || back.body_format != snap_format {
                                     .save_state = "error"
                                     .error = "readback_invalid"
                                 } else {
@@ -384,6 +417,9 @@ store DraftStore {
                                 .editing_body = w.body
                                 .editing_summary = w.summary
                                 .editing_tags = w.tags
+                                .editing_cover = w.cover_asset
+                                .editing_format = w.body_format
+                                .body_was_empty = w.body == ""
                                 .dirty = false
                                 .save_state = "saved"
                                 .error = ""
