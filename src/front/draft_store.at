@@ -3,7 +3,7 @@
 // Phase 5（R-23）：互斥锁覆盖保存+读回+切换全程；每个 await 前后核对编辑序号，
 // 等待期编辑一律中止切换并保留本机缓冲；已确认保存推进 current.revision。
 // Phase 5（R-24）：普通/强制/切前保存统一为同一全字段读回确认（ID/rev/正文/标题/摘要/标签）。
-use back.api: create_draft, open_draft, save_draft, list_drafts, add_asset_ref, import_compose
+use back.api: create_draft, open_draft, save_draft, list_drafts, add_asset_ref, import_compose, asset_check
 
 store DraftStore {
     model {
@@ -20,6 +20,7 @@ store DraftStore {
         var editing_cover str = ""
         var editing_format str = "text"
         var body_was_empty bool = false
+        var asset_report str = ""
         var edit_seq int = 0
         var save_in_flight bool = false
     }
@@ -28,7 +29,7 @@ store DraftStore {
         LoadList, NewDraft, OpenDraft(str), SaveCurrent, ForceSave,
         TitleEdit(str), BodyEdit(str), SummaryEdit(str), TagsEdit(str),
         CoverEdit(str), FormatEdit(str),
-        AddAssetRef(str, str), ComposeImport(str),
+        AddAssetRef(str, str), ComposeImport(str), PreviewCheck,
         AutosaveTick, ResolveKeepMine, ResolveKeepTheirs
     }
 
@@ -320,6 +321,18 @@ store DraftStore {
                         .error = "network_error"
                     }
                 }
+            }
+        }
+        .PreviewCheck -> {
+            // 预览资产检查（只读；失败不阻塞预览，报告留空）
+            if .has_current && .current.work_id != "" {
+                try {
+                    .asset_report = asset_check(.current.work_id)
+                } catch {
+                    .asset_report = ""
+                }
+            } else {
+                .asset_report = ""
             }
         }
         .ComposeImport(items str) -> {

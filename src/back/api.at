@@ -299,5 +299,11 @@ pub fn import_compose(items str) Work {
     return db.import_compose(items)
 }
 
+/// GET /api/drafts/:work_id/asset-check — 预览资产检查报告（缺资源可读提示）。
+#[api(method = "GET", path = "/api/drafts/:work_id/asset-check")]
+pub fn asset_check(work_id str) str {
+    return db.asset_check(work_id)
+}
+
 // NOTE: no /api/tags endpoint — tags are derived client-side (a2r has no
 // List<str>, and aggregating Strings server-side hits borrow-checker issues).

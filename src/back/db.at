@@ -351,3 +351,7 @@ pub fn add_asset_ref(work_id str, storage_ref str, caption str, mode str, expect
 pub fn import_compose(items str) Work {
     return drafts.compose_from_sources(items)
 }
+
+pub fn asset_check(work_id str) str {
+    return drafts.asset_check_report(work_id)
+}

@@ -12,7 +12,8 @@ widget author {
         Init, AutosaveTick, GoNew, GoOpen(str), TitleChanged(str),
         SummaryChanged(str), TagsChanged(str), CoverChanged(str), DoSave,
         KeepMine, KeepTheirs, GoDemo, ToggleEngine, FormatText, FormatMd,
-        AssetRefInput(str), AssetCaptionInput(str), AddAsset, ImportItems(str), DoCompose
+        AssetRefInput(str), AssetCaptionInput(str), AddAsset, ImportItems(str), DoCompose,
+        PreviewOpen, PreviewClose
     }
 
     model {
@@ -24,6 +25,8 @@ widget author {
         var asset_ref_input str = ""
         var asset_caption_input str = ""
         var import_items str = ""
+        // T-03 预览状态（可返回的独立状态；不覆盖编辑内容）
+        var preview_open bool = false
     }
 
     timer {
@@ -88,9 +91,11 @@ widget author {
             }
 
             row {
-                style: "gap-6 items-start"
+                // 响应式（T-03/AC-05）：窄屏纵排（侧栏全宽在上、编辑区不被挤占），
+                // ≥md 恢复横排。VM 轨 class 惰性，桌面窗口布局不变。
+                style: "gap-6 items-start flex-col md:flex-row"
                 col {
-                    style: "w-56 shrink-0 gap-1"
+                    style: "w-full md:w-56 shrink-0 gap-1"
                     text "草稿" { style: "text-sm font-medium text-muted-foreground mb-1" }
                     if .store.drafts.len() == 0 {
                         text "暂无草稿" { style: "text-xs text-muted-foreground" }
@@ -105,7 +110,10 @@ widget author {
                     }
                 }
                 col {
-                    style: "flex-1 gap-3 min-w-0"
+                    // 窄屏换行（T-03/AC-05）：min-w 强制 flex-wrap 把编辑区折到
+                    // 侧栏下方全宽展示——主编辑区不被边栏挤占，草稿列表仍可达。
+                    // VM 轨未知 class 惰性，桌面窗口布局不受影响。
+                    style: "flex-1 gap-3 min-w-0 max-w-full overflow-hidden"
                     if .store.has_current == false {
                         col {
                             style: "items-center py-16 text-muted-foreground gap-2"
@@ -130,6 +138,32 @@ widget author {
                             oninput: .SummaryChanged($event),
                             style: input_field
                         }
+                        // ── 预览（T-03）：可返回的独立状态；本地渲染离线可用；
+                        // 未识别语法按原文显示；不执行文章脚本（引擎组件化渲染）。
+                        if .preview_open {
+                            col {
+                                style: "gap-2 border border-border rounded p-3"
+                                row {
+                                    style: "gap-2 items-center"
+                                    text "本地预览（离线可用）" {
+                                        style: "text-xs font-medium text-brand-green"
+                                    }
+                                    text "未识别语法按原文显示" {
+                                        style: "text-xs text-muted-foreground"
+                                    }
+                                }
+                                if .store.asset_report != "" {
+                                    text .store.asset_report {
+                                        style: "text-xs text-amber-700 bg-amber-50 rounded p-2"
+                                    }
+                                }
+                                autodown {
+                                    content: .store.editing_body,
+                                    class: "min-h-32"
+                                }
+                            }
+                        }
+                        if .preview_open == false {
                         // ── 写作面（Markdown 引擎 / 纯文本降级，T-01）──────────
                         // 格式行：text 稿（BLOG-001 存量）恒 textarea；
                         // markdown 稿：打开时正文非空默认引擎，空稿先 textarea
@@ -172,7 +206,7 @@ widget author {
                             autodown_editor {
                                 content: .store.editing_body,
                                 placeholder: "正文（Markdown；自动保存）",
-                                class: "min-h-[320px]",
+                                class: "min-h-[320px] max-w-full overflow-hidden",
                                 oninput: .BodyChanged
                             }
                         } else {
@@ -182,6 +216,7 @@ widget author {
                                 placeholder: "正文（Markdown 语法可直接输入；自动保存）",
                                 style: "w-full px-3 py-2 border border-border rounded text-sm min-h-[320px] font-serif"
                             }
+                        }
                         }
                         input {
                             placeholder: "标签（逗号分隔）",
@@ -197,18 +232,18 @@ widget author {
                         }
                         // ── 资产（图片/说明，T-02）──────────────────────
                         row {
-                            style: "gap-2"
+                            style: "gap-2 flex-wrap"
                             input {
                                 placeholder: "图片引用（URL/路径）",
                                 value: .asset_ref_input,
                                 oninput: .AssetRefInput($event),
-                                style: "flex-1 px-3 py-1.5 border border-border rounded text-sm"
+                                style: "flex-1 min-w-0 px-3 py-1.5 border border-border rounded text-sm"
                             }
                             input {
                                 placeholder: "图片说明（可选）",
                                 value: .asset_caption_input,
                                 oninput: .AssetCaptionInput($event),
-                                style: "flex-1 px-3 py-1.5 border border-border rounded text-sm"
+                                style: "flex-1 min-w-0 px-3 py-1.5 border border-border rounded text-sm"
                             }
                             button "添加图片" {
                                 onclick: .AddAsset,
@@ -243,9 +278,23 @@ widget author {
                             text f"ID ${.store.current.work_id} · rev ${.store.current.revision}" {
                                 style: "text-xs text-muted-foreground"
                             }
-                            button "保存" {
-                                onclick: .DoSave,
-                                style: "px-4 py-1.5 rounded bg-brand-green text-white text-sm"
+                            row {
+                                style: "gap-2"
+                                if .preview_open {
+                                    button "返回编辑" {
+                                        onclick: .PreviewClose,
+                                        style: "px-4 py-1.5 rounded border border-border text-sm"
+                                    }
+                                } else {
+                                    button "预览" {
+                                        onclick: .PreviewOpen,
+                                        style: "px-4 py-1.5 rounded border border-border text-sm"
+                                    }
+                                    button "保存" {
+                                        onclick: .DoSave,
+                                        style: "px-4 py-1.5 rounded bg-brand-green text-white text-sm"
+                                    }
+                                }
                             }
                         }
                     }
@@ -293,6 +342,11 @@ widget author {
         }
         .FormatText -> { .store.FormatEdit("text") }
         .FormatMd -> { .store.FormatEdit("markdown") }
+        .PreviewOpen -> {
+            .preview_open = true
+            .store.PreviewCheck()
+        }
+        .PreviewClose -> { .preview_open = false }
         .AssetRefInput(v str) -> { .asset_ref_input = v }
         .AssetCaptionInput(v str) -> { .asset_caption_input = v }
         .AddAsset -> {
