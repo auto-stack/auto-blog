@@ -7,7 +7,7 @@ author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-30T00:00:00Z
 plan_revision: 3
-current_step: 1
+current_step: 2
 total_steps: 5
 created: 2026-10-04
 base_branch: main
@@ -62,7 +62,8 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施（owner_stage=work）。T-00�
 
 - [x] T-00（决策工件，先行）：能力核查——①二进制资产管道：a2r `fs.read_bytes/write_bytes` 的 .at 可见性与类型映射、VM 轨 parity（合并模式 shim）、base64/编解码可得性；②HTML 生成途径排序：vue=引擎 DOM 采集（rich-html/innerHTML→交后端入库为文本 artifact）vs 后端纯 .at 模板（禁自写正则渲染器）vs 跨仓 autodown-core 提案；③打包形态：目录树（相对路径引用）为默认，zip 可选。输出：能力报告+决策记录（§9），AC-01/AC-04 的机制路径据此落定。
   [✅ 已完成] 决策=**D1 base64-at-rest 纯文本资产管道**（ingest=前端 base64+crypto.subtle sha256→write_text(assets/<id>.b64)；export=read_text/copy+data-URL 自包含 HTML；字节保真=b64 无损+sha 存证+迁出解码说明）。关键事实：VM 独立脚本 []int→stdlib shim 断裂（Invalid list ID，**F-9** 登记，产品 rust 后端不受影响）；str→[]int 无 .at 原语；base64/hex 为 #[vm] str 面；file.copy 双轨可见 ✓。HTML=vue 引擎 DOM 采集（VM=边界说明）。探针 tests/probe/export_cap_t00.at；报告 `attachments/003/t00-findings.md`。
-- [ ] T-01：`src/back/publications.at`——从已保存 revision 生成不可变 snapshot（meta/body/asset_refs/source_refs 冻结副本）+ Publication（publication_id、work_ref+revision、content_hash、target、artifact_refs、state=exported/published/withdrawn、created_at）+ 历史列表/打开 API（复用 001 存储纪律：write_confirmed/JSON Lines/清单化提交；禁逐字节扫描）。
+- [x] T-01：`src/back/publications.at`——从已保存 revision 生成不可变 snapshot（meta/body/asset_refs/source_refs 冻结副本）+ Publication（publication_id、work_ref+revision、content_hash、target、artifact_refs、state=exported/published/withdrawn、created_at）+ 历史列表/打开 API（复用 001 存储纪律：write_confirmed/JSON Lines/清单化提交；禁逐字节扫描）。
+  [✅ 已完成] Publication={publication_id,work_id,work_revision,title,content_hash,target:local,state,created_at,artifact_refs}；正文冻结=引用 works revisions（不复制）；content_hash=内容签名 sig-<h>-<len>（len/replace 算术、非加密、F-8 免疫）；API：POST /api/works/:id/publish（条件 rev、冲突无半成品）/ GET /api/works/:id/publications / GET /api/publications/:pid / POST withdraw；状态机 snapshotted→exported、→withdrawn、published 不可达（AC-05 在 API 层强制）。**电池 7/7**（`PUB_API=http://127.0.0.1:17827 python tests/probe/probe_pub_api.py`，PUB-01..07，隔离 .tmp/t01-pub-data）。新发现（已绕行；spec 待记）：**F-10** a2r 名字解析对「内建调用实参含本地 2 参函数调用」断裂（E0201 无名字输出）→ 路径纯串接；**F-11** 用户函数「字段访问」实参（fn(w.body)）同断 → 提升局部变量。
 - [ ] T-02：`src/back/exporters/`——按 T-00 决策实现 Markdown+manifest（来源/格式/版本/hash）与 assets 打包（字节管道按 T-00 决策；相对路径、无越界写、无绝对本机路径）；导出=临时目录完整校验后落地，失败/中断不记 exported/published；重试不覆盖已存在不同版本。
 - [ ] T-03：前端历史/导出 UI（author.at 或新页）+ HTML 生成按 T-00 决策（vue=引擎 DOM 采集交后端入库；VM 轨 HTML=能力边界说明）+ 历史比较/打开/再次输出；草稿改动不影响旧快照（AC-02）。
 - [ ] T-04：双轨验证（隔离数据目录；vue build+preview、native MCP）+ 离线换目录打开实测 + 迁出/能力说明（Markdown vs HTML 差异）+ 网络发布 target 接口仅为提案；统一双 profile 门保持绿。
