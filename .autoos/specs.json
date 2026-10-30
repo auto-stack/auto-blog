@@ -1,6 +1,6 @@
 {
   "project": "auto-blog",
-  "version": 2,
+  "version": 3,
   "sections": [
     {
       "id": "goals",
@@ -15,19 +15,24 @@
         {
           "id": "B001-1",
           "title": "BLOG-001 个人作者模式与可靠草稿（M1/B01，Phase 5 交付）",
-          "content": "稳定 work_id、revision 条件写、持久草稿、自动保存、崩溃恢复。Phase 5：.ok 持久清单提交（身份/版本/正文长度）+指针权威可见异常恢复、持久高水位无固定上限、旧格式升级、代理对精确解码、完整 JSON+字段类型校验、来源键编码与转义一致/原位替换、统一互斥锁覆盖保存+读回+切换。2026-10-29 交付（delivered）。双端门禁（Rust 后端=a2r 跨仓缺陷；原生 VM UI=环境）显式 pending 待用户裁决。",
+          "content": "稳定 work_id、revision 条件写、持久草稿、自动保存、崩溃恢复。Phase 5：.ok 持久清单提交（身份/版本/正文长度）+指针权威可见异常恢复、持久高水位无固定上限、旧格式升级、代理对精确解码、完整 JSON+字段类型校验、来源键编码与转义一致/原位替换、统一互斥锁覆盖保存+读回+切换。2026-10-29 交付（delivered）。双端门禁（Rust 后端=a2r 跨仓缺陷；原生 VM UI=环境）显式 pending 待用户裁决。 2026-10-30 BLOG-004 交付：双端门禁经版本绑定证据关闭（vue-rust 15/15、native-vm-rust 22/22 EXIT=0），pending 状态解除。",
           "status": "Delivered",
           "depends_on": [],
-          "related": ["BLOG-001"],
+          "related": [
+            "BLOG-001"
+          ],
           "priority": null,
           "assignee": null,
           "test_file": null,
           "file": "docs/plans/archived/001-durable-drafts.md",
           "milestone": "M1",
           "module": "drafts",
-          "tags": ["blog", "drafts"],
+          "tags": [
+            "blog",
+            "drafts"
+          ],
           "created_at": 1791180000,
-          "modified_at": 1793240784,
+          "modified_at": 1793330888,
           "completed_at": 1793240784
         }
       ]
@@ -48,14 +53,19 @@
           "content": "src/back/works.at（Work/ID/JSON 状态机/代理对精确配对）+ drafts.at（write_confirmed/.ok 清单提交/指针权威恢复/高水位扫描/迁移 journal/来源键编码+map_put 原位替换）+ api/db thin 端点 + draft_store/author 前端（统一互斥锁覆盖保存+读回+切换、每 await 编辑序号守卫）；双轨 fs 白名单与禁用清单；唯一 / 作者路由与 /demo。",
           "status": "Stable",
           "depends_on": [],
-          "related": ["BLOG-001"],
+          "related": [
+            "BLOG-001"
+          ],
           "priority": null,
           "assignee": null,
           "test_file": null,
           "file": "docs/specs/blog/durable-drafts.md",
           "milestone": "M1",
           "module": "drafts",
-          "tags": ["blog", "drafts"],
+          "tags": [
+            "blog",
+            "drafts"
+          ],
           "created_at": 1791180000,
           "modified_at": 1793240784,
           "completed_at": null
@@ -78,17 +88,47 @@
           "content": "canonical 实现态规范（Phase 5 沉淀 SD-05+SD-06）：data_root、index+works 布局含 high-water 与 rev-N.ok 清单；读取协议=指针权威（目标校验失败可见异常）+扫描恢复（高水位动态边界、撕裂不提升不阻断、全旧格式内容升级）；条件 revision 冲突保留两版；迁移=完整 JSON+字段类型校验零副作用、幂等（含引号键）、多映射一致重试、归属检查；偏差表 D-01..D-06 更新（D-04=a2r 59 编译错误跨仓缺陷）。",
           "status": "Stable",
           "depends_on": [],
-          "related": ["BLOG-001"],
+          "related": [
+            "BLOG-001"
+          ],
           "priority": null,
           "assignee": null,
           "test_file": null,
           "file": "docs/specs/blog/durable-drafts.md",
           "milestone": "M1",
           "module": "drafts",
-          "tags": ["blog", "drafts"],
+          "tags": [
+            "blog",
+            "drafts"
+          ],
           "created_at": 1791180000,
           "modified_at": 1793240784,
           "completed_at": null
+        },
+        {
+          "id": "B004-1",
+          "title": "双运行时运行验收合同（vue-rust/native-vm-rust）",
+          "content": "永久入口 tests/dual/verify_dual.py --profile {vue-rust,native-vm-rust}；退出码合同 0/1/2/3；数据 oracle 三通道（UI/API响应、独立HTTP、磁盘数据目录）一致；保存语义承 001（条件rev/陈旧冲突/迁移幂等/负例）；恢复链=Vue刷新+后端重启、原生q退出+强制杀树后重开逐字节一致；自动保存3s tick；原生会话经 MCP JSON-RPC 驱动，多store裸调用歧义拒绝（plan-446 A1，源码须限定）；工具前置=AUTO_UI_TOOL_BIN 必需+工具部署到 auto-man/target/debug 发现路径。Plan BLOG-004 r2。",
+          "status": "Delivered",
+          "depends_on": [],
+          "related": [],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/specs/blog/runtime-acceptance.md",
+          "milestone": null,
+          "module": "dual-runtime",
+          "tags": [
+            "blog",
+            "dual-runtime",
+            "acceptance",
+            "src:81d569a6",
+            "commit:d6c6919",
+            "plan:BLOG-004"
+          ],
+          "created_at": 1793330888,
+          "modified_at": 1793330888,
+          "completed_at": 1793330888
         }
       ]
     },
@@ -108,17 +148,46 @@
           "content": "drafts_api_probe 12 ALL_PASS；review_001_r3/r4/r5_api 恢复+JSON+迁移矩阵；r6_review 7/7（类型校验/引号键幂等/恢复边界）；r3/r4/r5/original store 探针 21 项；r4_ui/r5_ui 真实浏览器；完整 Playwright 8过/8败=r4/r5 基线一致；真实 kill-during-write（120 条批迁移硬杀/重启/零重复/幂等）ALL_PASS。绑定 db207f2/dcc392e。",
           "status": "Verified",
           "depends_on": [],
-          "related": ["BLOG-001"],
+          "related": [
+            "BLOG-001"
+          ],
           "priority": null,
           "assignee": null,
           "test_file": "tests/probe/drafts_api_probe.ps1",
           "file": "docs/specs/blog/durable-drafts.md",
           "milestone": "M1",
           "module": "drafts",
-          "tags": ["blog", "drafts"],
+          "tags": [
+            "blog",
+            "drafts"
+          ],
           "created_at": 1791180000,
           "modified_at": 1793240784,
           "completed_at": 1791180000
+        },
+        {
+          "id": "B004-2",
+          "title": "tests/dual 双运行时场景资产（15+22 场景）",
+          "content": "verify_dual.py（调度/隔离/退出码合同/负控注入）+ vue_ui_scenarios.cjs（Playwright 真浏览器）+ native_vm_scenarios.py（MCP 驱动真实窗口）。冻结基线 CLI da0558e7 + tool 563afa4a：vue-rust 15/15 EXIT=0、native-vm-rust 22/22 EXIT=0（2026-10-30 冻结 HEAD 73f3594）；负控 expectation/port 注入均 EXIT=1。",
+          "status": "Delivered",
+          "depends_on": [],
+          "related": [],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "tests/dual/verify_dual.py",
+          "milestone": null,
+          "module": "dual-runtime",
+          "tags": [
+            "blog",
+            "dual-runtime",
+            "tests",
+            "commit:261413b",
+            "plan:BLOG-004"
+          ],
+          "created_at": 1793330888,
+          "modified_at": 1793330888,
+          "completed_at": 1793330888
         }
       ]
     },
@@ -138,17 +207,44 @@
           "content": "R5 needs_fix（R-23..R-27）→ Phase 5 修复（54a7aa7）→ 最终复审 needs_fix（R-28 类型校验/R-29 键转义，RV 反例证实）→ 修复（db207f2）→ 复验 pass。AC-01..05 在 VM HTTP+Vue+store+真实 kill/restart 栈 pass。裁决：r4 PARTIAL_CANDIDATE 期望被 SD-05 冻结文本更替（维持 r6 协议）；Rust 后端/原生 VM UI 双端门禁显式 pending（前者 a2r 59 编译错误跨仓缺陷、后者环境不可驱动），移交用户裁决。",
           "status": "Published",
           "depends_on": [],
-          "related": ["BLOG-001"],
+          "related": [
+            "BLOG-001"
+          ],
           "priority": null,
           "assignee": null,
           "test_file": null,
           "file": "docs/plans/archived/001-durable-drafts.md",
           "milestone": "M1",
           "module": null,
-          "tags": ["blog"],
+          "tags": [
+            "blog"
+          ],
           "created_at": 1791180000,
           "modified_at": 1793240784,
           "completed_at": 1793240784
+        },
+        {
+          "id": "B004-3",
+          "title": "BLOG-004 r2 最终复审 pass（AC-01..06）",
+          "content": "final review @ 冻结基线 73f3594（实现）+ 5f11f0f（docs）：AC-01..05 当日新鲜执行重建（vue 15/15、native 22/22、双负控 EXIT=1）；AC-06=SD-01/02 文本与实测一致、无未闭框架缺口（885/003/010/015 全交付）、001/002/003 原范围保持。限制：实现会话自审，判定从工件重建。",
+          "status": "Delivered",
+          "depends_on": [],
+          "related": [],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/plans/archived/004-dual-runtime-acceptance.md",
+          "milestone": null,
+          "module": "dual-runtime",
+          "tags": [
+            "blog",
+            "review",
+            "commit:5f11f0f",
+            "plan:BLOG-004"
+          ],
+          "created_at": 1793330888,
+          "modified_at": 1793330888,
+          "completed_at": 1793330888
         }
       ]
     },
@@ -168,17 +264,46 @@
           "content": "T-25/26 统一互斥+全字段确认（r5_store 11/11）；T-27 清单化提交+恢复协议+真实 kill/restart ALL_PASS；T-28 迁移身份/多映射一致+R-29 修复；T-29 完整 JSON/代理对/字段类型+R-28 修复；T-30 套件基线归因+复审 pass+双端门禁 pending 移交。交付提交 dcc392e（main，ff-only 自 08da633）。",
           "status": "Published",
           "depends_on": [],
-          "related": ["BLOG-001"],
+          "related": [
+            "BLOG-001"
+          ],
           "priority": null,
           "assignee": null,
           "test_file": null,
           "file": "docs/plans/archived/001-durable-drafts.md",
           "milestone": "M1",
           "module": null,
-          "tags": ["blog"],
+          "tags": [
+            "blog"
+          ],
           "created_at": 1791180000,
           "modified_at": 1793240784,
           "completed_at": 1793240784
+        },
+        {
+          "id": "B004-4",
+          "title": "BLOG-004 沉淀报告（M1b 双端运行验收交付）",
+          "content": "双端运行验收缺口关闭：Rust 后端（auto-lang/PLAN-885 消费）+ 原生 VM 窗口（auto-ui/PLAN-003/015 消费）+ Vue 全交互。SD-01（durable-drafts D-04/D-06 关闭改写）+ SD-02（runtime-acceptance 新增）。M1b 达成。",
+          "status": "Delivered",
+          "depends_on": [],
+          "related": [
+            "B001-1"
+          ],
+          "priority": null,
+          "assignee": null,
+          "test_file": null,
+          "file": "docs/specs/blog/runtime-acceptance.md",
+          "milestone": "M1b",
+          "module": "dual-runtime",
+          "tags": [
+            "blog",
+            "deposit",
+            "commit:d6c6919",
+            "plan:BLOG-004"
+          ],
+          "created_at": 1793330888,
+          "modified_at": 1793330888,
+          "completed_at": 1793330888
         }
       ]
     }
