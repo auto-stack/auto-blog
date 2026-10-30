@@ -3,9 +3,10 @@
 // position (pre-declare result + let-ctor); avoid `tag` as a param name;
 // don't pass borrowed String fields to helper fns; avoid users[0]/len()>0.
 
-use api: User, Article, Comment, Follow, Cred, Work, SaveResult, Publication, PubResult
+use api: User, Article, Comment, Follow, Cred, Work, SaveResult, Publication, PubResult, ExportResult
 use drafts
 use publications
+use exporters
 
 // --- Seed users ---
 var users List<User> = List<User>.new([
@@ -380,4 +381,14 @@ pub fn set_pub_state(pub_id str, next_state str) PubResult {
 pub fn withdraw_publication(pub_id str) PubResult {
     let target_state str = "withdrawn"
     return publications.set_pub_state(pub_id, target_state)
+}
+
+// --- BLOG-003 T-02 委托（b64 资产入库 + 本地导出包）---
+
+pub fn add_asset_b64(work_id str, b64 str, sha256 str, mime str, caption str, expected_rev int) SaveResult {
+    return drafts.add_asset_b64(work_id, b64, sha256, mime, caption, expected_rev)
+}
+
+pub fn export_publication(pub_id str, format str) ExportResult {
+    return exporters.export_publication(pub_id, format)
 }

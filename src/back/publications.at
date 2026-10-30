@@ -27,6 +27,9 @@ pub type Publication = {
     state: str
     created_at: int
     artifact_refs: str
+    // T-02：已落地导出工件记录（JSON Lines，每行 {"format","package","content_hash","exported_at"}；
+    // package 为相对数据根路径。旧 meta 缺该键 → 读回 ""（视为空），向后兼容）。
+    export_refs: str
 }
 
 pub type PubResult = {
@@ -98,6 +101,7 @@ fn blank_pub() Publication {
     let st str = ""
     let cat int = 0
     let ar str = "[]"
+    let er str = ""
     return Publication {
         publication_id: pid,
         work_id: wid,
@@ -107,7 +111,8 @@ fn blank_pub() Publication {
         target: tg,
         state: st,
         created_at: cat,
-        artifact_refs: ar
+        artifact_refs: ar,
+        export_refs: er
     }
 }
 
@@ -121,6 +126,7 @@ fn pub_from_meta_json(meta str) Publication {
     let st str = json_field_str(meta, "state")
     let cat int = json_field_int(meta, "created_at")
     let ar str = json_field_str(meta, "artifact_refs")
+    let er str = json_field_str(meta, "export_refs")
     return Publication {
         publication_id: pid,
         work_id: wid,
@@ -130,7 +136,8 @@ fn pub_from_meta_json(meta str) Publication {
         target: tg,
         state: st,
         created_at: cat,
-        artifact_refs: ar
+        artifact_refs: ar,
+        export_refs: er
     }
 }
 
@@ -144,7 +151,8 @@ fn pub_to_meta_json(p Publication) str {
     out = out + "\"target\":\"" + json_escape(p.target) + "\","
     out = out + "\"state\":\"" + json_escape(p.state) + "\","
     out = out + "\"created_at\":" + p.created_at.to_string() + ","
-    out = out + "\"artifact_refs\":\"" + json_escape(p.artifact_refs) + "\""
+    out = out + "\"artifact_refs\":\"" + json_escape(p.artifact_refs) + "\","
+    out = out + "\"export_refs\":\"" + json_escape(p.export_refs) + "\""
     out = out + "}"
     return out
 }
@@ -206,7 +214,8 @@ pub fn create_publication(work_id str, expected_rev int) PubResult {
         target: "local",
         state: "snapshotted",
         created_at: now,
-        artifact_refs: wassets
+        artifact_refs: wassets,
+        export_refs: ""
     }
     let meta str = pub_to_meta_json(p)
     let root str = data_root()
@@ -309,7 +318,8 @@ pub fn set_pub_state(pub_id str, next_state str) PubResult {
         target: p.target,
         state: next_state,
         created_at: p.created_at,
-        artifact_refs: p.artifact_refs
+        artifact_refs: p.artifact_refs,
+        export_refs: p.export_refs
     }
     let meta str = pub_to_meta_json(np)
     let root str = data_root()
@@ -318,4 +328,55 @@ pub fn set_pub_state(pub_id str, next_state str) PubResult {
         return PubResult { ok: false, publication_id: pub_id, state: p.state, error: "meta_write_failed" }
     }
     return PubResult { ok: true, publication_id: pub_id, state: next_state, error: "" }
+}
+
+/// 追加导出工件记录（T-02；JSON Lines 只追加，幂等：完全相同的条目已存在则
+/// 跳过）。仅在包完整落地后由导出面调用；写失败返回 ok=false（包已在盘上，
+/// 调用方可重试——重走导出会命中 .ok 同版本幂等分支补记录）。
+pub fn record_export(pub_id str, entry str) PubResult {
+    let p Publication = open_publication(pub_id)
+    if p.publication_id == "" {
+        return PubResult { ok: false, publication_id: pub_id, state: "", error: "not_found" }
+    }
+    // 字段先提升局部（生成 Rust 的 String 移动语义：同一字段不得二次使用）
+    let pid str = p.publication_id
+    let pwid str = p.work_id
+    let prev int = p.work_revision
+    let ptitle str = p.title
+    let pch str = p.content_hash
+    let ptg str = p.target
+    let pst str = p.state
+    let pcat int = p.created_at
+    let par str = p.artifact_refs
+    var refs str = p.export_refs
+    if refs == "[]" {
+        refs = ""
+    }
+    if refs.find(entry) >= 0 {
+        return PubResult { ok: true, publication_id: pub_id, state: pst, error: "" }
+    }
+    var next str = entry
+    if refs != "" {
+        next = refs + "
+" + entry
+    }
+    let np Publication = Publication {
+        publication_id: pid,
+        work_id: pwid,
+        work_revision: prev,
+        title: ptitle,
+        content_hash: pch,
+        target: ptg,
+        state: pst,
+        created_at: pcat,
+        artifact_refs: par,
+        export_refs: next
+    }
+    let meta str = pub_to_meta_json(np)
+    let root str = data_root()
+    let mpath str = root + "/publications/" + pub_id + "/meta.json"
+    if !write_confirmed_p(mpath, meta) {
+        return PubResult { ok: false, publication_id: pub_id, state: pst, error: "meta_write_failed" }
+    }
+    return PubResult { ok: true, publication_id: pub_id, state: pst, error: "" }
 }

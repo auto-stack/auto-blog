@@ -1456,6 +1456,93 @@ pub fn compose_from_sources(items_json str) Work {
     return w2
 }
 
+// --- BLOG-003 T-02：base64-at-rest 资产入库（D1 决策，T-00 探针落定）---
+
+fn assets_dir(root str) str {
+    return join_path(root, "assets")
+}
+
+fn asset_b64_path(root str, asset_id str) str {
+    let name str = asset_id + ".b64"
+    return join_path(assets_dir(root), name)
+}
+
+/// D1 ingest 后端侧：前端 File→base64+crypto.subtle sha256，本端把 b64 纯文本
+/// 写入 assets/<asset_id>.b64（write_confirmed 回读校验；全 ASCII，零 F-8 暴露），
+/// 追加 AssetRef（sha256/size 为实值：sha256=客户端对解码字节的摘要声明，传输
+/// 信任、导出电池以解码复算闭环；size=b64 字节长，服务端可证），正文同步追加
+/// 相对路径图片行（预览不可解析属 002 已登记边界，导出时打包）。条件 revision 写。
+pub fn add_asset_b64(work_id str, b64 str, sha256 str, mime str, caption str, expected_rev int) SaveResult {
+    let root str = data_root()
+    let cur Work = load_work(root, work_id)
+    if cur.work_id == "" {
+        return SaveResult { ok: false, work_id: work_id, revision: 0, conflict: false, error: "not_found" }
+    }
+    if expected_rev > 0 && cur.revision != expected_rev {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: true, error: "conflict" }
+    }
+    if b64 == "" {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "bad_b64" }
+    }
+    // sha256 为 hex 声明（纯 ASCII，len 可靠；深校验由导出电池解码复算承担）
+    if sha256.len() != 64 {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "bad_sha256" }
+    }
+    fs.create_dir(assets_dir(root))
+    let asset_id str = "a-" + time.now_ms().to_string() + "-" + (cur.revision + 1).to_string()
+    let apath str = asset_b64_path(root, asset_id)
+    if !write_confirmed(apath, b64) {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "asset_write_failed" }
+    }
+    let sref str = "assets/" + asset_id + ".b64"
+    let blen int = b64.len()
+    var entry str = "{\"asset_id\":\"" + json_escape(asset_id) + "\",\"kind\":\"image\",\"storage_ref\":\"" + json_escape(sref) + "\",\"caption\":\"" + json_escape(caption) + "\",\"mime\":\"" + json_escape(mime) + "\",\"sha256\":\"" + json_escape(sha256) + "\",\"size\":" + blen.to_string() + ",\"mode\":\"copy\"}"
+    // JSON Lines 追加（零索引；F-8 同源纪律）
+    var refs str = cur.asset_refs
+    if refs == "[]" || refs == "" {
+        refs = entry
+    } else {
+        refs = refs + "
+" + entry
+    }
+    // 正文同步追加图片行（相对路径；说明=alt 文本）
+    var body str = cur.body
+    if caption != "" {
+        body = body + "\n\n![" + caption + "](" + sref + ")\n"
+    } else {
+        body = body + "\n\n![](" + sref + ")\n"
+    }
+    let next_rev int = cur.revision + 1
+    let now int = time.now_sec()
+    let next Work = make_work(work_id, cur.title, cur.summary, body, cur.tags, cur.status, next_rev, cur.created_at, now, cur.body_format, cur.cover_asset)
+    let next2 Work = Work {
+        work_id: next.work_id,
+        kind: next.kind,
+        title: next.title,
+        summary: next.summary,
+        body_format: next.body_format,
+        body: next.body,
+        tags: next.tags,
+        cover_asset: next.cover_asset,
+        asset_refs: refs,
+        source_refs: cur.source_refs,
+        revision: next.revision,
+        status: next.status,
+        created_at: next.created_at,
+        updated_at: next.updated_at
+    }
+    if !write_work_files(root, next2) {
+        return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "save_failed" }
+    }
+    return SaveResult { ok: true, work_id: work_id, revision: next_rev, conflict: false, error: "" }
+}
+
+/// 冻结 revision 只读装载（导出面用；身份/版本必须一致，不完整返回 blank）。
+pub fn open_frozen(work_id str, rev int) Work {
+    let root str = data_root()
+    return load_revision(root, work_id, rev)
+}
+
 // --- BLOG-002 T-03：资产检查（预览缺资源可读提示）---
 
 /// 预览资产检查报告（单行文本；find 基解析 JSON Lines，零逐字节扫描）。

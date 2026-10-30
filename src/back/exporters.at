@@ -1,0 +1,377 @@
+// exporters.at — BLOG-003 T-02：本地导出包（纯 .at，双轨纪律同 drafts.at）。
+//
+// 职责（T-00 决策 D1 = base64-at-rest）：把不可变 Publication 落成自包含
+// 本地发布包（布局，全部相对路径）：
+//   exports/<pub_id>/article.md      冻结正文（external 引用改写 "]()"，计数入 manifest）
+//   exports/<pub_id>/manifest.json   来源/格式/版本/hash/资产清单/解码说明
+//   exports/<pub_id>/assets/<id>.b64 base64 纯文本资产（正文相对路径引用）
+//   exports/<pub_id>/.ok             提交清单（最后写 = 提交点，001 R-25 同源）
+//
+// 落地纪律（a2r 无可靠 rename/remove_dir；fs.rename/read_dir 声明在而 drafts
+// 头注裁定不用）：不依赖 rename —— 「写齐 → 逐文件回读校验 → .ok 最后写」。
+// .ok 缺失 = 未提交（中断/失败的临时形态，重试允许覆写补齐）；.ok 在且
+// content_hash 不同 = 已存在不同版本，拒绝覆盖（AC-03）。
+//
+// 状态机接线（AC-03/05）：仅包完整落地 + record_export 后才迁 snapshotted→
+// exported；exported 重导出 = 幂等校验（不改状态）；withdrawn 拒绝导出；
+// published 不可达（T-01 既有裁定）。
+//
+// AC-04：包内零绝对本机路径——packaged 仅认服务端自组合的 "assets/<id>.b64"
+// 等值形态（asset_id 另做越界字符守卫）；其余本机形态一律 external：不打包、
+// 不读取，正文改写 "]()"，manifest 如实登记。
+//
+// a2r 纪律（T-01 实证 F-10/F-11）：内建/用户调用的实参一律局部变量（字段访问
+// 先提升）；路径经 helper（join_path 返回位）或纯串接产出到局部变量再传入；
+// 结构体字面量全字段、字段值局部变量。
+use works: Work, join_path, json_escape, json_field_str, json_field_int
+use drafts: open_frozen
+use publications: Publication, PubResult, open_publication, set_pub_state, record_export, data_root, content_hash
+
+/// 导出结果。package 为相对数据根的包路径（AC-04：不回传绝对本机路径）。
+pub type ExportResult = {
+    ok: bool
+    publication_id: str
+    state: str
+    package: str
+    content_hash: str
+    error: str
+}
+
+/// 资产打包视图（分类产物）。status: packaged|remote|external|missing_ref。
+pub type ExportAsset = {
+    asset_id: str
+    status: str
+    storage_ref: str
+    package_path: str
+    sha256: str
+    size_b64: int
+    mime: str
+    caption: str
+}
+
+fn exports_dir(root str) str {
+    return join_path(root, "exports")
+}
+
+fn pkg_dir(root str, pub_id str) str {
+    let ed str = exports_dir(root)
+    return join_path(ed, pub_id)
+}
+
+fn pkg_assets_dir(root str, pub_id str) str {
+    let pd str = pkg_dir(root, pub_id)
+    return join_path(pd, "assets")
+}
+
+fn pkg_article_path(root str, pub_id str) str {
+    let pd str = pkg_dir(root, pub_id)
+    return join_path(pd, "article.md")
+}
+
+fn pkg_manifest_path(root str, pub_id str) str {
+    let pd str = pkg_dir(root, pub_id)
+    return join_path(pd, "manifest.json")
+}
+
+fn pkg_ok_path(root str, pub_id str) str {
+    let pd str = pkg_dir(root, pub_id)
+    return join_path(pd, ".ok")
+}
+
+/// 数据目录内 b64 资产存放位（与 drafts.assets_dir 同布局；该 helper 保持私有）。
+fn asset_store_path(root str, asset_id str) str {
+    let adir str = join_path(root, "assets")
+    let name str = asset_id + ".b64"
+    return join_path(adir, name)
+}
+
+/// 包内资产位（pad = 包内 assets/ 目录，不再叠加 "assets" 段）。
+fn pkg_asset_path(pad str, asset_id str) str {
+    let name str = asset_id + ".b64"
+    return join_path(pad, name)
+}
+
+/// 写后确认（回读全文比对；返回码不可信，001 R-01）。
+fn write_confirmed_e(path str, content str) bool {
+    fs.write_text(path, content)
+    if !fs.exists(path) {
+        return false
+    }
+    let back str = fs.read_text(path)
+    return back == content
+}
+
+/// asset_id 越界守卫：禁空、"..""、"//"\":"（find 基，单位安全）。
+fn safe_id(aid str) bool {
+    if aid == "" {
+        return false
+    }
+    if aid.find("..") >= 0 {
+        return false
+    }
+    if aid.find("/") >= 0 {
+        return false
+    }
+    if aid.find("\\") >= 0 {
+        return false
+    }
+    if aid.find(":") >= 0 {
+        return false
+    }
+    return true
+}
+
+fn fail_res(pub_id str, state str, err str) ExportResult {
+    let pid str = pub_id
+    let st str = state
+    let e str = err
+    return ExportResult { ok: false, publication_id: pid, state: st, package: "", content_hash: "", error: e }
+}
+
+fn ok_res(pub_id str, state str, package str, chash str) ExportResult {
+    let pid str = pub_id
+    let st str = state
+    let pk str = package
+    let ch str = chash
+    return ExportResult { ok: true, publication_id: pid, state: st, package: pk, content_hash: ch, error: "" }
+}
+
+/// 本地 Markdown 发布包导出（format 门在先：HTML 属 T-03 vue 引擎 DOM 采集，
+/// 后端入库面随 T-03 交付；当前仅 "markdown"）。
+pub fn export_publication(pub_id str, format str) ExportResult {
+    if format != "markdown" {
+        return fail_res(pub_id, "", "bad_format")
+    }
+    let p Publication = open_publication(pub_id)
+    if p.publication_id == "" {
+        return fail_res(pub_id, "", "not_found")
+    }
+    let pstate str = p.state
+    let pchash str = p.content_hash
+    if pstate == "withdrawn" {
+        return fail_res(pub_id, pstate, "withdrawn_not_exportable")
+    }
+    if pstate != "snapshotted" && pstate != "exported" {
+        return fail_res(pub_id, pstate, "illegal_state")
+    }
+    let wid str = p.work_id
+    let wrev int = p.work_revision
+    let ptitle str = p.title
+    let pcat int = p.created_at
+    let frozen Work = open_frozen(wid, wrev)
+    if frozen.work_id == "" {
+        return fail_res(pub_id, pstate, "frozen_rev_unavailable")
+    }
+    let fbody str = frozen.body
+    let ffmt str = frozen.body_format
+    let rehash str = content_hash(fbody)
+    if rehash != pchash {
+        // 冻结体与快照签名不符：拒绝打包（不可变面破坏，宁可失败不产出假包）
+        return fail_res(pub_id, pstate, "frozen_hash_mismatch")
+    }
+
+    // --- 分类 asset_refs（JSON Lines，find 基逐行；条目=服务端自组合） ---
+    var plans List<ExportAsset> = List<ExportAsset>.new([])
+    var lines List<str> = List<str>.new([])
+    var rest str = p.artifact_refs
+    if rest == "[]" {
+        rest = ""
+    }
+    var guard int = 0
+    while guard < 200 && rest != "" {
+        guard = guard + 1
+        let nl int = rest.find("\n")
+        if nl < 0 {
+            lines.push(rest)
+            rest = ""
+        } else {
+            lines.push(rest.slice(0, nl))
+            rest = rest.slice(nl + 1, rest.len())
+        }
+    }
+    var ext_refs List<str> = List<str>.new([])
+    var massets str = ""
+    var packaged_count int = 0
+    for line in lines {
+        let refv str = json_field_str(line, "storage_ref")
+        let aid str = json_field_str(line, "asset_id")
+        let cap str = json_field_str(line, "caption")
+        let mv str = json_field_str(line, "mime")
+        let sh str = json_field_str(line, "sha256")
+        let sz int = json_field_int(line, "size")
+        var status str = ""
+        var ppath str = ""
+        if refv == "" {
+            status = "missing_ref"
+        } else {
+            if refv.find("://") >= 0 {
+                status = "remote"
+            } else {
+                let expect str = "assets/" + aid + ".b64"
+                if expect == refv && safe_id(aid) {
+                    status = "packaged"
+                    let pseg str = "assets/" + aid + ".b64"
+                    ppath = pseg
+                } else {
+                    status = "external"
+                }
+            }
+        }
+        let plan ExportAsset = ExportAsset {
+            asset_id: aid,
+            status: status,
+            storage_ref: refv,
+            package_path: ppath,
+            sha256: sh,
+            size_b64: sz,
+            mime: mv,
+            caption: cap
+        }
+        plans.push(plan)
+        if status == "packaged" {
+            packaged_count = packaged_count + 1
+        }
+        if status == "external" {
+            ext_refs.push(refv)
+        }
+        // manifest 资产条目（全部登记，含未打包形态——能力边界如实记录）
+        if massets != "" {
+            massets = massets + ","
+        }
+        let esh str = json_escape(sh)
+        let emv str = json_escape(mv)
+        let ecap str = json_escape(cap)
+        if status == "packaged" {
+            let epp str = json_escape(ppath)
+            massets = massets + "{\"asset_id\":\"" + json_escape(aid) + "\",\"status\":\"packaged\",\"package_path\":\"" + epp + "\",\"sha256\":\"" + esh + "\",\"size_b64\":" + sz.to_string() + ",\"mime\":\"" + emv + "\",\"caption\":\"" + ecap + "\"}"
+        }
+        if status == "remote" || status == "external" {
+            let esr str = json_escape(refv)
+            massets = massets + "{\"asset_id\":\"" + json_escape(aid) + "\",\"status\":\"" + status + "\",\"storage_ref\":\"" + esr + "\",\"mime\":\"" + emv + "\",\"caption\":\"" + ecap + "\"}"
+        }
+        if status == "missing_ref" {
+            massets = massets + "{\"asset_id\":\"" + json_escape(aid) + "\",\"status\":\"missing_ref\"}"
+        }
+    }
+
+    // --- external 引用改写：正文不携带本机路径出包（AC-04） ---
+    var out_body str = fbody
+    var rewritten int = 0
+    for eref in ext_refs {
+        let needle str = "](" + eref + ")"
+        out_body = out_body.replace(needle, "]()")
+        rewritten = rewritten + 1
+    }
+
+    // --- packaged 预检（任何写副作用之前；缺源=整体失败，AC-03） ---
+    let root str = data_root()
+    for plan0 in plans {
+        let st0 str = plan0.status
+        if st0 == "packaged" {
+            let aid0 str = plan0.asset_id
+            let src0 str = asset_store_path(root, aid0)
+            if !fs.exists(src0) {
+                return fail_res(pub_id, pstate, "missing_asset")
+            }
+        }
+    }
+
+    let pd str = pkg_dir(root, pub_id)
+    let pad str = pkg_assets_dir(root, pub_id)
+    let okp str = pkg_ok_path(root, pub_id)
+    let mp str = pkg_manifest_path(root, pub_id)
+    let ap str = pkg_article_path(root, pub_id)
+    let pkg_rel str = "exports/" + pub_id
+    let ecap_pub str = json_escape(ptitle)
+    let ewid str = json_escape(wid)
+    let epid str = json_escape(pub_id)
+    let effmt str = json_escape(ffmt)
+    let now_sec int = time.now_sec()
+
+    // --- 已提交版本判定（.ok = 提交点） ---
+    if fs.exists(okp) {
+        let okt str = fs.read_text(okp)
+        let ohash str = json_field_str(okt, "content_hash")
+        if ohash != pchash {
+            // 已存在不同版本：不覆盖（AC-03）
+            return fail_res(pub_id, pstate, "exists_conflict")
+        }
+        // 同版本幂等：补记录/补状态，零包写入
+        let entry0 str = "{\"format\":\"markdown\",\"package\":\"" + pkg_rel + "\",\"content_hash\":\"" + json_escape(pchash) + "\",\"exported_at\":" + now_sec.to_string() + "}"
+        let rr0 PubResult = record_export(pub_id, entry0)
+        if !rr0.ok {
+            return fail_res(pub_id, pstate, "record_failed")
+        }
+        if pstate == "snapshotted" {
+            let st0 PubResult = set_pub_state(pub_id, "exported")
+            if !st0.ok {
+                return fail_res(pub_id, pstate, "state_failed")
+            }
+            return ok_res(pub_id, "exported", pkg_rel, pchash)
+        }
+        return ok_res(pub_id, pstate, pkg_rel, pchash)
+    }
+
+    // --- 落地：写齐 → 逐文件回读校验 → .ok 最后写（提交点） ---
+    fs.create_dir(pd)
+    fs.create_dir(pad)
+    for plan1 in plans {
+        let st1 str = plan1.status
+        if st1 == "packaged" {
+            let aid1 str = plan1.asset_id
+            let src1 str = asset_store_path(root, aid1)
+            let b64v str = fs.read_text(src1)
+            // 目标路径由守卫过的 asset_id 服务端组合；越界形态进不了这里
+            let dst1 str = pkg_asset_path(pad, aid1)
+            if !write_confirmed_e(dst1, b64v) {
+                return fail_res(pub_id, pstate, "staging_write_failed")
+            }
+        }
+    }
+    if !write_confirmed_e(ap, out_body) {
+        return fail_res(pub_id, pstate, "staging_write_failed")
+    }
+    var manifest str = "{"
+    manifest = manifest + "\"manifest_version\":1,"
+    manifest = manifest + "\"format\":\"markdown\","
+    manifest = manifest + "\"publication_id\":\"" + epid + "\","
+    manifest = manifest + "\"work_id\":\"" + ewid + "\","
+    manifest = manifest + "\"work_revision\":" + wrev.to_string() + ","
+    manifest = manifest + "\"title\":\"" + ecap_pub + "\","
+    manifest = manifest + "\"body_format\":\"" + effmt + "\","
+    manifest = manifest + "\"content_hash\":\"" + json_escape(pchash) + "\","
+    manifest = manifest + "\"created_at\":" + pcat.to_string() + ","
+    manifest = manifest + "\"exported_at\":" + now_sec.to_string() + ","
+    manifest = manifest + "\"source\":{\"app\":\"auto-blog\",\"target\":\"local\",\"generator\":\"exporters.at v1\"},"
+    manifest = manifest + "\"external_refs_rewritten\":" + rewritten.to_string() + ","
+    manifest = manifest + "\"assets\":[" + massets + "],"
+    manifest = manifest + "\"decode\":\"" + json_escape("assets/*.b64 为 base64 文本；还原字节：certutil -decode <文件> <输出>（Windows）或 base64 -d <文件> > <输出>（macOS/Linux）") + "\""
+    manifest = manifest + "}"
+    if !write_confirmed_e(mp, manifest) {
+        return fail_res(pub_id, pstate, "staging_write_failed")
+    }
+    let files_n int = packaged_count + 2
+    var okmark str = "{"
+    okmark = okmark + "\"publication_id\":\"" + epid + "\","
+    okmark = okmark + "\"work_revision\":" + wrev.to_string() + ","
+    okmark = okmark + "\"format\":\"markdown\","
+    okmark = okmark + "\"content_hash\":\"" + json_escape(pchash) + "\","
+    okmark = okmark + "\"files\":" + files_n.to_string()
+    okmark = okmark + "}"
+    if !write_confirmed_e(okp, okmark) {
+        return fail_res(pub_id, pstate, "commit_failed")
+    }
+    // --- 提交后簿记：记录工件 + 状态迁移（失败可经重试幂等分支补齐） ---
+    let entry str = "{\"format\":\"markdown\",\"package\":\"" + pkg_rel + "\",\"content_hash\":\"" + json_escape(pchash) + "\",\"exported_at\":" + now_sec.to_string() + "}"
+    let rr PubResult = record_export(pub_id, entry)
+    if !rr.ok {
+        return fail_res(pub_id, "exported", "record_failed")
+    }
+    if pstate == "snapshotted" {
+        let stp PubResult = set_pub_state(pub_id, "exported")
+        if !stp.ok {
+            return fail_res(pub_id, "snapshotted", "state_failed")
+        }
+    }
+    return ok_res(pub_id, "exported", pkg_rel, pchash)
+}
