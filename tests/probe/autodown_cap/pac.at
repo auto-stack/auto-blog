@@ -1,0 +1,15 @@
+// pac.at — T-00 能力探针（BLOG-002）：AutoDown 编辑器/渲染器双轨能力核查。
+// 端口 17836/17837 与产品（17826/17827）隔离；npm_deps 指向本地 auto-down
+// 主检出（c3464d0，已提交代码）仅用于探针；产品集成在 T-01 固定 vendor 子模块。
+name: "autodown-cap"
+version: "0.0.1"
+scene: "ui"
+render: "vue"
+title: "ADCap"
+api: "rust"
+front_port: 17836
+back_port: 17837
+
+npm_deps: {
+    "@autodown/engine": "file:D:/autostack/auto-down/autodown/packages/engine"
+}

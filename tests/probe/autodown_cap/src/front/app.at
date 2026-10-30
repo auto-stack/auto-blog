@@ -1,0 +1,19 @@
+// app.at — 探针壳：单路由。
+widget App {
+    routes {
+        "/" -> use cap
+    }
+
+    msg { Init }
+
+    view {
+        col {
+            outlet
+        }
+    }
+
+    on {
+        .Init -> {
+        }
+    }
+}

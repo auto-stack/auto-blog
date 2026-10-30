@@ -1,0 +1,5 @@
+// api.at — 探针最小后端：一个 ping 端点，满足 run 双进程契约。
+#[api(method = "GET", path = "/api/ping")]
+pub fn ping() str {
+    return "pong"
+}

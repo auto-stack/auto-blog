@@ -7,7 +7,7 @@ author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-04T00:00:00Z
 plan_revision: 2
-current_step: 0
+current_step: 1
 total_steps: 5
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -60,7 +60,8 @@ AutoLang/AutoUI `.at`、既有Vue/VM宿主；后端纯.at。协议使用版本�
 
 T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-01形成接口/fixture，T-02/03接入实现，T-04完成整体验证与文档。任务输出见每项说明；T-00/04核查AC-01–05全体，中间任务按对应行为覆盖。每项实测命令/证据写入§9，不把未创建的测试入口说成已有。
 
-- [ ] T-00: T0核实固定AutoDown版本、Vue/VM可用能力和依赖安装；不直接依赖其他app未提交代码。
+- [x] T-00: T0核实固定AutoDown版本、Vue/VM可用能力和依赖安装；不直接依赖其他app未提交代码。
+  [✅ 已完成] 探针app tests/probe/autodown_cap/（端口17836-17839，种子覆盖中文标题/加粗/引用/列表/表格/代码/远程图片）。**Vue轨 6/6**（engine编辑器挂载/渲染预览/编辑回传/降级保稿/切回可逆/零页面错误，`node tests/probe/autodown_cap/probe_vue.cjs`，build+preview，evidence `attachments/002/t00-vue-probe.log` 70774872）；**VM轨 5/5**（原生窗口双面渲染/降级/切回/q退出 exit 0，`python -I tests/probe/autodown_cap/probe_vm.py`，`t00-vm-probe.log` 859E63EE、快照 FDE1BCEE）。能力结论：部署CLI（da0558e7，autodown default feature）双轨原生支持 `autodown_editor`/`autodown` widget（vue=@autodown/engine SFC import；VM=框架内 autodown-core，零额外app依赖）；引擎基面 c3464d0（dist已建）与生成SFC导入面兼容；auto-notes vendor pin c39ac7f9 同源（其后仅fmt提交）。**发现 F-1..F-5**（run 120s就绪窗<冷编译需预编译；vue dev模式 linked engine 传递CJS依赖断裂、build模式正常→产品vue验收走build+preview；pnpm多级相对路径不稳用绝对/3层vendor形式；vite dev绑IPv6；npm镜像断、离线store可用）详见 `attachments/002/t00-findings.md` B6370E14。F-2的产品vue验收路径约束已入T-03/T-04验证设计依据。T-02资产通道事实：a2r类型映射无二进制（int/str/bool）；生成后端自带 auto-media-core 管线（/api/__auto/media/:id/:revision）population为Rust/UI侧，.at不可控；VM渲染markdown图片→View::Image{src}透传。
 - [ ] T-01: 实现标题/摘要/标签/封面、常见Markdown编辑和纯文本fallback；无引擎可基本写稿。
 - [ ] T-02: 实现图片/说明及AssetRef；Notes/Reader导入保留来源rev/locator，区分引用与副本。
 - [ ] T-03: 实现桌面/窄屏本地预览、缺资源/断链提示；禁止预览主动执行文章脚本。
@@ -93,8 +94,8 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 
 ## 9. 复审记录
 
-- 实际起点HEAD/工作目录/工具版本：未执行。
-- T0能力与阻塞报告：未执行。
+- 实际起点HEAD/工作目录/工具版本：2026-10-30开工。HEAD 0c90951（BLOG-004归档后尖峰）；主检出 D:/autostack/auto-blog main（本仓合同：唯一应用开发/复审检出，无外部app worktree，单写入者）；工具=004冻结基线（CLI da0558e7A979B7…、tool 563afa4aA70D…，当日哈希复核一致）；依赖HEAD：auto-lang 28f6170be（交付面 dacd00184 之后移动，钉定二进制不受影响）、auto-ui c11015c、auto-man e6cc06f、auto-down c3464d0、auto-notes 82b4d2f。
+- T0能力与阻塞报告：已完成（T-00勾选项附全证据）。双轨真渲染可用，无跨仓runtime阻塞；发现F-1..F-5（见勾选项与attachments/002/t00-findings.md）。
 - 各AC项证据路径、命令及结果：未执行。
 - 独立复审：未执行；重新对照代码检查AC项、遗漏/延后/workaround、格式/告警/调试输出，不信任已有勾选。
 - 债务与风险：未登记；测试真实阻塞不得伪装通过。
@@ -108,3 +109,5 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 T-00需核实实际平台/运行时能力，负责者为本计划执行agent；输出具体API、可复现实验与独立阻塞提案。不存在先执行全局重构的隐含前置。核心验收变更须明确提出，不能用mock替换真实结果。
 
 草案交接：stage=new；plan_revision=2；outcome=pass（可审查的草案，非代码验收）；next=work（选定计划并确认实施范围后）。当前均未实施。
+
+stage: work | plan_id: BLOG-002 | plan_revision: 2 | outcome: partial（T-00完成；T-01..T-04未开始） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一开发/复审检出） | branch: main | base_commit: 0c90951 | code_commit: 本提交（tests/probe/autodown_cap/ 探针app+双轨驱动脚本+计划簿记；产品源码零改动） | dependency_revisions: CLI da0558e7、tool 563afa4a（004冻结基线，当日复核一致）、auto-lang 28f6170be、auto-ui c11015c、auto-man e6cc06f、auto-down c3464d0（探针引擎消费面） | task_ids: T-00（已勾选附证据） | evidence: vue轨 build+preview 6/6（probe_vue.cjs）、VM轨 5/5（probe_vm.py，q退出 exit 0）；证据文件 attachments/002/（t00-vue-probe.log 70774872、t00-vm-probe.log 859E63EE、t00-vm-snapshot.txt FDE1BCEE、t00-findings.md B6370E14、diag-page.png 3878570F，均不入库） | blockers: 无阻塞项；F-2（vue dev互操作）以build+preview路径绕行，跨仓修复另行提案不阻塞 | next_responsible_role: work（T-01 编辑器主体）

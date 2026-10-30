@@ -1,0 +1,59 @@
+// pages/cap.at — T-00 能力探针页：autodown_editor / autodown 双轨 + textarea 降级对照。
+// 种子正文覆盖 AC-01 目标形态：中文标题/加粗/斜体/行内码/引用/无序有序列表/
+// 围栏代码/表格/远程图片。
+widget Cap {
+    msg { Init, Edit(str), ToggleEditor }
+
+    model {
+        var content str = "# 能力探针\n\n这是 **加粗** 与 *斜体* 与 `行内代码`。\n\n> 引用：中文引用行\n\n- 列表甲\n- 列表乙\n\n1. 有序一\n2. 有序二\n\n```rust\nfn main() {}\n```\n\n| 名 | 值 |\n|---|---|\n| 甲 | 1 |\n\n![探针图](https://placehold.co/200x50)\n"
+        var use_editor bool = true
+    }
+
+    view {
+        col {
+            style: "max-w-4xl mx-auto p-6 gap-4"
+            text "AutoDown 能力探针" { style: "text-xl font-semibold" }
+            row {
+                style: "gap-3 items-center"
+                button "切换编辑器形态" {
+                    onclick: .ToggleEditor,
+                    style: "px-3 py-1 rounded border border-border text-sm"
+                }
+                if .use_editor {
+                    text "editor=engine" { style: "text-xs text-muted-foreground" }
+                } else {
+                    text "editor=fallback" { style: "text-xs text-muted-foreground" }
+                }
+            }
+            if .use_editor {
+                autodown_editor {
+                    content: .content,
+                    placeholder: "写点什么…",
+                    class: "h-64",
+                    oninput: .Edit
+                }
+            } else {
+                textarea {
+                    value: .content,
+                    oninput: .Edit,
+                    style: "w-full h-64 border border-border rounded text-sm"
+                }
+            }
+            col {
+                style: "border-t border-border pt-3 gap-2"
+                text "预览" { style: "text-sm text-muted-foreground" }
+                autodown {
+                    content: .content,
+                    class: "min-h-32"
+                }
+            }
+        }
+    }
+
+    on {
+        .Init -> {
+        }
+        .Edit(v str) -> { .content = v }
+        .ToggleEditor -> { .use_editor = !.use_editor }
+    }
+}
