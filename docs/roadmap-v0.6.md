@@ -8,7 +8,7 @@
 |---|---|---|---|---|
 | M1 | 真实草稿 | 本地作者模式、稳定ID、保存恢复与迁移 | BLOG-001 | 本地草稿能力已交付，已归档；双端运行门见004 |
 | M1b | 双端运行验收 | 真实Rust服务＋原生VM窗口、前置回执与组合验收 | BLOG-004 | delivered（2026-10-30，r2 归档；vue-rust 15/15、native-vm-rust 22/22 EXIT=0） |
-| M2 | 编辑与预览 | AutoDown/fallback、资产来源、知识导入和桌面/窄屏预览 | BLOG-002 | 未开始 |
+| M2 | 编辑与预览 | AutoDown/fallback、资产来源、知识导入和桌面/窄屏预览 | BLOG-002 | delivered（2026-10-30，r2 归档；双轨 Markdown 编辑/降级、资产与导入、预览与窄屏；vue-rust 15/15、native-vm-rust 22/22） |
 | M3 | 可移植输出 | 不可变快照、Markdown/HTML资产包、历史与回执 | BLOG-003 | 未开始 |
 
 M0先冻结 source-sync 与来源清单，现行开发在D:/autostack/auto-blog独立clone的main；push交付后更新AutoOS内apps/auto-blog固定pin，组合子模块保持detached。当前可先做计划01的接口、fixture和独立新模块；恢复主力机后再审查v0.5来源增量并融合旧入口。计划02/03依赖前序的真实证据，不能仅凭文档或勾选开始依赖集成。
@@ -32,8 +32,8 @@ M0先冻结 source-sync 与来源清单，现行开发在D:/autostack/auto-blog�
 ## 计划入口
 
 1. [BLOG-001：个人作者模式与可靠草稿](plans/archived/001-durable-drafts.md)
-2. [BLOG-002：编辑器复用、资料与预览](plans/002-editor-assets-preview.md)
+2. [BLOG-002：编辑器复用、资料与预览](plans/archived/002-editor-assets-preview.md)（已交付归档）
 3. [BLOG-003：固定版本与本地发布包](plans/003-snapshots-export.md)
-4. [BLOG-004：Rust后端与原生VM界面运行及验收补齐](plans/004-dual-runtime-acceptance.md)（当前优先；框架前置auto-lang/885与auto-ui/003）
+4. [BLOG-004：Rust后端与原生VM界面运行及验收补齐](plans/archived/004-dual-runtime-acceptance.md)（已交付归档，2026-10-30）
 
 [完整设计](design/01-product-design.md) · [调研](research/20261004-benchmarks.md) · [agent操作说明](README.md)

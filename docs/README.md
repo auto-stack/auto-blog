@@ -10,7 +10,7 @@
 ## 首批计划
 
 1. [BLOG-001：个人作者模式与可靠草稿](plans/archived/001-durable-drafts.md)
-2. [BLOG-002：编辑器复用、资料与预览](plans/002-editor-assets-preview.md)
+2. [BLOG-002：编辑器复用、资料与预览](plans/archived/002-editor-assets-preview.md)（已交付归档 2026-10-30；规范 docs/specs/blog/editor-assets-preview.md）
 3. [BLOG-003：固定版本与本地发布包](plans/003-snapshots-export.md)
 4. [BLOG-004：Rust后端与原生VM界面运行及验收补齐](plans/004-dual-runtime-acceptance.md)（当前优先，关联auto-lang/885、auto-ui/003）
 
