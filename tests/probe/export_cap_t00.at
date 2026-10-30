@@ -1,0 +1,34 @@
+// export_cap_t00.at — BLOG-003 T-00 能力探针：二进制写读/拷贝/base64（stdlib-only，VM 直跑）。
+use file
+use encoding.base64
+
+fn main() {
+    // P1 二进制写读：含 0x00/0xFF/多字节序列（非 UTF-8 安全样本）
+    var sample []int = [104, 105, 0, 255, 228, 184, 173, 137, 139, 1, 2, 3]
+    let wb = file.write_bytes(".tmp/t00-bin-sample.bin", sample)
+    let rb = file.read_bytes(".tmp/t00-bin-sample.bin")
+    var same bool = rb.len() == sample.len()
+    var i int = 0
+    while i < sample.len() && same {
+        if rb[i] != sample[i] {
+            same = false
+        }
+        i = i + 1
+    }
+    print("P1 write_bytes rc=" + wb.to_string() + " read_len=" + rb.len().to_string() + " byte_identical=" + same.to_string())
+
+    // P2 copy 字节恒等（到另一目录，模拟导出打包）
+    let cc = file.copy(".tmp/t00-bin-sample.bin", ".tmp/t00-export-dir/assets/sample.bin")
+    let rb2 = file.read_bytes(".tmp/t00-export-dir/assets/sample.bin")
+    print("P2 copy rc=" + cc.to_string() + " copied_len=" + rb2.len().to_string() + " identical=" + (rb2.len() == sample.len()).to_string())
+
+    // P3 base64 ASCII 文本往返（envelope 导入路径；二进制级 base64 不在本探针承诺内）
+    let enc = base64.encode("hello-export-探针")
+    let dec = base64.decode(enc)
+    print("P3 b64 enc_len=" + enc.len().to_string() + " roundtrip_ok=" + (dec == "hello-export-探针").to_string())
+
+    // P4 文本面回归（导出 md/manifest 写入仍走 write_text/write_confirmed 语义）
+    let wt = file.write_text(".tmp/t00-export-dir/article.md", "# T00\n\n正文中文")
+    print("P4 write_text rc=" + wt.to_string() + " readback_ok=" + (file.read_text(".tmp/t00-export-dir/article.md") == "# T00\n\n正文中文").to_string())
+    print("P4 exists=" + file.exists(".tmp/t00-export-dir/article.md").to_string())
+}

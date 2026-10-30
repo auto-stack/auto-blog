@@ -7,7 +7,7 @@ author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-30T00:00:00Z
 plan_revision: 3
-current_step: 0
+current_step: 1
 total_steps: 5
 created: 2026-10-04
 base_branch: main
@@ -60,7 +60,8 @@ AutoLang/AutoUI `.at`、既有Vue/VM宿主；后端纯.at。协议使用版本�
 
 T-00先行；T-01→T-02→T-03→T-04顺序实施（owner_stage=work）。T-00输出能力报告+决策工件，T-01形成快照/历史接口，T-02/03接入实现，T-04完成双轨验证与文档。T-00/04核查AC-01–05全体，中间任务按对应行为覆盖。每项实测命令/证据写入§9，不把未创建的测试入口说成已有。
 
-- [ ] T-00（决策工件，先行）：能力核查——①二进制资产管道：a2r `fs.read_bytes/write_bytes` 的 .at 可见性与类型映射、VM 轨 parity（合并模式 shim）、base64/编解码可得性；②HTML 生成途径排序：vue=引擎 DOM 采集（rich-html/innerHTML→交后端入库为文本 artifact）vs 后端纯 .at 模板（禁自写正则渲染器）vs 跨仓 autodown-core 提案；③打包形态：目录树（相对路径引用）为默认，zip 可选。输出：能力报告+决策记录（§9），AC-01/AC-04 的机制路径据此落定。
+- [x] T-00（决策工件，先行）：能力核查——①二进制资产管道：a2r `fs.read_bytes/write_bytes` 的 .at 可见性与类型映射、VM 轨 parity（合并模式 shim）、base64/编解码可得性；②HTML 生成途径排序：vue=引擎 DOM 采集（rich-html/innerHTML→交后端入库为文本 artifact）vs 后端纯 .at 模板（禁自写正则渲染器）vs 跨仓 autodown-core 提案；③打包形态：目录树（相对路径引用）为默认，zip 可选。输出：能力报告+决策记录（§9），AC-01/AC-04 的机制路径据此落定。
+  [✅ 已完成] 决策=**D1 base64-at-rest 纯文本资产管道**（ingest=前端 base64+crypto.subtle sha256→write_text(assets/<id>.b64)；export=read_text/copy+data-URL 自包含 HTML；字节保真=b64 无损+sha 存证+迁出解码说明）。关键事实：VM 独立脚本 []int→stdlib shim 断裂（Invalid list ID，**F-9** 登记，产品 rust 后端不受影响）；str→[]int 无 .at 原语；base64/hex 为 #[vm] str 面；file.copy 双轨可见 ✓。HTML=vue 引擎 DOM 采集（VM=边界说明）。探针 tests/probe/export_cap_t00.at；报告 `attachments/003/t00-findings.md`。
 - [ ] T-01：`src/back/publications.at`——从已保存 revision 生成不可变 snapshot（meta/body/asset_refs/source_refs 冻结副本）+ Publication（publication_id、work_ref+revision、content_hash、target、artifact_refs、state=exported/published/withdrawn、created_at）+ 历史列表/打开 API（复用 001 存储纪律：write_confirmed/JSON Lines/清单化提交；禁逐字节扫描）。
 - [ ] T-02：`src/back/exporters/`——按 T-00 决策实现 Markdown+manifest（来源/格式/版本/hash）与 assets 打包（字节管道按 T-00 决策；相对路径、无越界写、无绝对本机路径）；导出=临时目录完整校验后落地，失败/中断不记 exported/published；重试不覆盖已存在不同版本。
 - [ ] T-03：前端历史/导出 UI（author.at 或新页）+ HTML 生成按 T-00 决策（vue=引擎 DOM 采集交后端入库；VM 轨 HTML=能力边界说明）+ 历史比较/打开/再次输出；草稿改动不影响旧快照（AC-02）。
@@ -110,3 +111,5 @@ T-00需核实实际平台/运行时能力，负责者为本计划执行agent；�
 草案交接（rev2, 2026-10-04）：stage=new；plan_revision=2；outcome=pass（可审查的草案，非代码验收）；next=work（选定计划并确认实施范围后）。当前均未实施。
 
 修订交接（rev3, 2026-10-30）：stage=new；plan_revision=3；outcome=pass（基线修订就绪，待用户确认实施授权后进入 work）；changed=§0/§1/§2/§4/§5（T-00..T-04 全部重写为当前基线机制）/§6/§8+frontmatter（base→main e6877ca）；AC-01..05 与 SD-01 目标语义未变；next=work（待用户执行授权）。关键待决（T-00 决策工件所有）：二进制资产管道可行性、HTML 生成机制路径（vue 引擎采集 vs 跨仓提案）、打包形态。
+
+stage: work | plan_id: BLOG-003 | plan_revision: 3 | outcome: partial（T-00 完成；T-01..T-04 未开始） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一检出） | branch: main | base_commit: 1f177ac | code_commit: 本提交（tests/probe/export_cap_t00.at 探针+计划簿记；产品源码零改动） | dependency_revisions: CLI da0558e7、tool 563afa4a、auto-lang 129ef6057、auto-ui 02cd088、auto-man e6cc06f | task_ids: T-00（已勾选附证据） | evidence: stdlib 实证（write_bytes/read_bytes/copy 双轨声明、base64/hex #[vm] 面、str→[]int 无原语）+ VM shim 断裂复现（F-9）；决策工件 attachments/003/t00-findings.md | blockers: 无阻塞项；F-9 跨仓观察不阻塞（D1 不依赖） | next_responsible_role: work（T-01 publications.at）
