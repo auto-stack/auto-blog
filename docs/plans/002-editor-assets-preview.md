@@ -1,13 +1,13 @@
 ---
 plan_id: BLOG-002
 title: "编辑器复用、资料与预览"
-status: drafting
+status: execution_done
 feature_name: "编辑器复用、资料与预览"
 author: [Codex]
 created_at: 2026-10-04T00:00:00Z
 updated_at: 2026-10-04T00:00:00Z
 plan_revision: 2
-current_step: 4
+current_step: 5
 total_steps: 5
 created: 2026-10-04
 base_branch: v0.6-dev
@@ -68,7 +68,8 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
   [✅ 已完成] 后端：`POST /api/drafts/:work_id/asset-ref`（追加图片资产：AssetRef 条目{asset_id,kind:image,storage_ref,caption,mime,sha256:null,size:null,mode:copy|reference}；正文同步追加 `![caption](ref)` 行；条件 revision 写）+ `POST /api/drafts/import-compose`（多来源 envelope 组合新作品：producer/body 必填；mode 缺省 copy 并入正文、reference 仅登记；source_refs 逐条{producer,original_uri,captured_at,locator,source_revision,mode,title}，缺失字段显式 null；count==0 拒绝零写入；原件零接触）。**refs 存储形态=JSON Lines**（每行一对象；"" 或 "[]" 为空；追加零索引——F-8 多字节错位规避），SD-01 记录该契约。fixtures：tests/fixtures/authoring/（notes/reader envelope、reference 变体、损坏 envelope）。前端：作者页资产行（引用+说明+添加图片）与导入面（粘贴 envelope JSON 数组+组合为新作品；dirty 时显式 save_before_import 拒绝，不覆盖缓冲）。**API 7/7**（两来源组合/source_refs 精确/原件 sha256 前后一致/reference 不并入/负例拒绝/资产×2+正文图片行/空 ref+非法 mode+陈旧 rev 冲突，`python -I tests/probe/probe_t02_api.py`）；**Vue 4/4**（UI 添加图片落 refs+alt 行/粘贴两来源组合采纳"导入："标题/reference 不并入，`node tests/probe/authoring_t02.cjs`）；**VM 4/4**（原生窗口同链+磁盘 meta+q 退出，`python -I tests/probe/probe_vm_t02.py`）。证据 `attachments/002/t02-probe.log`。新发现 F-8（.len 字节/.slice 字符单位错位=逐字节扫描禁用规则的运行时根因；JSON Lines+find 基规避），见 `attachments/002/t00-findings.md`。
 - [x] T-03: 实现桌面/窄屏本地预览、缺资源/断链提示；禁止预览主动执行文章脚本。
   [✅ 已完成] 预览=可返回的独立状态（预览/返回编辑按钮对；编辑内容与 work_id/rev 不被覆盖）；预览面=autodown 渲染器（vue=StreamingRenderer，VM=原生块渲染）+横幅「本地预览（离线可用）· 未识别语法按原文显示」。缺资源可读提示=新增 `GET /api/drafts/:work_id/asset-check`（find 基解析 JSON Lines，零逐字节扫描；分类：远程=断网显示断图 / 本地=浏览器预览不可解析导出时打包 / 缺失=空引用），预览横幅下方可见。窄屏：主行响应式 flex-col md:flex-row（375px 纵排，编辑区全宽 343px，草稿列表仍可达；VM 轨 class 惰性=桌面窗口布局不变）。脚本不执行：引擎组件化渲染 + `<script>` 按原文显示（负控注入实测 window.__pwned 未定义、无 script 元素）。**Vue 8/8**（预览渲染/脚本负控/中文列表引用图片/返回编辑同ID/断网预览/窄屏可用，`node tests/probe/authoring_t03.cjs`）；**VM 3/3**（预览+本地资产分类提示+script 按原文/返回编辑 rev 保持/q 退出，`python -I tests/probe/probe_vm_t03.py`）。证据 `attachments/002/t03-probe.log`。边界：VM「窄屏」等价物=桌面窗口缩放，MCP 驱动不支持窗口 resize，VM 侧窄屏以响应式 class 惰性（桌面布局）+vue 侧 375px 实测覆盖，SD-01 记录。
-- [ ] T-04: 验证切换编辑/预览仍保存同work_id/revision，不把渲染转换悄悄写回原稿。
+- [x] T-04: 验证切换编辑/预览仍保存同work_id/revision，不把渲染转换悄悄写回原稿。
+  [✅ 已完成] 切换矩阵（vue 编辑形态互切 textarea→引擎→降级→引擎 / 预览往返 / 刷新重开 / 导入后回原稿）全程 work_id/revision 稳定；**不写回 = 字节级断言**：客户端编辑器值逐字节等于基线 + 服务端 body sha256 前后一致 + 预览往返 rev 不变（无幻影写）；真实编辑保存 rev 正常推进（+1）；重启重开磁盘 rev body 逐字节一致；多源导入创建新 work 且源稿/原件不变（AC-03/AC-04 收口）。**Vue 7/7**（`node tests/probe/authoring_t04.cjs`）+ **VM 5/5**（`python -I tests/probe/probe_vm_t04.py`，q 退出+重启重开+磁盘 sha）。证据 `attachments/002/t04-probe.log`。
 
 ## 6. 测试设计
 
@@ -99,7 +100,7 @@ T-00先行；T-01→T-02→T-03→T-04顺序实施。T-00输出能力报告，T-
 
 - 实际起点HEAD/工作目录/工具版本：2026-10-30开工。HEAD 0c90951（BLOG-004归档后尖峰）；主检出 D:/autostack/auto-blog main（本仓合同：唯一应用开发/复审检出，无外部app worktree，单写入者）；工具=004冻结基线（CLI da0558e7A979B7…、tool 563afa4aA70D…，当日哈希复核一致）；依赖HEAD：auto-lang 28f6170be（交付面 dacd00184 之后移动，钉定二进制不受影响）、auto-ui c11015c、auto-man e6cc06f、auto-down c3464d0、auto-notes 82b4d2f。
 - T0能力与阻塞报告：已完成（T-00勾选项附全证据）。双轨真渲染可用，无跨仓runtime阻塞；发现F-1..F-5（见勾选项与attachments/002/t00-findings.md）。
-- 各AC项证据路径、命令及结果：未执行。
+- 各AC项证据路径、命令及结果：见各任务勾选项与 attachments/002/t0{0,2,3,4}-probe.log；统一口径：AC-01（T-01 vue 8/8+vm 7/7 编辑面 + T-03 vue/预览渲染）、AC-02（T-01 降级保稿 + T-00 探针 fallback 臂 + VM Core 框架诚实降级语义）、AC-03/AC-04（T-02 api 7/7 + T-04 导入新work/源不变）、AC-05（T-03 提示/离线/窄屏/脚本负控）。
 - 独立复审：未执行；重新对照代码检查AC项、遗漏/延后/workaround、格式/告警/调试输出，不信任已有勾选。
 - 债务与风险：未登记；测试真实阻塞不得伪装通过。
 - 沉淀：以frontmatter spec-impact候选登记实际实现组件，更新设计能力表与稳定规范；随后翻reviewed并归档。
@@ -120,3 +121,5 @@ stage: work | plan_id: BLOG-002 | plan_revision: 2 | outcome: partial（T-01完�
 stage: work | plan_id: BLOG-002 | plan_revision: 2 | outcome: partial（T-02完成；T-03/T-04未开始） | worktree_path: D:/autostack/auto-blog（main） | branch: main | base_commit: 23c7883 | code_commit: 本提交（src/back drafts/api/db T-02 端点、src/front author.at+draft_store.at 资产/导入面、tests/fixtures/authoring/ 四 envelope、tests/probe/{probe_t02_api.py,authoring_t02.cjs,probe_vm_t02.py}、compose_probe.at 单元探针、计划簿记） | dependency_revisions: CLI da0558e7、tool 563afa4a、auto-lang 28f6170be、auto-ui c11015c、auto-man e6cc06f | task_ids: T-02（已勾选附证据） | evidence: API 7/7 + Vue 4/4 + VM 4/4（attachments/002/t02-probe.log）；F-8 登记于 t00-findings.md | blockers: 无阻塞项；F-8 的 json_array_valid 中文敏感（migrate 路径）保持 001 原状登记跨仓观察 | next_responsible_role: work（T-03 预览）
 
 stage: work | plan_id: BLOG-002 | plan_revision: 2 | outcome: partial（T-03完成；T-04未开始） | worktree_path: D:/autostack/auto-blog（main） | branch: main | base_commit: f992419 | code_commit: 本提交（src/back asset_check 端点、src/front author.at 预览面+响应式布局、draft_store PreviewCheck、tests/probe/{authoring_t03.cjs,probe_vm_t03.py}、计划簿记） | dependency_revisions: CLI da0558e7、tool 563afa4a、auto-lang 28f6170be、auto-ui c11015c、auto-man e6cc06f | task_ids: T-03（已勾选附证据） | evidence: Vue 8/8 + VM 3/3（attachments/002/t03-probe.log） | blockers: 无阻塞项；VM 窄屏=桌面窗口缩放边界记入 SD-01 | next_responsible_role: work（T-04 切换一致性验证）
+
+stage: work | plan_id: BLOG-002 | plan_revision: 2 | outcome: pass（T-00..T-04 全部完成；execution_done 待最终复审） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一检出） | branch: main | base_commit: 5ef6a63 | code_commit: 本提交（tests/probe/{authoring_t04.cjs,probe_vm_t04.py}、docs/specs/blog/editor-assets-preview.md（SD-01 沉淀）、计划簿记；产品源码本轮零改动——T-04 为纯验证任务） | dependency_revisions: CLI da0558e7、tool 563afa4a（004 冻结基线，全程未重建）、auto-lang 28f6170be、auto-ui c11015c、auto-man e6cc06f、auto-down 快照 c3464d0（vendor pin） | task_ids: T-04（已勾选附证据）；T-00..T-03 前序已勾选 | evidence: Vue 7/7 + VM 5/5（attachments/002/t04-probe.log）；全程各任务证据 t00/t02/t03/t04-probe.log | 就绪记录：work-owned AC-01..05 全部以当前代码+新鲜执行通过（见勾选项映射）；开放 in-contract 缺口=无；跨仓观察项 F-2/F-6/F-7/F-8 与边界 B-1/B-2 已登记于 SD-01 §6（均不阻塞本计划验收语义）；统一回归门=verify_dual 双 profile 由 review/merge 所有（本计划新增探针为定向验收，双 profile 全量含 002 面待最终复审裁决是否扩册） | blockers: 无 | next_responsible_role: review（最终复审）
