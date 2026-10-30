@@ -6,7 +6,7 @@ author: [Codex]
 created_at: 2026-10-29
 updated_at: 2026-10-30
 plan_revision: 2
-current_step: 8
+current_step: 10
 total_steps: 10
 depends_on: ["BLOG-001", "auto-lang/PLAN-885", "auto-ui/PLAN-003"]
 supersedes_spec_components: ["docs/specs/blog/durable-drafts.md"]
