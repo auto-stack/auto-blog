@@ -1,0 +1,321 @@
+// publications.at — BLOG-003 T-01：不可变发布快照与历史（纯 .at，双轨兼容）。
+//
+// 模型（设计 §4）：
+//   Publication = { publication_id, work_id, work_revision, title, content_hash,
+//                   target:"local", state:"snapshotted"|"exported"|"published"|"withdrawn",
+//                   created_at, artifact_refs(JSON Lines) }
+//   - 正文冻结 = 引用 works/<id>/revisions/rev-N（001 存储已保证不可变+校验），不复制
+//   - content_hash = 内容签名 "sig-<h>-<len>"（确定性、非加密；仅 len/replace 算术，
+//     F-8 免疫、双轨同语义；不承诺抗碰撞/防篡改——spec 声明）
+//   - state 首版状态机：snapshotted → exported；withdrawn 可达；published 不可达
+//     （AC-05：仅本地 exported，不伪装外部 published）
+//
+// a2r 纪律（T-01 实证 F-10/F-11）：
+//   F-10 内建调用的实参含「本地 2 参函数调用」时名字解析断裂 → 路径一律串接
+//   F-11 用户函数的「字段访问」实参（fn(w.body)）同断 → 先提升局部变量再传
+//   结构体字面量字段一律局部变量（不内嵌调用）；路径串接不经过 helper。
+use works: Work, json_escape, json_field_str, json_field_int
+use drafts: open_draft
+
+pub type Publication = {
+    publication_id: str
+    work_id: str
+    work_revision: int
+    title: str
+    content_hash: str
+    target: str
+    state: str
+    created_at: int
+    artifact_refs: str
+}
+
+pub type PubResult = {
+    ok: bool
+    publication_id: str
+    state: str
+    error: str
+}
+
+var next_pub_seq int = 1
+
+pub fn data_root() str {
+    let ovr str = Env.get("AUTO_BLOG_DATA")
+    if ovr != "" {
+        return ovr
+    }
+    let home str = Env.get("USERPROFILE")
+    if home == "" {
+        return Env.get("HOME") + "/.auto-blog/data"
+    }
+    return home + "/.auto-blog/data"
+}
+
+fn write_confirmed_p(path str, content str) bool {
+    fs.write_text(path, content)
+    if !fs.exists(path) {
+        return false
+    }
+    return fs.read_text(path) == content
+}
+
+/// 内容签名（确定性、非加密；v1/v2 对照与不变性断言用）：
+/// 仅用 len/replace 算术（F-8 免疫、双轨同语义）。fold = body_len 与 8 个固定
+/// 探针串的出现计数折叠（字节差 ÷ 探针字节长，商取整）。
+pub fn content_hash(body str) str {
+    var h int = 17
+    let n int = body.len()
+    h = (h + n) * 31
+    h = probe_fold(h, body, "\n")
+    h = probe_fold(h, body, " ")
+    h = probe_fold(h, body, "#")
+    h = probe_fold(h, body, "-")
+    h = probe_fold(h, body, ">")
+    h = probe_fold(h, body, "!")
+    h = probe_fold(h, body, "的")
+    h = probe_fold(h, body, "。")
+    return "sig-" + (h - (h / 268435456) * 268435456).to_string() + "-" + n.to_string()
+}
+
+fn probe_fold(h int, body str, probe str) int {
+    let removed str = body.replace(probe, "")
+    let cnt int = (body.len() - removed.len()) / probe.len()
+    return (h + cnt) * 31
+}
+
+fn new_pub_id() str {
+    let n int = next_pub_seq
+    next_pub_seq = next_pub_seq + 1
+    return "p-" + time.now_ms().to_string() + "-" + n.to_string()
+}
+
+fn blank_pub() Publication {
+    let pid str = ""
+    let wid str = ""
+    let rev int = 0
+    let t str = ""
+    let ch str = ""
+    let tg str = ""
+    let st str = ""
+    let cat int = 0
+    let ar str = "[]"
+    return Publication {
+        publication_id: pid,
+        work_id: wid,
+        work_revision: rev,
+        title: t,
+        content_hash: ch,
+        target: tg,
+        state: st,
+        created_at: cat,
+        artifact_refs: ar
+    }
+}
+
+fn pub_from_meta_json(meta str) Publication {
+    let pid str = json_field_str(meta, "publication_id")
+    let wid str = json_field_str(meta, "work_id")
+    let rev int = json_field_int(meta, "work_revision")
+    let t str = json_field_str(meta, "title")
+    let ch str = json_field_str(meta, "content_hash")
+    let tg str = json_field_str(meta, "target")
+    let st str = json_field_str(meta, "state")
+    let cat int = json_field_int(meta, "created_at")
+    let ar str = json_field_str(meta, "artifact_refs")
+    return Publication {
+        publication_id: pid,
+        work_id: wid,
+        work_revision: rev,
+        title: t,
+        content_hash: ch,
+        target: tg,
+        state: st,
+        created_at: cat,
+        artifact_refs: ar
+    }
+}
+
+fn pub_to_meta_json(p Publication) str {
+    var out str = "{"
+    out = out + "\"publication_id\":\"" + json_escape(p.publication_id) + "\","
+    out = out + "\"work_id\":\"" + json_escape(p.work_id) + "\","
+    out = out + "\"work_revision\":" + p.work_revision.to_string() + ","
+    out = out + "\"title\":\"" + json_escape(p.title) + "\","
+    out = out + "\"content_hash\":\"" + json_escape(p.content_hash) + "\","
+    out = out + "\"target\":\"" + json_escape(p.target) + "\","
+    out = out + "\"state\":\"" + json_escape(p.state) + "\","
+    out = out + "\"created_at\":" + p.created_at.to_string() + ","
+    out = out + "\"artifact_refs\":\"" + json_escape(p.artifact_refs) + "\""
+    out = out + "}"
+    return out
+}
+
+fn read_index(root str) str {
+    let ip str = root + "/publications/index.json"
+    if !fs.exists(ip) {
+        return "[]"
+    }
+    let s str = fs.read_text(ip)
+    if s == "" {
+        return "[]"
+    }
+    return s
+}
+
+fn index_add(root str, pub_id str) bool {
+    let ids str = read_index(root)
+    if ids.find("\"" + pub_id + "\"") >= 0 {
+        return true
+    }
+    let cut int = ids.len() - 1
+    var next str = ids
+    if ids == "[]" {
+        next = "[\"" + pub_id + "\"]"
+    } else {
+        if ids.slice(cut, cut + 1) == "]" {
+            next = ids.slice(0, cut) + ",\"" + pub_id + "\"]"
+        } else {
+            return false
+        }
+    }
+    let ipath str = root + "/publications/index.json"
+    return write_confirmed_p(ipath, next)
+}
+
+/// 冻结 work 当前（expected_rev=0）或指定 revision 为不可变 Publication
+/// （state=snapshotted）。expected_rev 不匹配即失败，不产生半成品。
+pub fn create_publication(work_id str, expected_rev int) PubResult {
+    let w Work = open_draft(work_id)
+    if w.work_id == "" {
+        return PubResult { ok: false, publication_id: "", state: "", error: "work_not_found" }
+    }
+    if expected_rev > 0 && w.revision != expected_rev {
+        return PubResult { ok: false, publication_id: "", state: "", error: "conflict" }
+    }
+    let pub_id str = new_pub_id()
+    let chash str = content_hash(w.body)
+    let now int = time.now_sec()
+    let wrev int = w.revision
+    let wtitle str = w.title
+    let wassets str = w.asset_refs
+    let p Publication = Publication {
+        publication_id: pub_id,
+        work_id: work_id,
+        work_revision: wrev,
+        title: wtitle,
+        content_hash: chash,
+        target: "local",
+        state: "snapshotted",
+        created_at: now,
+        artifact_refs: wassets
+    }
+    let meta str = pub_to_meta_json(p)
+    let root str = data_root()
+    fs.create_dir(root + "/publications")
+    fs.create_dir(root + "/publications/" + pub_id)
+    let mpath str = root + "/publications/" + pub_id + "/meta.json"
+    if !write_confirmed_p(mpath, meta) {
+        return PubResult { ok: false, publication_id: pub_id, state: "", error: "meta_write_failed" }
+    }
+    if !index_add(root, pub_id) {
+        return PubResult { ok: false, publication_id: pub_id, state: "", error: "index_write_failed" }
+    }
+    return PubResult { ok: true, publication_id: pub_id, state: "snapshotted", error: "" }
+}
+
+/// 打开 Publication（不存在返回 publication_id=""）。
+pub fn open_publication(pub_id str) Publication {
+    if pub_id == "" {
+        return blank_pub()
+    }
+    let root str = data_root()
+    let mp str = root + "/publications/" + pub_id + "/meta.json"
+    if !fs.exists(mp) {
+        return blank_pub()
+    }
+    let meta str = fs.read_text(mp)
+    if meta == "" {
+        return blank_pub()
+    }
+    let p Publication = pub_from_meta_json(meta)
+    if p.publication_id != pub_id {
+        return blank_pub()
+    }
+    return p
+}
+
+/// 历史列表（按 index 顺序；work_id 为空串=全部）。
+pub fn list_publications(work_id str) []Publication {
+    let root str = data_root()
+    let ids str = read_index(root)
+    var out []Publication = []
+    var i int = 0
+    let n int = ids.len()
+    while i < n {
+        if ids.slice(i, i + 1) == "\"" {
+            var j int = i + 1
+            var id str = ""
+            while j < n {
+                let c str = ids.slice(j, j + 1)
+                if c == "\"" {
+                    id = ids.slice(i + 1, j)
+                    i = j
+                    j = n
+                } else {
+                    j = j + 1
+                }
+            }
+            if id != "" {
+                let p Publication = open_publication(id)
+                if p.publication_id != "" {
+                    if work_id == "" || p.work_id == work_id {
+                        out.push(p)
+                    }
+                }
+            }
+        }
+        i = i + 1
+    }
+    return out
+}
+
+/// 状态迁移：仅允许 snapshotted→exported、snapshotted/exported→withdrawn。
+/// published 不可达（首版无外部 target，AC-05）。非法迁移返回 ok=false。
+pub fn set_pub_state(pub_id str, next_state str) PubResult {
+    let p Publication = open_publication(pub_id)
+    if p.publication_id == "" {
+        return PubResult { ok: false, publication_id: pub_id, state: "", error: "not_found" }
+    }
+    if next_state == "published" {
+        return PubResult { ok: false, publication_id: pub_id, state: p.state, error: "published_unreachable_local_only" }
+    }
+    var legal bool = false
+    if p.state == "snapshotted" && next_state == "exported" {
+        legal = true
+    }
+    if next_state == "withdrawn" {
+        if p.state == "snapshotted" || p.state == "exported" {
+            legal = true
+        }
+    }
+    if !legal {
+        return PubResult { ok: false, publication_id: pub_id, state: p.state, error: "illegal_transition" }
+    }
+    let np Publication = Publication {
+        publication_id: p.publication_id,
+        work_id: p.work_id,
+        work_revision: p.work_revision,
+        title: p.title,
+        content_hash: p.content_hash,
+        target: p.target,
+        state: next_state,
+        created_at: p.created_at,
+        artifact_refs: p.artifact_refs
+    }
+    let meta str = pub_to_meta_json(np)
+    let root str = data_root()
+    let mpath str = root + "/publications/" + pub_id + "/meta.json"
+    if !write_confirmed_p(mpath, meta) {
+        return PubResult { ok: false, publication_id: pub_id, state: p.state, error: "meta_write_failed" }
+    }
+    return PubResult { ok: true, publication_id: pub_id, state: next_state, error: "" }
+}

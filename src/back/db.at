@@ -3,8 +3,9 @@
 // position (pre-declare result + let-ctor); avoid `tag` as a param name;
 // don't pass borrowed String fields to helper fns; avoid users[0]/len()>0.
 
-use api: User, Article, Comment, Follow, Cred, Work, SaveResult
+use api: User, Article, Comment, Follow, Cred, Work, SaveResult, Publication, PubResult
 use drafts
+use publications
 
 // --- Seed users ---
 var users List<User> = List<User>.new([
@@ -354,4 +355,29 @@ pub fn import_compose(items str) Work {
 
 pub fn asset_check(work_id str) str {
     return drafts.asset_check_report(work_id)
+}
+
+// --- BLOG-003 T-01 委托 ---
+
+pub fn create_publication(work_id str, expected_rev int) PubResult {
+    return publications.create_publication(work_id, expected_rev)
+}
+
+pub fn list_publications(work_id str) []Publication {
+    return publications.list_publications(work_id)
+}
+
+pub fn open_publication(pub_id str) Publication {
+    return publications.open_publication(pub_id)
+}
+
+pub fn set_pub_state(pub_id str, next_state str) PubResult {
+    return publications.set_pub_state(pub_id, next_state)
+}
+
+/// withdraw 专用包装：状态常量在 db 层内部落定（api→db 转译按端点签名转发参数，
+/// 字面量/额外实参不可经端点传递——BLOG-003 T-01 实证）。
+pub fn withdraw_publication(pub_id str) PubResult {
+    let target_state str = "withdrawn"
+    return publications.set_pub_state(pub_id, target_state)
 }

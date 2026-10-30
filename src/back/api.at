@@ -307,3 +307,51 @@ pub fn asset_check(work_id str) str {
 
 // NOTE: no /api/tags endpoint — tags are derived client-side (a2r has no
 // List<str>, and aggregating Strings server-side hits borrow-checker issues).
+
+// --- BLOG-003 T-01：发布快照与历史 ---
+
+/// 发布快照结果。state 迁移失败/冲突时 ok=false。
+pub type PubResult = {
+    ok: bool
+    publication_id: str
+    state: str
+    error: str
+}
+
+/// 不可变发布快照（正文冻结=引用 works/<id>/revisions/rev-N）。
+pub type Publication = {
+    publication_id: str
+    work_id: str
+    work_revision: int
+    title: str
+    content_hash: str
+    target: str
+    state: str
+    created_at: int
+    artifact_refs: str
+}
+
+/// POST /api/works/:work_id/publish — 冻结当前（或 expected_rev 指定）revision
+/// 为不可变 Publication（state=snapshotted）。条件 revision 写。
+#[api(method = "POST", path = "/api/works/:work_id/publish")]
+pub fn create_publication(work_id str, expected_rev int) PubResult {
+    return db.create_publication(work_id, expected_rev)
+}
+
+/// GET /api/works/:work_id/publications — 该 work 的历史发布列表。
+#[api(method = "GET", path = "/api/works/:work_id/publications")]
+pub fn list_publications(work_id str) []Publication {
+    return db.list_publications(work_id)
+}
+
+/// GET /api/publications/:pub_id — 打开 Publication。
+#[api(method = "GET", path = "/api/publications/:pub_id")]
+pub fn open_publication(pub_id str) Publication {
+    return db.open_publication(pub_id)
+}
+
+/// POST /api/publications/:pub_id/withdraw — 撤回（新状态，不删除历史）。
+#[api(method = "POST", path = "/api/publications/:pub_id/withdraw")]
+pub fn withdraw_publication(pub_id str) PubResult {
+    return db.withdraw_publication(pub_id)
+}
