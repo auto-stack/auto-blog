@@ -38,10 +38,10 @@ from datetime import datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-AUTO_EXE = Path(r"D:\autostack\auto-man\target\debug\auto.exe")
+AUTO_EXE = Path(os.environ.get("AUTO_EXE", r"D:\autostack\auto-man\target\debug\auto.exe"))
 SIBLINGS = {
-    "auto-lang": Path(r"D:\autostack\auto-lang"),
-    "auto-ui": Path(r"D:\autostack\auto-ui"),
+    "auto-lang": Path(os.environ.get("AUTO_LANG_ROOT", r"D:\autostack\auto-lang")),
+    "auto-ui": Path(os.environ.get("AUTO_UI_SOURCE_ROOT", r"D:\autostack\auto-ui")),
     "auto-man": Path(r"D:\autostack\auto-man"),
 }
 READY_TIMEOUT_S = 480  # run 路径首跑需冷编译完整依赖闭包（实测 >180s），超时=失败不可计 pass
@@ -110,7 +110,8 @@ class Service:
     """正式入口受管封装（service=API 隔离；run=front+back 组合）；只清理自己 spawn 的进程树。"""
 
     def __init__(self, back_port: int, data_dir: Path, log_path: Path,
-                 mode: str = "service", front_port: int | None = None, bad_port: bool = False):
+                 mode: str = "service", front_port: int | None = None, bad_port: bool = False,
+                 mcp_port: int | None = None):
         self.back_port = back_port
         self.front_port = front_port
         self.data_dir = data_dir
@@ -119,11 +120,15 @@ class Service:
         self.front_url: str | None = None
         self.proc: subprocess.Popen | None = None
         self.bad_port = bad_port  # 负控注入：占用端口使启动必然失败
+        self.mcp_port = mcp_port
+        self._logf = None
 
     def start(self) -> None:
         env = dict(os.environ)
         env["AUTO_BLOG_DATA"] = str(self.data_dir)
         env["AUTO_DEBUG"] = "1"
+        if self.mcp_port is not None:
+            env["AUTOUI_MCP_PORT"] = str(self.mcp_port)
         port = self.back_port
         if self.bad_port:
             blocker = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -132,12 +137,18 @@ class Service:
             self._blocker = blocker  # 保持占用直到 stop
         self.log_path.parent.mkdir(parents=True, exist_ok=True)
         self._logf = open(self.log_path, "w", encoding="utf-8", errors="replace")
-        if self.mode == "run":
+        if self.mode in ("run", "native"):
             argv = [str(AUTO_EXE), "run", "--server", "rust",
                     "-F", str(self.front_port), "-B", str(port), "-d", str(REPO)]
+            if self.mode == "native":
+                argv.extend(["-r", "vm"])
         else:
             argv = [str(AUTO_EXE), "service", "--server", "rust", "-B", str(port), "-d", str(REPO)]
-        self.proc = subprocess.Popen(argv, cwd=REPO, env=env, stdout=self._logf, stderr=subprocess.STDOUT)
+        self.proc = subprocess.Popen(
+            argv, cwd=REPO, env=env, stdin=subprocess.PIPE,
+            stdout=self._logf, stderr=subprocess.STDOUT,
+            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
+        )
 
     def wait_ready(self) -> tuple[bool, str]:
         deadline = time.time() + READY_TIMEOUT_S
@@ -363,7 +374,6 @@ def s_restart(ctx: Ctx):
 # 未落地场景：登记 owner，运行即 pending（profile 整体非零，不可静默跳过）
 PENDING_SCENARIOS = {
     "vue-ui.author_task": "T-05（Vue＋Rust 真实交互：创建/自动保存/冲突可见/刷新与重启回放）",
-    "vm-ui.author_task": "T-06（原生 VM 真实窗口任务与退出恢复；驱动前置 auto-ui/PLAN-003 仍 drafting）",
 }
 
 PROFILE_PHASES = {
@@ -422,6 +432,12 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
         return phase in phases and (not tokens or any(t in phase for t in tokens))
 
     run_vue_ui = phase_selected("vue-ui")
+    if phase_selected("vm-ui"):
+        import native_vm_scenarios
+        return native_vm_scenarios.run(
+            sys.modules[__name__], profile, deps, exe_sha, selected,
+            inject, run_dir, data_dir, front, back,
+        )
     spawn_mode = "run" if run_vue_ui else "service"
 
     results: list[dict] = []
