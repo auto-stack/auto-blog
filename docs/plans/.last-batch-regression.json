@@ -1,0 +1,21 @@
+{
+  "last_covered_plan_id": 3,
+  "timestamp": "2026-10-30T17:30:56Z",
+  "covered_commit": "b5895514e25ba8a83daed9c654dd5c88ac1c9a2f",
+  "command": "python tests/dual/verify_dual.py --profile vue-rust | --profile native-vm-rust",
+  "legs": [
+    "vue-rust (15/15 EXIT=0, report vue-rust-20261031-010518)",
+    "native-vm-rust (22/22 EXIT=0, report native-vm-rust-20261031-011120)"
+  ],
+  "new_reds": [],
+  "known_reds_seen": [],
+  "evidence_basis": "同基线有效证据复用（merge→regress 交接）：两门于 e8fdbb0 代码树执行 EXIT=0×2；e8fdbb0..b589551 仅计划簿记 docs 提交（git diff --stat src/ tests/ rust-workspace/ gen/ 为空），代码/依赖/验证配置零变更",
+  "trigger": "docs/plans/.last-batch-regression.json 缺失（BLOG-003 归档时 due check 发现）；BLOG-003 id=3 非 5 的倍数，缺失文件即 due 条款",
+  "deps_at_gate": {
+    "auto-lang": "28cd482de",
+    "auto-ui": "69690df",
+    "auto-man": "e6cc06f",
+    "auto.exe_sha256_head": "da0558e7"
+  },
+  "notes": "single-instance 前置：本仓无在跑重载；检测到外部会话 cargo/nextest（他仓 tier），与本 receipt 引用的已完成门无交集"
+}
