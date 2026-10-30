@@ -78,6 +78,11 @@ fn pkg_ok_path(root str, pub_id str) str {
     return join_path(pd, ".ok")
 }
 
+fn pkg_html_path(root str, pub_id str) str {
+    let pd str = pkg_dir(root, pub_id)
+    return join_path(pd, "index.html")
+}
+
 /// 数据目录内 b64 资产存放位（与 drafts.assets_dir 同布局；该 helper 保持私有）。
 fn asset_store_path(root str, asset_id str) str {
     let adir str = join_path(root, "assets")
@@ -374,4 +379,50 @@ pub fn export_publication(pub_id str, format str) ExportResult {
         }
     }
     return ok_res(pub_id, "exported", pkg_rel, pchash)
+}
+
+/// 采集 HTML 入库（T-03；vue 轨引擎 DOM 采集产物，自包含离线 index.html）。
+/// 合同：仅接收已落地包（.ok 在、state=exported）的附加工件；写后回读校验；
+/// export_refs 记录（无时间戳条目=重复采集幂等去重）；.ok/manifest 不动
+/// （markdown 基包提交点保持，index.html 为登记在册的附加工件）。
+/// AC-04 守卫：入库 HTML 拒绝携带数据根绝对路径 / file:// 引用。
+/// 采集原语本身属跨仓提案（F-12：auto-ui dom.outer_html 类）——本端点即
+/// T-00「交后端入库」的完整合同面，电池以真实 HTML fixture 验证。
+pub fn store_publication_html(pub_id str, html str) ExportResult {
+    let p Publication = open_publication(pub_id)
+    if p.publication_id == "" {
+        return fail_res(pub_id, "", "not_found")
+    }
+    let pstate str = p.state
+    let pchash str = p.content_hash
+    if pstate == "withdrawn" {
+        return fail_res(pub_id, pstate, "withdrawn_not_exportable")
+    }
+    if html == "" {
+        return fail_res(pub_id, pstate, "bad_html")
+    }
+    let root str = data_root()
+    if root != "" {
+        if html.find(root) >= 0 {
+            return fail_res(pub_id, pstate, "abs_path_rejected")
+        }
+    }
+    if html.find("file://") >= 0 {
+        return fail_res(pub_id, pstate, "abs_path_rejected")
+    }
+    let okp str = pkg_ok_path(root, pub_id)
+    if !fs.exists(okp) {
+        return fail_res(pub_id, pstate, "not_exported")
+    }
+    let hp str = pkg_html_path(root, pub_id)
+    if !write_confirmed_e(hp, html) {
+        return fail_res(pub_id, pstate, "staging_write_failed")
+    }
+    let pkg_rel str = "exports/" + pub_id
+    let entry str = "{\"format\":\"html\",\"package\":\"" + pkg_rel + "\",\"content_hash\":\"" + json_escape(pchash) + "\"}"
+    let rr PubResult = record_export(pub_id, entry)
+    if !rr.ok {
+        return fail_res(pub_id, pstate, "record_failed")
+    }
+    return ok_res(pub_id, pstate, pkg_rel, pchash)
 }

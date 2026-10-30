@@ -392,3 +392,21 @@ pub fn add_asset_b64(work_id str, b64 str, sha256 str, mime str, caption str, ex
 pub fn export_publication(pub_id str, format str) ExportResult {
     return exporters.export_publication(pub_id, format)
 }
+
+// --- BLOG-003 T-03 委托（快照只读面 + 采集 HTML 入库）---
+
+pub fn publication_content(pub_id str) str {
+    return publications.publication_content(pub_id)
+}
+
+pub fn publication_asset(pub_id str, asset_id str) str {
+    return publications.publication_asset(pub_id, asset_id)
+}
+
+pub fn work_content_hash(work_id str) str {
+    return publications.work_content_hash(work_id)
+}
+
+pub fn store_publication_html(pub_id str, html str) ExportResult {
+    return exporters.store_publication_html(pub_id, html)
+}

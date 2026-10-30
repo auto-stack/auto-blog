@@ -13,7 +13,8 @@ widget author {
         SummaryChanged(str), TagsChanged(str), CoverChanged(str), DoSave,
         KeepMine, KeepTheirs, GoDemo, ToggleEngine, FormatText, FormatMd,
         AssetRefInput(str), AssetCaptionInput(str), AddAsset, ImportItems(str), DoCompose,
-        PreviewOpen, PreviewClose
+        PreviewOpen, PreviewClose,
+        DoPublish, ExportPkg(str), OpenSnap(str), CloseSnap
     }
 
     model {
@@ -138,6 +139,35 @@ widget author {
                             oninput: .SummaryChanged($event),
                             style: input_field
                         }
+                        // ── 快照只读视图（BLOG-003 T-03）：可返回的独立状态；
+                        // 读冻结 revision，草稿改动不影响（AC-02 UI 面）。
+                        if .store.snap_open {
+                            col {
+                                style: "gap-2 border border-border rounded p-3"
+                                row {
+                                    style: "justify-between items-center"
+                                    row {
+                                        style: "gap-2 items-center"
+                                        text f"快照 rev ${.store.snap_rev}（只读）" {
+                                            style: "text-xs font-medium text-brand-green"
+                                        }
+                                        text "草稿改动不影响旧快照" {
+                                            style: "text-xs text-muted-foreground"
+                                        }
+                                    }
+                                    button "关闭快照" {
+                                        onclick: .CloseSnap,
+                                        style: "px-3 py-1 rounded border border-border text-xs"
+                                    }
+                                }
+                                text f"内容签名 ${.store.snap_hash}" {
+                                    style: "text-xs text-muted-foreground"
+                                }
+                                text .store.snap_body {
+                                    style: "whitespace-pre-wrap text-sm font-serif"
+                                }
+                            }
+                        }
                         // ── 预览（T-03）：可返回的独立状态；本地渲染离线可用；
                         // 未识别语法按原文显示；不执行文章脚本（引擎组件化渲染）。
                         if .preview_open {
@@ -163,7 +193,7 @@ widget author {
                                 }
                             }
                         }
-                        if .preview_open == false {
+                        if .preview_open == false && .store.snap_open == false {
                         // ── 写作面（Markdown 引擎 / 纯文本降级，T-01）──────────
                         // 格式行：text 稿（BLOG-001 存量）恒 textarea；
                         // markdown 稿：打开时正文非空默认引擎，空稿先 textarea
@@ -273,6 +303,73 @@ widget author {
                                 }
                             }
                         }
+                        // ── 发布与导出（BLOG-003 T-03）──────────────────
+                        col {
+                            style: "gap-2 border border-border rounded p-3"
+                            row {
+                                style: "justify-between items-center"
+                                text "发布与导出（本地发布包）" {
+                                    style: "text-xs font-medium text-muted-foreground"
+                                }
+                                button "发布快照" {
+                                    onclick: .DoPublish,
+                                    style: "px-3 py-1.5 rounded bg-brand-green text-white text-xs"
+                                }
+                            }
+                            text "导出包=Markdown 正文+manifest+图片资产（b64 存证），离线自包含；HTML 导出待引擎采集原语（F-12 跨仓提案），后端入库面已就绪" {
+                                style: "text-xs text-muted-foreground"
+                            }
+                            if .store.pub_error != "" {
+                                text f"发布操作失败：${.store.pub_error}" {
+                                    style: "text-xs text-destructive bg-destructive/10 rounded p-2"
+                                }
+                            }
+                            if .store.pubs.len() == 0 {
+                                text "尚无发布快照（发布后可导出本地包）" {
+                                    style: "text-xs text-muted-foreground"
+                                }
+                            }
+                            for p in .store.pubs {
+                                col {
+                                    style: "gap-1 border-t border-border pt-2"
+                                    row {
+                                        style: "justify-between items-center flex-wrap"
+                                        row {
+                                            style: "gap-2 items-center"
+                                            text f"rev ${p.work_revision}" {
+                                                style: "text-xs font-medium"
+                                            }
+                                            text p.state {
+                                                style: "text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground border border-border"
+                                            }
+                                            if p.content_hash == .store.current_hash {
+                                                text "与当前一致" {
+                                                    style: "text-xs text-brand-green"
+                                                }
+                                            } else {
+                                                text "已分叉" {
+                                                    style: "text-xs text-amber-600"
+                                                }
+                                            }
+                                        }
+                                        row {
+                                            style: "gap-2"
+                                            button "导出包" {
+                                                onclick: .ExportPkg(p.publication_id),
+                                                style: "px-2 py-1 rounded border border-border text-xs"
+                                            }
+                                            button "打开快照" {
+                                                onclick: .OpenSnap(p.publication_id),
+                                                style: "px-2 py-1 rounded border border-border text-xs"
+                                            }
+                                        }
+                                    }
+                                    text f"${p.publication_id} · ${p.content_hash}" {
+                                        style: "text-xs text-muted-foreground"
+                                    }
+                                }
+                            }
+                        }
                         row {
                             style: "justify-between items-center"
                             text f"ID ${.store.current.work_id} · rev ${.store.current.revision}" {
@@ -306,6 +403,7 @@ widget author {
     on {
         .Init -> {
             .store.LoadList()
+            .store.LoadPubs()
         }
         .AutosaveTick -> {
             .store.AutosaveTick()
@@ -363,5 +461,9 @@ widget author {
                 .import_items = ""
             }
         }
+        .DoPublish -> { .store.DoPublish() }
+        .ExportPkg(pid str) -> { .store.ExportPkg(pid) }
+        .OpenSnap(pid str) -> { .store.OpenSnap(pid) }
+        .CloseSnap -> { .store.CloseSnap() }
     }
 }

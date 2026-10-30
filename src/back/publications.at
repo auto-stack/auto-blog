@@ -15,7 +15,7 @@
 //   F-11 用户函数的「字段访问」实参（fn(w.body)）同断 → 先提升局部变量再传
 //   结构体字面量字段一律局部变量（不内嵌调用）；路径串接不经过 helper。
 use works: Work, json_escape, json_field_str, json_field_int
-use drafts: open_draft
+use drafts: open_draft, open_frozen
 
 pub type Publication = {
     publication_id: str
@@ -328,6 +328,112 @@ pub fn set_pub_state(pub_id str, next_state str) PubResult {
         return PubResult { ok: false, publication_id: pub_id, state: p.state, error: "meta_write_failed" }
     }
     return PubResult { ok: true, publication_id: pub_id, state: next_state, error: "" }
+}
+
+// --- BLOG-003 T-03：快照只读面（正文/资产/当前签名，导出与 UI 支撑）---
+
+/// asset_id 越界守卫（与 exporters.safe_id 同纪律：find 基，单位安全）。
+fn safe_asset_id(aid str) bool {
+    if aid == "" {
+        return false
+    }
+    if aid.find("..") >= 0 {
+        return false
+    }
+    if aid.find("/") >= 0 {
+        return false
+    }
+    if aid.find("\\") >= 0 {
+        return false
+    }
+    if aid.find(":") >= 0 {
+        return false
+    }
+    return true
+}
+
+/// 快照冻结正文只读（AC-02 的 UI 面：草稿改动不影响旧快照——读的是
+/// works/<id>/revisions/rev-N，不是 current）。不存在返回 ""。
+pub fn publication_content(pub_id str) str {
+    let p Publication = open_publication(pub_id)
+    if p.publication_id == "" {
+        return ""
+    }
+    let wid str = p.work_id
+    let wrev int = p.work_revision
+    let w Work = open_frozen(wid, wrev)
+    if w.work_id == "" {
+        return ""
+    }
+    return w.body
+}
+
+/// 快照引用资产读取：{"b64":..,"mime":..,"sha256":..}（HTML data-URL 内联用）。
+/// 仅服务 asset_refs 中精确登记过的 asset_id（引号等值匹配 + 越界守卫）；
+/// 未引用/缺失返回 {"b64":""}。
+pub fn publication_asset(pub_id str, asset_id str) str {
+    let p Publication = open_publication(pub_id)
+    if p.publication_id == "" {
+        return "{\"b64\":\"\"}"
+    }
+    if !safe_asset_id(asset_id) {
+        return "{\"b64\":\"\"}"
+    }
+    // 字段提升局部（生成 Rust String 移动语义：同字段不得二次使用）
+    let arefs str = p.artifact_refs
+    let needle str = "\"" + asset_id + "\""
+    if arefs.find(needle) < 0 {
+        return "{\"b64\":\"\"}"
+    }
+    // 定位该资产行取 mime/sha256（JSON Lines find 基逐行，同 asset_check 纪律）
+    var mime str = ""
+    var sha str = ""
+    var rest str = arefs
+    if rest == "[]" {
+        rest = ""
+    }
+    var guard int = 0
+    while guard < 200 && rest != "" {
+        guard = guard + 1
+        var line str = ""
+        let nl int = rest.find("\n")
+        if nl < 0 {
+            line = rest
+            rest = ""
+        } else {
+            line = rest.slice(0, nl)
+            rest = rest.slice(nl + 1, rest.len())
+        }
+        if line != "" {
+            let lid str = json_field_str(line, "asset_id")
+            if lid == asset_id {
+                mime = json_field_str(line, "mime")
+                sha = json_field_str(line, "sha256")
+                rest = ""
+            }
+        }
+    }
+    let root str = data_root()
+    let apath str = root + "/assets/" + asset_id + ".b64"
+    if !fs.exists(apath) {
+        return "{\"b64\":\"\"}"
+    }
+    let b64 str = fs.read_text(apath)
+    var out str = "{\"b64\":\"" + json_escape(b64) + "\""
+    out = out + ",\"mime\":\"" + json_escape(mime) + "\""
+    out = out + ",\"sha256\":\"" + json_escape(sha) + "\""
+    out = out + "}"
+    return out
+}
+
+/// 当前草稿内容签名（历史比较用：与快照 hash 等值=未分叉）。不存在返回 ""。
+pub fn work_content_hash(work_id str) str {
+    let w Work = open_draft(work_id)
+    if w.work_id == "" {
+        return ""
+    }
+    let b str = w.body
+    return content_hash(b)
 }
 
 /// 追加导出工件记录（T-02；JSON Lines 只追加，幂等：完全相同的条目已存在则

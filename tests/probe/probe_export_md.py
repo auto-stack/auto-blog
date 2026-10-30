@@ -310,6 +310,72 @@ def main():
             "remote_kept": "https://example.com/x.png" in art6,
             "statuses": [a["status"] for a in man6["assets"]]})
 
+    # EXP-12 快照只读面：冻结正文 == 冻结体基准；未知 pid → ""
+    stc, content = http_json("GET", f"{API}/api/publications/{pid}/content")
+    stc2, content_nf = http_json("GET", f"{API}/api/publications/p-nope/content")
+    # pid2 = v2 快照，其正文应为 v2 改稿（非 v1）
+    stc3, content2 = http_json("GET", f"{API}/api/publications/{pid2}/content")
+    ok12 = (stc == 200 and content == expected_body
+            and content_nf == ""
+            and content2 == "# v2 改稿\n\n新正文。")
+    record("EXP-12-publication-content", ok12,
+           {"v1_eq": content == expected_body, "nf_empty": content_nf == "",
+            "v2_eq": content2 == "# v2 改稿\n\n新正文。"})
+
+    # EXP-13 快照资产读取：b64/mime/sha256 对上 ingest 声明；未引用 → b64 ""
+    # （str 返回端点的 HTTP body 是 JSON 字符串——信封需二次解析）
+    sta, a1raw = http_json("POST", f"{API}/api/publications/{pid}/asset", {"asset_id": aid1})
+    a1r = json.loads(a1raw) if isinstance(a1raw, str) else a1raw
+    sta2, a_nfraw = http_json("POST", f"{API}/api/publications/{pid}/asset", {"asset_id": "a-unknown-9"})
+    a_nf = json.loads(a_nfraw) if isinstance(a_nfraw, str) else a_nfraw
+    sta3, a_evraw = http_json("POST", f"{API}/api/publications/{pid}/asset", {"asset_id": "../escape"})
+    a_ev = json.loads(a_evraw) if isinstance(a_evraw, str) else a_evraw
+    ok13 = (a1r.get("b64") == b1 and a1r.get("sha256") == h1 and a1r.get("mime") == "image/png"
+            and a_nf.get("b64") == "" and a_ev.get("b64") == "")
+    record("EXP-13-publication-asset", ok13,
+           {"b64_eq": a1r.get("b64") == b1, "sha_eq": a1r.get("sha256") == h1,
+            "nf": a_nf.get("b64") == "", "traversal": a_ev.get("b64") == ""})
+
+    # EXP-14 采集 HTML 入库（正控）：fixture 自包含 HTML → index.html 落地 + export_refs 登记
+    html_fixture = ("<!DOCTYPE html><html><head><meta charset=\"utf-8\">"
+                    "<title>导出电池稿</title></head><body>"
+                    f"<h1>导出电池稿</h1><p>离线自包含。</p>"
+                    f"<img alt=\"图甲·示意\" src=\"data:image/png;base64,{b1}\">"
+                    "</body></html>")
+    sth, hx = http_json("POST", f"{API}/api/publications/{pid}/html", {"html": html_fixture})
+    idx_on_disk = read_pkg(pid, "index.html").decode("utf-8")
+    _, g1c = http_json("GET", f"{API}/api/publications/{pid}")
+    n_html = g1c.get("export_refs", "").count('"format":"html"')
+    # 重复采集：同内容幂等（条目无时间戳 → 去重为 1）
+    sth2, hx2 = http_json("POST", f"{API}/api/publications/{pid}/html", {"html": html_fixture})
+    _, g1d = http_json("GET", f"{API}/api/publications/{pid}")
+    n_html2 = g1d.get("export_refs", "").count('"format":"html"')
+    ok14 = (sth == 200 and hx.get("ok")
+            and idx_on_disk == html_fixture
+            and n_html == 1 and n_html2 == 1
+            and hx2.get("ok") and hx2.get("state") == "exported")
+    record("EXP-14-html-ingest", ok14,
+           {"ok": hx.get("ok"), "disk_eq": idx_on_disk == html_fixture,
+            "records": n_html, "records_after_re": n_html2, "err": hx.get("error")})
+
+    # EXP-15 HTML 入库负例：未导出包 / 空 html / 绝对路径 / withdrawn；状态均不变
+    _, hx_a = http_json("POST", f"{API}/api/publications/{pid3}/html", {"html": "<html></html>"})
+    _, hx_b = http_json("POST", f"{API}/api/publications/{pid}/html", {"html": ""})
+    _, hx_c = http_json("POST", f"{API}/api/publications/{pid}/html",
+                        {"html": f"<img src=\"file:///{DATA}/assets/x.png\">"})
+    _, hx_d = http_json("POST", f"{API}/api/publications/{pid2}/html", {"html": "<html>hi</html>"})
+    _, g3b = http_json("GET", f"{API}/api/publications/{pid3}")
+    _, g4b = http_json("GET", f"{API}/api/publications/{pid4}")
+    ok15 = (hx_a.get("ok") is False and hx_a.get("error") == "not_exported"
+            and hx_b.get("ok") is False and hx_b.get("error") == "bad_html"
+            and hx_c.get("ok") is False and hx_c.get("error") == "abs_path_rejected"
+            and hx_d.get("ok") is False and hx_d.get("error") == "withdrawn_not_exportable"
+            and g3b.get("state") == "snapshotted" and g4b.get("state") == "exported")
+    record("EXP-15-html-negatives", ok15,
+           {"not_exported": hx_a.get("error"), "bad_html": hx_b.get("error"),
+            "abs_path": hx_c.get("error"), "withdrawn": hx_d.get("error"),
+            "states": [g3b.get("state"), g4b.get("state")]})
+
     passed = sum(1 for r in results if r)
     print(f"SUMMARY {json.dumps({'passed': passed, 'failed': len(results) - passed})}")
     return 0 if passed == len(results) else 1

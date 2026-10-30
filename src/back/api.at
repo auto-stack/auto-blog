@@ -385,3 +385,31 @@ pub fn add_asset_b64(work_id str, b64 str, sha256 str, mime str, caption str, ex
 pub fn export_publication(pub_id str, format str) ExportResult {
     return db.export_publication(pub_id, format)
 }
+
+// --- BLOG-003 T-03：快照只读面 + 采集 HTML 入库 ---
+
+/// GET /api/publications/:pub_id/content — 快照冻结正文（只读；不存在返回 ""）。
+#[api(method = "GET", path = "/api/publications/:pub_id/content")]
+pub fn publication_content(pub_id str) str {
+    return db.publication_content(pub_id)
+}
+
+/// POST /api/publications/:pub_id/asset — 快照引用资产读取。
+/// {asset_id} → {"b64","mime","sha256"}（未引用/缺失 b64=""）。
+#[api(method = "POST", path = "/api/publications/:pub_id/asset")]
+pub fn publication_asset(pub_id str, asset_id str) str {
+    return db.publication_asset(pub_id, asset_id)
+}
+
+/// GET /api/works/:work_id/content-hash — 当前草稿内容签名（历史比较）。
+#[api(method = "GET", path = "/api/works/:work_id/content-hash")]
+pub fn work_content_hash(work_id str) str {
+    return db.work_content_hash(work_id)
+}
+
+/// POST /api/publications/:pub_id/html — 采集 HTML 入库（exports/<pid>/index.html；
+/// 仅接收已落地包的附加工件；AC-04 守卫拒绝绝对路径）。采集原语属 F-12 跨仓提案。
+#[api(method = "POST", path = "/api/publications/:pub_id/html")]
+pub fn store_publication_html(pub_id str, html str) ExportResult {
+    return db.store_publication_html(pub_id, html)
+}
