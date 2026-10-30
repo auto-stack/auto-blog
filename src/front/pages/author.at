@@ -141,14 +141,14 @@ widget author {
                         }
                         // ── 快照只读视图（BLOG-003 T-03）：可返回的独立状态；
                         // 读冻结 revision，草稿改动不影响（AC-02 UI 面）。
-                        if .store.snap_open {
+                        if .store.frozen_view_open {
                             col {
                                 style: "gap-2 border border-border rounded p-3"
                                 row {
                                     style: "justify-between items-center"
                                     row {
                                         style: "gap-2 items-center"
-                                        text f"快照 rev ${.store.snap_rev}（只读）" {
+                                        text f"快照 rev ${.store.frozen_view_rev}（只读）" {
                                             style: "text-xs font-medium text-brand-green"
                                         }
                                         text "草稿改动不影响旧快照" {
@@ -160,10 +160,10 @@ widget author {
                                         style: "px-3 py-1 rounded border border-border text-xs"
                                     }
                                 }
-                                text f"内容签名 ${.store.snap_hash}" {
+                                text f"内容签名 ${.store.frozen_view_hash}" {
                                     style: "text-xs text-muted-foreground"
                                 }
-                                text .store.snap_body {
+                                text .store.frozen_view_body {
                                     style: "whitespace-pre-wrap text-sm font-serif"
                                 }
                             }
@@ -193,7 +193,7 @@ widget author {
                                 }
                             }
                         }
-                        if .preview_open == false && .store.snap_open == false {
+                        if .preview_open == false && .store.frozen_view_open == false {
                         // ── 写作面（Markdown 引擎 / 纯文本降级，T-01）──────────
                         // 格式行：text 稿（BLOG-001 存量）恒 textarea；
                         // markdown 稿：打开时正文非空默认引擎，空稿先 textarea

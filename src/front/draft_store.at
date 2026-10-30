@@ -29,11 +29,11 @@ store DraftStore {
         var pubs []Publication = []
         var pub_error str = ""
         var pub_busy bool = false
-        var snap_open bool = false
-        var snap_pid str = ""
-        var snap_rev int = 0
-        var snap_hash str = ""
-        var snap_body str = ""
+        var frozen_view_open bool = false
+        var frozen_view_pid str = ""
+        var frozen_view_rev int = 0
+        var frozen_view_hash str = ""
+        var frozen_view_body str = ""
         var current_hash str = ""
     }
 
@@ -642,11 +642,11 @@ store DraftStore {
                         .pub_error = "not_found"
                     } else {
                         let body str = publication_content(pid)
-                        .snap_pid = pid
-                        .snap_rev = p.work_revision
-                        .snap_hash = p.content_hash
-                        .snap_body = body
-                        .snap_open = true
+                        .frozen_view_pid = pid
+                        .frozen_view_rev = p.work_revision
+                        .frozen_view_hash = p.content_hash
+                        .frozen_view_body = body
+                        .frozen_view_open = true
                         .pub_error = ""
                     }
                 } catch {
@@ -655,8 +655,8 @@ store DraftStore {
             }
         }
         .CloseSnap -> {
-            .snap_open = false
-            .snap_body = ""
+            .frozen_view_open = false
+            .frozen_view_body = ""
         }
     }
 }
