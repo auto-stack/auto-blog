@@ -1,55 +1,35 @@
 # auto-blog
 
-博客与文章社区，使用 AutoLang / AutoUI 开发的独立应用。
+本地博客写作应用，使用AutoLang / AutoUI开发。更新：2026-10-31。
 
-## 当前状态（2026-10-05）
+## 已交付能力
 
-- **个人作者模式（BLOG-001）**：`/` 为「我的草稿」——未登录可创作、自动保存、崩溃恢复、条件 revision 冲突保护。
-- **社区 Demo**：`/demo` 为 RealWorld 演示 feed（种子数据/账号仅演示用）。
-- 规范见 [docs/specs/blog/durable-drafts.md](docs/specs/blog/durable-drafts.md)。
-- 计划与复审证据见 [已归档BLOG-001](docs/plans/archived/001-durable-drafts.md)（本地草稿功能已交付；Rust/原生VM双端门仍待后续闭合）。
+- [001个人草稿](docs/plans/archived/001-durable-drafts.md)：稳定ID、自动保存、冲突保稿与重启恢复；`/demo`仍为RealWorld演示社区。
+- [004双运行时验收](docs/plans/archived/004-dual-runtime-acceptance.md)：Rust服务与原生作者窗口已交付，原记录Vue15/15、native22/22及失败控制。
+- [002编辑/资料/预览](docs/plans/archived/002-editor-assets-preview.md)：固定AutoDown/textarea降级、资产来源、预览和窄屏。
+- [003快照与本地输出](docs/plans/archived/003-snapshots-export.md)：不可变快照、历史、Markdown＋base64资产包；HTML目前只交付接收入库合同，真实HTML采集F-12及网络发布仍未交付。
 
-## 运行
+现实现见[运行验收](docs/specs/blog/runtime-acceptance.md)、[编辑预览](docs/specs/blog/editor-assets-preview.md)、[输出规范](docs/specs/blog/snapshots-export.md)。这些结果不证明当前普通Vue开发启动已无问题：含引擎时已登记F-2（路由求值失败、导航壳正常）。
 
-安装对应版本的 `auto` CLI 后，从本仓根执行：
+## 当前后续计划
 
-```sh
-# 推荐：VM 后端（真实文件持久化）
-AUTO_BLOG_DATA=./.tmp/blog-data auto run --server vm
-# 或 Vue 前端 + VM
-auto run --server vm
-```
+[BLOG-005：普通开发启动与编辑器运行路径收口](docs/plans/005-standalone-dev-startup.md) 为 drafting/r1、0/8，**尚未实施**。复用004工具/调度器和002固定引擎，先对照当前dev/preview，再修真实责任接缝；不重做Rust生成器或编辑器。
 
-前端端口：`17826`。后端端口：`17827`。
+## 运行与验收
 
-数据目录：`AUTO_BLOG_DATA` 环境变量；缺省 `~/.auto-blog/data`。
+端口17826/17827；数据目录`AUTO_BLOG_DATA`覆盖，缺省`~/.auto-blog/data`。StyleKit及AutoDown固定于vendor；安装与匹配工具要求见[运行合同](docs/specs/blog/runtime-acceptance.md)。原生必须匹配实际auto-ui-tool，不能只更新auto.exe。
 
-共享 StyleKit 已固定在 `vendor/stylekit`。
-
-## 测试
+原生正式入口：`auto run -r vm --server rust`。普通Vue dev入口`auto run --server rust`的引擎挂载仍有F-2，005目标是将其闭合；当前Vue完整验收使用build＋preview，由既有调度器管理：
 
 ```sh
-cd tests && npm i
-RW_URL=http://localhost:17826 npm test
-# API probe
-pwsh -NoProfile -File tests/probe/drafts_api_probe.ps1
-pwsh -NoProfile -File tests/probe/review_001_api.ps1 -DataRoot .tmp/review-001
-node tests/probe/review_001_store.cjs
+python tests/dual/verify_dual.py --profile vue-rust
+python tests/dual/verify_dual.py --profile native-vm-rust
 ```
 
-## 来源与组合
+原生profile需`AUTO_UI_TOOL_BIN`指向匹配工具；调度器使用隔离数据目录，只管理本次进程。005拟新增的vue-dev-rust profile尚不可用。旧VM后端可用于诊断，不替代Rust/原生验收。UI数据错误、空白outlet、pending或零场景不计成功。
 
-来源提交、路径与文件 hash 见 `SOURCE-IMPORT.json`。首次导入提交保留在 `source-sync` 分支。
+## 规划、来源与开发
 
-AutoOS 通过 [`apps/023-realworld`](https://github.com/auto-stack/auto-os/tree/v0.6-dev/apps/023-realworld) submodule 固定本仓版本。
+[路线图](docs/roadmap-v0.6.md) · [规划入口](docs/README.md) · [来源清单](SOURCE-IMPORT.json)。AutoOS组合目录为[apps/auto-blog](https://github.com/auto-stack/auto-os/tree/main/apps/auto-blog)，不是本仓开发入口。
 
-## 产品规划（2026-10-04）
-
-[需求与设计、首版 roadmap、业界调研及前三个实施计划](docs/README.md)。
-
-
-## 当前优先计划（2026-10-29）
-
-[BLOG-004：Rust后端与原生VM界面运行及验收补齐](docs/plans/004-dual-runtime-acceptance.md)为当前后续合同，drafting/r2、未实施。关联auto-lang/PLAN-885（Rust生成链）和auto-ui/PLAN-003（原生输入/生命周期前置）；两项实际交付后仍须Blog本身完成Vue＋Rust与原生VM＋Rust用户任务。002/003的增强范围另行安排，001不重开。
-
-开发在 `D:/autostack/auto-blog` 独立clone的main；先push应用，再更新AutoOS组合子模块的精确提交。Linux适配仍等待auto-os-distro完成Nix＋COSMIC基础，本计划的Windows运行验收不等待该基础。
+开发/顺序复审在D:/autostack/auto-blog独立clone main；本轮只规划并push，不实现、不更新AutoOS子模块。后续统一OS计划装配各app已验证提交。跨应用联动/网络发布另排，Linux仍等待Nix＋COSMIC基础。

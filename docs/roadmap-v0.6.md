@@ -1,39 +1,19 @@
-# auto-blog：第一版 roadmap
+# auto-blog：独立可用性路线图
 
-状态：planning-baseline；日期：2026-10-04。应用产品版本拟用 0.1.x，需发行时确定；现有 pac.at 的导入版本号不自动代表该产品已经完成。AutoOS v0.6 目标窗口为2026年12月底，应用节奏按验收门槛调整。
+更新：2026-10-31。以现实现Spec及交付回执为准，pac版本和路线目标不表示全功能/全平台已通过。
 
-## 交付顺序
+| 顺序 | 计划/成果 | 当前状态与边界 |
+|---|---|---|
+| 基础 | [001个人草稿](plans/archived/001-durable-drafts.md) | 本地草稿已归档；历史任务计数9/31不在本轮重写，运行缺口由004接续 |
+| 运行 | [004 Rust与原生验收](plans/archived/004-dual-runtime-acceptance.md) | archived/r2、10/10；原Vue15/15、native22/22，59个Rust错误与作者窗口缺口已有关闭证据 |
+| 编辑 | [002编辑器/资料/预览](plans/archived/002-editor-assets-preview.md) | archived/r2、5/5；空稿textarea＋已有稿AutoDown；Vue采用build＋preview，普通dev的F-2仍在案 |
+| 输出 | [003快照与本地发布包](plans/archived/003-snapshots-export.md) | archived/r3、5/5；Markdown包与历史已交付，HTML仅接收入库，F-12采集与网络published未交付 |
+| 当前 | [005普通开发启动收口](plans/005-standalone-dev-startup.md) | drafting/r1、0/8，未实施；先T-00验证当前dev/preview与已有公开配置，再修接缝或消费最小owner前置 |
 
-| 里程碑 | 成果 | 范围 | 实施计划 | 现状 |
-|---|---|---|---|---|
-| M1 | 真实草稿 | 本地作者模式、稳定ID、保存恢复与迁移 | BLOG-001 | 本地草稿能力已交付，已归档；双端运行门见004 |
-| M1b | 双端运行验收 | 真实Rust服务＋原生VM窗口、前置回执与组合验收 | BLOG-004 | delivered（2026-10-30，r2 归档；vue-rust 15/15、native-vm-rust 22/22 EXIT=0） |
-| M2 | 编辑与预览 | AutoDown/fallback、资产来源、知识导入和桌面/窄屏预览 | BLOG-002 | delivered（2026-10-30，r2 归档；双轨 Markdown 编辑/降级、资产与导入、预览与窄屏；vue-rust 15/15、native-vm-rust 22/22） |
-| M3 | 可移植输出 | 不可变快照、Markdown/HTML资产包、历史与回执 | BLOG-003 | 未开始 |
+005补一条从本仓依赖准备→普通dev作者页实际挂载→AutoDown/降级编辑→保存/预览→正常及强杀重开→下一次保存的真实链路。已有preview/native门继续回归；不能只看到导航壳或引用旧004总数就关闭普通dev缺口。CLI与实际tool身份均要固定。
 
-M0先冻结 source-sync 与来源清单，现行开发在D:/autostack/auto-blog独立clone的main；push交付后更新AutoOS内apps/auto-blog固定pin，组合子模块保持detached。当前可先做计划01的接口、fixture和独立新模块；恢复主力机后再审查v0.5来源增量并融合旧入口。计划02/03依赖前序的真实证据，不能仅凭文档或勾选开始依赖集成。
+不等待auto-web建仓/大迁移、OS装配或Linux；HTTP能力只按当前已交付公共入口消费。Markdown/HTML范围按003实交付区分，不把005变成新输出或社区开发包。跨应用联动、网络发布目标与F-12采集另排。
 
-## 时间与容量
+工作位D:/autostack/auto-blog独立clone main，保留本地证据与他人WIP。本轮只更新并push计划/README/roadmap，不实现、不改历史归档、现实现Spec或旧ledger，不更新OS子模块。各app单独运行验收后，再由统一AutoOS计划接收精确提交；Linux仍WAIT_DISTRO_M1。
 
-建议M1用1–2周完成能力探针和最小真实数据闭环，M2用1–2周完成主体体验，M3按平台/格式复杂度预留2–3周，之后1–2周集中验证与修复。这是容量估算而非AI开发速度承诺；四个应用可由独立agent分工，但同仓计划顺序执行，不能把这份估算叠加成同一人三个月的硬承诺。
-
-先保证首个应用M1稳定，再用同样模式启动下一个。能力探针不通过时减少范围或登记明确的跨仓前置计划；已承诺的核心能力未经讨论不能悄悄改为mock验收。
-
-## 可延后与远期
-
-润色/大纲为可选AI原型。v0.7+再做真实部署渠道、社区认证与治理、协作和OpenBusiness市场；首版不把RealWorld演示社区包装成生产社区。
-
-首版依赖当前AutoUI/AutoLang基线；可移植数据协议不依赖新的HIR/AC或完整知识操作系统。远期接统一auto-man的应用/资产/知识包管理，当前不要在应用内再实现一套包安装服务。
-
-## 发布门槛
-
-实际个人任务闭环、真实数据重启恢复、失败/取消行为、可迁出格式、Vue/VM能力矩阵、Windows/Linux实际可运行范围及Harmony demo边界必须有证据。缺少平台没有跑过不能写“全支持”。仅文档阶段不运行cargo测试；实施后的测试依照代码作用域进行。
-
-## 计划入口
-
-1. [BLOG-001：个人作者模式与可靠草稿](plans/archived/001-durable-drafts.md)
-2. [BLOG-002：编辑器复用、资料与预览](plans/archived/002-editor-assets-preview.md)（已交付归档）
-3. [BLOG-003：固定版本与本地发布包](plans/003-snapshots-export.md)
-4. [BLOG-004：Rust后端与原生VM界面运行及验收补齐](plans/archived/004-dual-runtime-acceptance.md)（已交付归档，2026-10-30）
-
-[完整设计](design/01-product-design.md) · [调研](research/20261004-benchmarks.md) · [agent操作说明](README.md)
+[README](../README.md) · [规划入口](README.md) · [运行规范](specs/blog/runtime-acceptance.md)
