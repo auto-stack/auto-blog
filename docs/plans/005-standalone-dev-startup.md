@@ -6,7 +6,7 @@ author: [Codex]
 created_at: 2026-10-31
 updated_at: 2026-10-31
 plan_revision: 1
-current_step: 1
+current_step: 2
 total_steps: 8
 base_branch: main
 base_commit: cd9b5d5c445e852fb13616593bf30553ce2f8493
@@ -105,7 +105,7 @@ touched_goals: []
 ## 8. 执行步骤
 
 - [x] T-00（owner_stage=work；依赖001/002/003/004已有交付；AC-01/02）：完成版本冻结及dev/preview最小责任探针、准备/超时决策稿；复用现有配置，必要时消费实际owner最小前置。[✅ 已完成 2026-11-01] 决策稿=docs/plans/evidence/005/startup-decision.md（版本冻结：CLI `390e664e…`/tool `4d2198b8…` 为本计划基线，pac.at/author.at/verify_dual.py/run_vue.rs/run_vm.rs 与计划表逐字节一致，auto-ui-tools/src/vue.rs=5a9a79cb 新冻结；F-2 当日复现=dayjs CJS default export 断裂、outlet 空；责任矩阵 6 轮控制变量：根声明 mermaid/lowlight/katex + optimizeDeps.include 三者=cand5 全绿，同稿 preview 对照全绿；修复=app 半边 pac.at npm_deps 三声明（官方管线验证透传）+ auto-ui owner 前置（vue.rs generate_vite_config 增发 npm_deps include，已逐字验证）；原生轨不受影响；vite dev 绑 localhost(::1)、磁盘正文在 body.txt 两口径已记录）
-- [ ] T-01（owner_stage=work；依赖T-00；AC-01）：补文档化正式准备/启动与冷缓存/工具身份/端口故障门，不依赖OS或改生成物。
+- [x] T-01（owner_stage=work；依赖T-00；AC-01）：补文档化正式准备/启动与冷缓存/工具身份/端口故障门，不依赖OS或改生成物。[✅ 已完成 2026-11-01] README「准备与启动（Windows 正式路径）」落地（前置/六步进度/双判据就绪 localhost+127.0.0.1/有界预算/故障语义）；冷缓存整轮 238.4s（wipe target+gen→双判据就绪，冷 scaffold 从 pac.at 重建含全部 npm_deps，决策稿 §6b）；故障门实测：构建错 rc=1+具名 120s 后端上限（E-7 PASS）、坏 tool 身份门 EXIT=1 具名 FileNotFoundError、front 端口冲突框架静默（E-4a 落他栈/E-4b 自增撞后端端口——owner 前置补 strictPort，README 记核对缓解）、后端端口冲突 Windows 不可注入（E-5）、exe 锁挂起（E-6）；收割 004 时代孤儿 vite preview ×8+（E-8）；进程/端口收割验证干净
 - [ ] T-02（owner_stage=work；依赖T-00及实际必要前置交付；AC-02）：修dev依赖/author动态挂载接缝，B-02真实引擎与textarea合法控制全过。
 - [ ] T-03（owner_stage=work；依赖T-01/02；AC-03）：闭合B-03缺资源保稿与恢复，回放B-04所需Rust/原生/快照回归。
 - [ ] T-04（owner_stage=work；依赖T-03；AC-04）：在既有调度器建立dev profile，跑B-01..05、原门与失败控制，输出SD候选和真实覆盖。
@@ -119,6 +119,8 @@ touched_goals: []
 - 现有归档计划、Spec 与源码保持原样；旧验收只证明其冻结版本与已声明范围。应用提交/push 不升级 AutoOS 组合版本。
 
 stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: partial（T-00完成；T-01..T-05未开始） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一检出） | branch: main | base_commit: 805e05f | code_commit: 本提交（pac.at npm_deps 增声明 mermaid/lowlight/katex；docs/plans/evidence/005/startup-decision.md 决策稿；计划簿记） | dependency_revisions: CLI 390e664e、tool 4d2198b8（本计划冻结基线）；run_vue.rs 0c325ac1、run_vm.rs e058a3e8 与计划表一致；auto-ui-tools/src/vue.rs 5a9a79cb（现行 vite 配置发射源，新增冻结）；vendor 引擎 pin c3464d0 未动 | task_ids: T-00（已勾选附证据） | evidence: 决策稿 §1..§5（D:/autostack/plan-artifacts/plan-005/t00/ 本地原始件）；官方入口 dev 复现 F-2（dayjs CJS 断裂/outlet 空，dev-run.log）+ 6 轮责任矩阵（candidates.log，cand5 全绿）+ 同稿 preview 对照全绿（preview-run.log）；官方管线 npm_deps 透传验证（regen-run.log） | blockers: T-02 配置发射半边=auto-ui owner 前置（vue.rs generate_vite_config 增发 optimizeDeps.include npm_deps 键——已逐字验证的最小增量，决策稿 §4）；owner 交付前 dev 门保持红 | next_responsible_role: work（T-01 文档化准备/启动与故障门）
+
+stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: partial（T-01完成；T-02..T-05未开始；T-02 等待 owner 前置交付） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一检出） | branch: main | base_commit: cec1dcd | code_commit: 本提交（README 准备/启动/故障语义章节；决策稿 §6/§6b 增补；计划簿记；产品源码零改动） | dependency_revisions: 同 T-00 冻结（CLI 390e664e、tool 4d2198b8、vue.rs 5a9a79cb） | task_ids: T-01（已勾选附证据） | evidence: 冷缓存整轮 238.4s 双判据就绪+冷 scaffold npm_deps 透传（cold-result.txt/cold-run.log）；构建错门 rc=1 具名 120s 上限（fault-build-result.txt，E-7）；坏 tool 身份门 EXIT=1 具名（verify_dual native preflight）；端口冲突静默实态 E-4a/E-4b + 缓解核对（fault-port2/3/4.log）；E-5 后端端口不可注入/E-6 exe 锁挂起/E-8 孤儿 preview 收割 | blockers: 同 T-00（owner 前置）；E-4 strictPort 发射并入 owner 前置清单 | next_responsible_role: work（T-02：app 半边已交付，等 owner 前置交付后闭合 B-02；期间不空转——可推进 T-03 与 T-04 不依赖 dev 红腿的部分并如实分账）
 
 ## 10. 待澄清事项
 

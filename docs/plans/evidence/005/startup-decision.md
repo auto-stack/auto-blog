@@ -102,6 +102,21 @@ optimizeDeps: { include: ['<pac.at npm_deps 的全部键>'] }
 | E-1 | `auto service --server rust` 走 release 构建，本轮在 sccache 包装下多 crate exit 1（sccache server 本体健康：8990 rust hits）；`auto run` 的 debug 路径正常 | verify_dual/统一门 owner 的环境观察；文档化 dev 入口（`auto run`）不受影响 |
 | E-2 | dev/preview 均存在启动期 `pageerror: Cannot read properties of null (reading 'token')`（auth store 读空用户态），非路由阻断，两轨一致 | 预存噪音；不属 F-2；后续计划可另立清理项 |
 | E-3 | 磁盘三通道中正文在 `works/<id>/body.txt`（`current.txt`=revision 计数），探针已对齐 | 修正 T-00 探针 oracle 口径 |
+| E-4a | **front 端口冲突（仅 127.0.0.1 被占）框架不报错**：vite 静默绑 `::1` 并报告 ready——"看似成功"实态（fault-port2/3.log） | B-01 合同要求失败非零；根因=生成 config 无 `server.host`/双栈校验 → **并入 auto-ui owner 前置（strictPort/host 发射）**；文档化缓解=核对 `Local:` 端口与 `-F` 一致 |
+| E-4b | **front 端口冲突（双栈被占）框架不报错且更糟**：vite `Port 17956 is in use, trying another one...` 静默自增到 17957（=后端端口）经另一协议栈绑定，组合呈 split-brain（fault-port4.log） | 同 E-4a；owner 前置加 `strictPort: true` 发射；文档化缓解同上 |
+| E-5 | 后端端口冲突在 Windows 无法用普通 socket 注入复现：Rust 后端对被占端口仍绑定成功（含 SO_EXCLUSIVEADDRUSE 阻断者也复绑） | 故障类不可注入性记录；真实第三方 EXCLUSIVE 占用时行为未证，留统一门 owner |
+| E-6 | 后端 exe 被残留进程锁定时，`failed to remove … auto-blog-back.exe (os error 5)` 后 **run 进程挂起不退出**（>180s，fault-port.log） | 启动前须清残留；自动化必须外置有界超时+按树收割；框架缺内部构建超时=owner 观察 |
+| E-7 | **构建错门=合同符合**：RUSTC_WRAPPER 指向不存在二进制 → rc=1（237s），日志含 cargo 明细 + 框架界内 120s 后端等待上限以 `API backend not ready within 120s (port 17967)` 具名退出（fault-build-result.txt） | B-01 构建错腿 PASS；进度/就绪/失败合同成立 |
+| E-8 | 本机存在 004 时代验证遗留的孤儿 vite preview（verify-preview/diag config ×8+，持有旧 gen 句柄阻塞冷缓存清理）——本轮收割 | 验证基建进程卫生：gate owner 应在收尾回收 preview 子进程（`_stop_previews` 之外的泄漏路径） |
+
+## 6b. 冷缓存整轮实测（B-01 主腿，2026-11-01）
+
+`cold_run.py`：wipe `rust-workspace/target` + `gen` → 文档化入口 `auto run --server rust`
+→ **238.4s** front(localhost)+back(127.0.0.1) 双判据就绪（预算 1500s 内；后端冷构建
+1m36s 为主，sccache/pnpm store 温）；冷 scaffold 由 pac.at 重建，`package.json` 含全部
+npm_deps（含 mermaid/lowlight/katex——app 半边修复在全新 clone 路径同样成立）。
+页面探针诚实红：导航壳 PASS、author 页 outlet 空、dayjs CJS 签名与 §2 一致——dev 挂载
+红与工具链热度无关，等价于 owner 前置未交付状态。进程/端口收割干净（cold-result.txt）。
 
 ## 7. 对计划任务的落点
 
