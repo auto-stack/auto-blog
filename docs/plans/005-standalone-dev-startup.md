@@ -6,7 +6,7 @@ author: [Codex]
 created_at: 2026-10-31
 updated_at: 2026-10-31
 plan_revision: 1
-current_step: 2
+current_step: 3
 total_steps: 8
 base_branch: main
 base_commit: cd9b5d5c445e852fb13616593bf30553ce2f8493
@@ -107,8 +107,8 @@ touched_goals: []
 - [x] T-00（owner_stage=work；依赖001/002/003/004已有交付；AC-01/02）：完成版本冻结及dev/preview最小责任探针、准备/超时决策稿；复用现有配置，必要时消费实际owner最小前置。[✅ 已完成 2026-11-01] 决策稿=docs/plans/evidence/005/startup-decision.md（版本冻结：CLI `390e664e…`/tool `4d2198b8…` 为本计划基线，pac.at/author.at/verify_dual.py/run_vue.rs/run_vm.rs 与计划表逐字节一致，auto-ui-tools/src/vue.rs=5a9a79cb 新冻结；F-2 当日复现=dayjs CJS default export 断裂、outlet 空；责任矩阵 6 轮控制变量：根声明 mermaid/lowlight/katex + optimizeDeps.include 三者=cand5 全绿，同稿 preview 对照全绿；修复=app 半边 pac.at npm_deps 三声明（官方管线验证透传）+ auto-ui owner 前置（vue.rs generate_vite_config 增发 npm_deps include，已逐字验证）；原生轨不受影响；vite dev 绑 localhost(::1)、磁盘正文在 body.txt 两口径已记录）
 - [x] T-01（owner_stage=work；依赖T-00；AC-01）：补文档化正式准备/启动与冷缓存/工具身份/端口故障门，不依赖OS或改生成物。[✅ 已完成 2026-11-01] README「准备与启动（Windows 正式路径）」落地（前置/六步进度/双判据就绪 localhost+127.0.0.1/有界预算/故障语义）；冷缓存整轮 238.4s（wipe target+gen→双判据就绪，冷 scaffold 从 pac.at 重建含全部 npm_deps，决策稿 §6b）；故障门实测：构建错 rc=1+具名 120s 后端上限（E-7 PASS）、坏 tool 身份门 EXIT=1 具名 FileNotFoundError、front 端口冲突框架静默（E-4a 落他栈/E-4b 自增撞后端端口——owner 前置补 strictPort，README 记核对缓解）、后端端口冲突 Windows 不可注入（E-5）、exe 锁挂起（E-6）；收割 004 时代孤儿 vite preview ×8+（E-8）；进程/端口收割验证干净
 - [ ] T-02（owner_stage=work；依赖T-00及实际必要前置交付；AC-02）：修dev依赖/author动态挂载接缝，B-02真实引擎与textarea合法控制全过。
-- [ ] T-03（owner_stage=work；依赖T-01/02；AC-03）：闭合B-03缺资源保稿与恢复，回放B-04所需Rust/原生/快照回归。
-- [ ] T-04（owner_stage=work；依赖T-03；AC-04）：在既有调度器建立dev profile，跑B-01..05、原门与失败控制，输出SD候选和真实覆盖。
+- [ ] T-03（owner_stage=work；依赖T-01/02；AC-03）：闭合B-03缺资源保稿与恢复，回放B-04所需Rust/原生/快照回归。[◐ 部分 2026-11-01] B-04 回放全绿（本机当日新鲜执行）：verify_dual vue-rust 15/15 EXIT=0、native-vm-rust 22/22 EXIT=0（含强杀/正常退出重开持久化）、003 导出电池 16/16、离线闭环 5/5、发布历史 UI 8/8（D:/autostack/plan-artifacts/plan-005/t03/）；B-03 dev 腿（缺资源降级/恢复续写）依赖 T-02 owner 前置，场景 dev-ui.missing_resource_degradation 已在调度器登记 pending（owner 具名），未闭合
+- [x] T-04（owner_stage=work；依赖T-03；AC-04）：在既有调度器建立dev profile，跑B-01..05、原门与失败控制，输出SD候选和真实覆盖。[✅ 构建+执行完成 2026-11-01；AC-04 红待 owner 前置] `--profile vue-dev-rust` 落地（tests/dual/verify_dual.py：phases=[api,vue-dev-ui]，官方 `auto run` 组合，front_url 实测解析+可达栈解析，端口漂移反控=请求端口≠实际即具名失败；tests/dual/vue_dev_scenarios.cjs=B-02 区分性 oracle：真引擎挂载/渲染/三通道回读/空稿起稿/切引擎/预览切换/重启续写，fatal 必须计失败）；执行=诚实红：api 电池+重启持久化过（13/14），dev UI 腿红=F-2 冷缓存复现（dayjs CJS），dev-ui.missing_resource_degradation pending（owner 具名），EXIT=1；失败控制：expectation 注入=EXIT=1 具名（report.json 15 执行）、port 注入=CLI 具名"API backend not ready within 120s (port …)"（service-pre.log）RC=1（harness 分支行日志缺失记观察项 E-10）；顺带修复 pick_port Windows 排除区盲选（bind(0) 临时端口可落 excludedportrange→显式重绑 10013 崩溃，改为复验重抽，E-9）+ 场景脚本 fatal 传播缺口（首轮 14/14 假绿教训：fatal 未计失败=假绿，已修并重跑定红）；SD 候选=§5 增量表+决策稿 §4/§6；旧门 vue-rust/native-vm-rust 语义未动（重放绿，见 T-03 证据）
 - [ ] T-05（owner_stage=work；依赖T-04；AC-01..04）：核对源/工具漂移及README/roadmap，提交execution_done和版本绑定证据。
 - [ ] T-06（owner_stage=review；依赖T-05；AC-05）：同clone独立上下文最终复审；必要dev/native门未过时返回work。
 - [ ] T-07（owner_stage=merge；依赖T-06 pass；AC-06）：仅app规范/归档/提交push/自有产物收尾，不更新OS子模块。
@@ -122,6 +122,15 @@ stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: partial（T-00完�
 
 stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: partial（T-01完成；T-02..T-05未开始；T-02 等待 owner 前置交付） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一检出） | branch: main | base_commit: cec1dcd | code_commit: 本提交（README 准备/启动/故障语义章节；决策稿 §6/§6b 增补；计划簿记；产品源码零改动） | dependency_revisions: 同 T-00 冻结（CLI 390e664e、tool 4d2198b8、vue.rs 5a9a79cb） | task_ids: T-01（已勾选附证据） | evidence: 冷缓存整轮 238.4s 双判据就绪+冷 scaffold npm_deps 透传（cold-result.txt/cold-run.log）；构建错门 rc=1 具名 120s 上限（fault-build-result.txt，E-7）；坏 tool 身份门 EXIT=1 具名（verify_dual native preflight）；端口冲突静默实态 E-4a/E-4b + 缓解核对（fault-port2/3/4.log）；E-5 后端端口不可注入/E-6 exe 锁挂起/E-8 孤儿 preview 收割 | blockers: 同 T-00（owner 前置）；E-4 strictPort 发射并入 owner 前置清单 | next_responsible_role: work（T-02：app 半边已交付，等 owner 前置交付后闭合 B-02；期间不空转——可推进 T-03 与 T-04 不依赖 dev 红腿的部分并如实分账）
 
+stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: blocked（T-02 配置发射半边=auto-ui owner 前置未交付；app 半边已交付；T-03 部分、T-04 构建完成并以诚实红执行，T-05 execution_done 不可声明） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一检出） | branch: main | base_commit: fa8feba | code_commit: 本提交（tests/dual/verify_dual.py：vue-dev-rust profile+端口漂移反控+pick_port 排除区修复；tests/dual/vue_dev_scenarios.cjs：B-02 区分性 oracle+fatal 传播；决策稿 §6c；计划簿记） | dependency_revisions: CLI 390e664e、tool 4d2198b8（冻结）；本轮实测 auto-ui HEAD 期间被 owner 会话推进（145d414→d43425c→e2ee696，另会话并行，本仓只读） | task_ids: T-03（◐ B-04 回放全绿；B-03 dev 腿 pending owner 前置）、T-04（✔ 构建完成；AC-04 红=dev 腿） | evidence: B-04 回放 vue 15/15、native 22/22、003 探针 16+5+8 全绿（t03/verify-*.log）；vue-dev-rust 13/14+pending EXIT=1 诚实红（冷缓存 dayjs CJS 复现）；expectation 注入 EXIT=1 具名 report.json；port 注入 RC=1×5 + CLI 具名 120s（E-10 分支行留 owner 验证）；假绿教训与 pick_port 修复见决策稿 §6c（E-9） | blockers: **T-02 dev 挂载闭合依赖 auto-ui owner 交付**：`auto-ui-tools/src/vue.rs::generate_vite_config()` 增发 `optimizeDeps.include = pac.at npm_deps 键集`（最小增量已逐字验证=cand5，app 侧 pac.at 声明已就绪；附带请 owner 评估 strictPort/host 发射以闭合 E-4a/b 端口静默） | next_responsible_role: user/owner（交付上述 auto-ui 最小前置后，本计划以同一目标恢复 work：清 gen/front/vue/node_modules/.vite 冷缓存重跑 vue-dev-rust 至绿 → 闭合 T-02/T-03/T-04 → T-05 execution_done → review → merge）
+
 ## 10. 待澄清事项
 
 本次规划没有待用户重新确认的产品方向。T-00 负责核实技术能力与实际 owner，决策稿必须先闭合再进入依赖实现。若探针显示必须改变目标、降低必需验收或扩大跨仓写入范围，报告具体证据并保留受影响任务未完成；不得用占位、跳过、API 预操作或历史总数替代必需用户任务。
+
+**阻塞（2026-11-01 work 交接）**：T-02/T-03 dev 腿与 AC-02/AC-04 的绿灯闭合依赖一项 **auto-ui owner 最小前置交付**（本计划无框架源写入权，证据见 docs/plans/evidence/005/startup-decision.md §4/§6c）：
+
+1. `auto-ui-tools/src/vue.rs::generate_vite_config()` 增发 `optimizeDeps: { include: [<pac.at npm_deps 键集>] }`——已由 cand5 控制变量轮逐字验证（本仓 pac.at 已声明 mermaid/lowlight/katex，app 半边就绪）；
+2. 附带评估 `server.strictPort`（+或 host 校验）发射以闭合 E-4a/E-4b 端口冲突静默改道。
+
+**解除动作**：owner 交付后回到本计划 work——清 `gen/front/vue/node_modules/.vite`（冷缓存）→ `python tests/dual/verify_dual.py --profile vue-dev-rust` 至全绿 → 勾闭 T-02（B-02）、T-03（B-03）、T-04 转 green → T-05 execution_done → T-06 复审 → T-07 归档。交付前 dev 门保持诚实红，不以 build+preview 冒充。

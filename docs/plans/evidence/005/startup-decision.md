@@ -118,6 +118,32 @@ npm_deps（含 mermaid/lowlight/katex——app 半边修复在全新 clone 路�
 页面探针诚实红：导航壳 PASS、author 页 outlet 空、dayjs CJS 签名与 §2 一致——dev 挂载
 红与工具链热度无关，等价于 owner 前置未交付状态。进程/端口收割干净（cold-result.txt）。
 
+## 6c. T-03/T-04 补充实测（2026-11-01 下午）
+
+**B-04 回放（当前修订 fa8feba + CLI 390e664e）**：verify_dual vue-rust 15/15 EXIT=0；
+native-vm-rust 22/22 EXIT=0（正常 q 退出与强杀重开持久化、MCP 关闭、自有树回收）；
+003 导出电池 16/16、离线换目录闭环 5/5、发布历史 UI 8/8。旧门全绿 = B-04 语义成立。
+
+**vue-dev-rust profile 执行**：api 电池+隔离数据+重启持久化 13/14 过；dev UI 腿诚实红
+（冷缓存复现 dayjs CJS，`dev.mount_real_engine` FAIL）+ `dev-ui.missing_resource_degradation`
+pending（owner 具名）→ EXIT=1。**热缓存假绿教训**：首轮 14/14"全绿"系（a）cand5 实验
+遗留的 .vite 优化缓存 +（b）场景脚本 fatal 未计失败（fatal 后 results 只含已过场景，
+passed==length → exit 0）两个缺陷叠加；已修（fatal 必记 `dev.fatal_error` 失败场景）并
+以清缓存重跑定红——**dev 修复必须以冷缓存（清 node_modules/.vite）验证**。
+
+**失败控制**：expectation 注入=EXIT=1 具名 `injected.expectation_flip`（report.json 15
+执行）；port 注入=RC=1（5/5 次）且 CLI 侧具名 `API backend not ready within 120s (port …)`
+留存 service-pre.log（可诊断），但 harness 自身分支行/report 未在会话后台窗口内观察到
+（见 E-10）。修 harness 缺口时发现 **E-9**：`pick_port()` bind(0) 分配的临时端口可能落在
+Windows 排除区（netsh excludedportrange，本机 2861-3060/3223-3722/3933-4032 等多段），
+后续显式 bind 报 WinError 10013 崩溃退出——已改为对分配端口复验显式重绑、失败重抽
+（tests/dual/verify_dual.py pick_port）。
+
+| ID | 发现 | 影响/归属 |
+|---|---|---|
+| E-9 | pick_port 临时端口可落 Windows 排除区 → blocker/Service 显式 bind 10013 硬崩（无 finalize/report） | 已修（复验重抽）；负控 port 注入此前多次"静默 RC=1"的根因之一 |
+| E-10 | port 注入的 harness 分支行（服务未就绪/负控注入生效/report.json）未能在观察窗内验证：完整路径耗时（重建 90-150s + CLI 120s 后端等待）≥ 会话后台运行窗口（约 4 分钟强杀） | 非零语义 5/5 成立且 CLI 具名失败可诊断；分支行/report 验证留统一门 owner（长窗口单跑一次即证） |
+
 ## 7. 对计划任务的落点
 
 - T-02「修 dev 依赖/author 动态挂载接缝」：app 半边已交付（pac.at 声明）；**配置

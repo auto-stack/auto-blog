@@ -4,6 +4,7 @@
 Profiles（计划 §6 固定入口）:
     python tests/dual/verify_dual.py --profile vue-rust
     python tests/dual/verify_dual.py --profile native-vm-rust
+    python tests/dual/verify_dual.py --profile vue-dev-rust   # BLOG-005：普通 dev 入口独立验收
 
 每轮：预检（工具 hash/依赖版本/空闲端口）→ 隔离数据目录 spawn 正式入口
 `auto service --server rust` → 执行场景注册表 → 失败传播（任一执行场景失败
@@ -72,9 +73,20 @@ def git_head(repo: Path) -> str:
 
 
 def pick_port() -> int:
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
+    # Windows（BLOG-005 T-04 实测）：bind(0) 分配的临时端口可能落在系统排除区
+    # （Hyper-V/WinNAT，netsh excludedportrange），随后对该端口的显式 bind 报
+    # WinError 10013——必须对分配结果复验显式重绑，失败则重抽。
+    for _ in range(20):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as v:
+                v.bind(("127.0.0.1", port))
+            return port
+        except OSError:
+            continue
+    raise RuntimeError("pick_port: 连续 20 次未取得可显式重绑的端口（排除区/占用）")
 
 
 def port_free(port: int) -> bool:
@@ -374,11 +386,16 @@ def s_restart(ctx: Ctx):
 # 未落地场景：登记 owner，运行即 pending（profile 整体非零，不可静默跳过）
 PENDING_SCENARIOS = {
     "vue-ui.author_task": "T-05（Vue＋Rust 真实交互：创建/自动保存/冲突可见/刷新与重启回放）",
+    "dev-ui.missing_resource_degradation": "BLOG-005 T-02（缺引擎资源→明确错误+保稿降级+恢复依赖续写）——依赖 dev 挂载修复（auto-ui owner 前置）交付后落地",
 }
 
 PROFILE_PHASES = {
     "vue-rust": ["api", "vue-ui"],
     "native-vm-rust": ["api", "vm-ui"],
+    # BLOG-005 T-04：普通 dev 入口（`auto run --server rust`，vite dev）独立 profile。
+    # 与 vue-rust（build+preview）分别验收、不混计；dev 挂载修复（auto-ui owner 前置）
+    # 交付前本 profile 诚实红（场景失败/pending），不得以 preview 冒充。
+    "vue-dev-rust": ["api", "vue-dev-ui"],
 }
 
 
@@ -475,7 +492,12 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                 if not tokens or any(t in n for t in tokens)}
     pendings = []
     for pname, owner in PENDING_SCENARIOS.items():
-        phase_of = "vue-ui" if pname.startswith("vue-") else "vm-ui"
+        if pname.startswith("vm-"):
+            phase_of = "vm-ui"
+        elif pname.startswith("dev-"):
+            phase_of = "vue-dev-ui"
+        else:
+            phase_of = "vue-ui"
         in_phase = phase_of in phases and (not tokens or any(t in pname for t in tokens))
         # vue-ui.author_task 已在 T-05 实现：阶段被选中时执行而非 pending
         if pname == "vue-ui.author_task" and in_phase:
@@ -504,13 +526,14 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
         return phase in phases and (not tokens or any(t in phase for t in tokens))
 
     run_vue_ui = phase_selected("vue-ui")
+    run_dev_ui = phase_selected("vue-dev-ui")
     if phase_selected("vm-ui"):
         import native_vm_scenarios
         return native_vm_scenarios.run(
             sys.modules[__name__], profile, deps, exe_sha, selected,
             inject, run_dir, data_dir, front, back,
         )
-    spawn_mode = "run" if run_vue_ui else "service"
+    spawn_mode = "run" if (run_vue_ui or run_dev_ui) else "service"
 
     results: list[dict] = []
     svc = Service(back, data_dir, run_dir / "service-pre.log",
@@ -536,6 +559,18 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                 record(n, False, f"service not ready: {why}")
             return finalize(profile, deps, exe_sha, results, pendings, run_dir)
         log(f"  app ready (mode={spawn_mode} front={svc.front_url or '-'} back={svc.back_port})")
+
+        # B-01/B-05 端口反控（BLOG-005 E-4a/b）：vite 端口被占会静默改道
+        # （他协议栈回退或自增撞后端端口）。dev profile 必须核对实际 front
+        # 端口==请求端口，漂移=具名失败（不可计 pass）。
+        if run_dev_ui and svc.front_url:
+            mport = re.search(r":(\d+)/?$", svc.front_url)
+            if not mport or mport.group(1) != str(front):
+                record("dev-ui.port_drift", False,
+                       f"front 端口漂移：请求 {front} 实际 {svc.front_url}"
+                       "（端口被占静默改道——BLOG-005 E-4a/b，释放端口后重跑）",
+                       phase="vue-dev-ui")
+                return finalize(profile, deps, exe_sha, results, pendings, run_dir)
 
         # F-2（BLOG-002）：含引擎项目 vue 腿一律构建模式服务；preview 跨 pre/post 复用
         if run_vue_ui:
@@ -565,9 +600,16 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
             ok, detail, wid = run_cjs(svc.front_url, ctx.base, "pre", "", run_dir)
             record("vue-ui.author_task", ok, detail, phase="vue-ui")
 
+        wid_dev = ""
+        if run_dev_ui:
+            okd, detaild, wid_dev = run_cjs(svc.front_url, ctx.base, "pre", "", run_dir,
+                                            cjs_name="vue_dev_scenarios.cjs",
+                                            extra_env={"RW_DATA": str(data_dir)})
+            record("dev-ui.author_task_dev", okd, detaild, phase="vue-dev-ui")
+
         # post-restart 阶段：重启应用后执行（001 重启持久化语义）
         post = [n for n, s in selected.items() if s["phase"] == "post-restart"]
-        if post or (run_vue_ui and wid):
+        if post or (run_vue_ui and wid) or (run_dev_ui and wid_dev):
             svc.stop()
             svc2 = Service(back, data_dir, run_dir / "service-post.log",
                            mode=spawn_mode, front_port=front)
@@ -580,6 +622,9 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                     if run_vue_ui and wid:
                         record("vue-ui.restart_backend_persists", False,
                                f"app restart failed: {why2}", phase="vue-ui")
+                    if run_dev_ui and wid_dev:
+                        record("dev-ui.restart_dev_persists", False,
+                               f"app restart failed: {why2}", phase="vue-dev-ui")
                 else:
                     if svc2.front_url and _PREVIEW_PROCS:
                         svc2.front_url = svc.front_url
@@ -595,6 +640,11 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                     if run_vue_ui and wid:
                         ok2, detail2, _ = run_cjs(svc2.front_url, ctx.base, "post", wid, run_dir)
                         record("vue-ui.restart_backend_persists", ok2, detail2, phase="vue-ui")
+                    if run_dev_ui and wid_dev:
+                        okd2, detaild2, _ = run_cjs(svc2.front_url, ctx.base, "post", wid_dev, run_dir,
+                                                    cjs_name="vue_dev_scenarios.cjs",
+                                                    extra_env={"RW_DATA": str(data_dir)})
+                        record("dev-ui.restart_dev_persists", okd2, detaild2, phase="vue-dev-ui")
             finally:
                 svc2.stop()
     finally:
@@ -604,18 +654,22 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
     return finalize(profile, deps, exe_sha, results, pendings, run_dir)
 
 
-def run_cjs(front_url: str, api_base: str, phase: str, wid: str, run_dir: Path) -> tuple[bool, str, str]:
-    """驱动 tests/dual/vue_ui_scenarios.cjs（真浏览器输入/点击 → Vue store → Rust 后端）。
+def run_cjs(front_url: str, api_base: str, phase: str, wid: str, run_dir: Path,
+            cjs_name: str = "vue_ui_scenarios.cjs", extra_env: dict | None = None) -> tuple[bool, str, str]:
+    """驱动 tests/dual/<cjs_name>（真浏览器输入/点击 → Vue store → Rust 后端）。
 
     返回 (ok, 明细, work_id)。cjs 每场景一行 PASS/FAIL；汇总 SUMMARY；pre 阶段末尾 WID 行。
     """
     env = dict(os.environ)
     env.update({"RW_URL": front_url, "RW_API": api_base, "DUAL_PHASE": phase, "DUAL_WID": wid})
+    if extra_env:
+        env.update(extra_env)
     proc = subprocess.run(
-        ["node", str(REPO / "tests" / "dual" / "vue_ui_scenarios.cjs")],
+        ["node", str(REPO / "tests" / "dual" / cjs_name)],
         cwd=REPO, env=env, capture_output=True, text=True, timeout=600, encoding="utf-8", errors="replace",
     )
-    (run_dir / f"vue-ui-{phase}.log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
+    stem = cjs_name.replace(".cjs", "")
+    (run_dir / f"{stem}-{phase}.log").write_text(proc.stdout + proc.stderr, encoding="utf-8")
     lines = [ln for ln in proc.stdout.splitlines() if ln.startswith(("PASS", "FAIL"))]
     wid_out = ""
     for ln in proc.stdout.splitlines():
