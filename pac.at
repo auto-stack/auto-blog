@@ -13,7 +13,14 @@ dep stylekit {
 }
 
 // BLOG-002 T-01：Markdown 编辑/预览引擎（vendor 固定副本，pin 见 vendor/auto-down/PROVENANCE.md）。
+// BLOG-005 T-00：引擎浏览器链 CJS 依赖显式声明——vite dev 的引擎源链（F-2）
+// 需要这些包根可解析+optimizeDeps.include 才能完成 CJS 互操作（mermaid→dayjs、
+// lowlight→highlight.js、katex）；配置发射半边为 auto-ui owner 前置，
+// 证据见 docs/plans/evidence/005/startup-decision.md。
 npm_deps: {
-    "@autodown/engine": "file:../../../vendor/auto-down/autodown/packages/engine"
+    "@autodown/engine": "file:../../../vendor/auto-down/autodown/packages/engine",
+    "mermaid": "^11.17.2",
+    "lowlight": "^3.3.0",
+    "katex": "^0.16.0"
 }
 desktop: "true"
