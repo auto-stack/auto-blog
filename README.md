@@ -57,3 +57,16 @@ python tests/dual/verify_dual.py --profile native-vm-rust
 [路线图](docs/roadmap-v0.6.md) · [规划入口](docs/README.md) · [来源清单](SOURCE-IMPORT.json)。AutoOS组合目录为[apps/auto-blog](https://github.com/auto-stack/auto-os/tree/main/apps/auto-blog)，不是本仓开发入口。
 
 开发/顺序复审在D:/autostack/auto-blog独立clone main；本轮只规划并push，不实现、不更新AutoOS子模块。后续统一OS计划装配各app已验证提交。跨应用联动/网络发布另排，Linux仍等待Nix＋COSMIC基础。
+
+## 主题（auto-os/PLAN-056 接入）
+
+本产品已接入 AutoUI **官方主题包**正式消费面（2026-11-04，PLAN-056 T-03）：
+
+- `vendor/themes` 为 UI 管理渠道发布的固定版本快照（`themes` 0.2.0，内容
+  digest `9fa07742dc68aa5377ae06cb2d966386002063f184c515b6c5dddf8a6bef838e`），
+  经 `pac.at` `dep themes` 消费；快照不可二次编辑、非第二权威源。
+- 主合同在 **auto-os/PLAN-056**：本产品 pac 无 `theme` 键 = **follow 宿主**；
+  `src/front/app.at` `design { theme: "Auto", mode: "light" }` 为独立默认腿
+  （路由壳无 dark_mode 位，静态 light 保现默认语义）；`use themes.themes:
+  Auto` 注册收集链（C-11 合同）。真实作者/草稿/编辑器业务原样；brand-green
+  按钮配对字豁免。

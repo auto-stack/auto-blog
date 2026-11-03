@@ -4,6 +4,10 @@
 use auth_store: AuthStore
 use article_store: ArticleStore
 use draft_store: DraftStore
+// PLAN-056 T-03：官方主题包主题名导入（031 合同消费面——`dep themes` 声明
+// 使包可解析，本 use 把包内 pub 主题收进收集链；无此行 themes 树不注册，
+// design.theme/follow 宿主候选都会在 C-11 未注册拒绝）。
+use themes.themes: Auto
 
 // PLAN-637 B5 Phase B 映射（灰阶分层口径）：gray-800/700/600→foreground；gray-500/400→
 // muted-foreground；border-gray-N→border-border；bg-white→bg-card；bg-gray-100→bg-muted；
@@ -23,6 +27,18 @@ widget App {
     }
 
     msg { Init, Logout, GoProfile(str), GoAuthor, GoDemo }
+
+    // PLAN-056 T-03：主题设计默认（独立默认腿）。theme="Auto" 经 pac
+    // `dep themes`（vendor/themes 固定快照）注册的官方树解析。本壳无
+    // dark_mode 状态位/明暗切换（路由壳层，状态在各 store 页面），独立
+    // 默认腿取静态 light（原无 theme 键、token 类+font-serif 默认语义
+    // 不变）；桌面内宿主策略完整快照（family+mode）按 031 full-host
+    // 语义整体接管（follow）。真实作者/草稿/编辑器业务原样；brand-green
+    // 按钮配对字（text-white ×5）与本 demo 自定义语义色整体豁免。
+    design {
+        theme: "Auto"
+        mode: "light"
+    }
 
     view {
         col {
