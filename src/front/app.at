@@ -34,7 +34,8 @@ widget App {
     // 默认腿取静态 light（原无 theme 键、token 类+font-serif 默认语义
     // 不变）；桌面内宿主策略完整快照（family+mode）按 031 full-host
     // 语义整体接管（follow）。真实作者/草稿/编辑器业务原样；brand-green
-    // 按钮配对字（text-white ×5）与本 demo 自定义语义色整体豁免。
+    // 按钮配对字与本 demo 自定义语义色整体豁免（PLAN-637 源注 ×5 系
+    // author.at 口径，实际 10 处分布 5 页面文件——056 复审 R3 更正）。
     design {
         theme: "Auto"
         mode: "light"

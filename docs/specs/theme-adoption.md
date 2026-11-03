@@ -22,7 +22,7 @@
 
 ## 豁免与不变量
 
-- brand-green 按钮配对字（`text-white` ×5，本 demo 自定义语义色）整体豁免；
+- brand-green 按钮配对字（`bg-brand-green … text-white`，本 demo 自定义语义色）整体豁免（源注 ×5 系 author.at 口径；实际 10 处分布 5 页面文件——2026-11-04 复审 R3 更正）；
   真实作者/草稿/编辑器业务与 auth/article/draft store 链原样。
 - 原完整适用门在采纳前后保持：`tests/dual/verify_dual.py --profile vue-rust`
   与 `--profile native-vm-rust`（os-056 冻结工具链，AUTO_EXE=组树
