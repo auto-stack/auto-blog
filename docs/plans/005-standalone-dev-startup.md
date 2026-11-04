@@ -126,6 +126,8 @@ stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: blocked（T-02 配
 
 stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 1 | from: goal | to: user | status: drafting（frontmatter 未随 work receipt 推进，簿记差异照旧记录） | outcome: waiting | worktree: D:/autostack/auto-blog（main，合同唯一检出） | commit: 6769d6e | evidence: 阻塞复核（2026-11-04）：auto-ui HEAD `89b30ed3` 全 crates 无 `optimizeDeps`/`strictPort` 发射，vue.rs 现值 `7842103e`（plan-041/036/044 并行推进所致漂移）；auto-ui docs/plans 无覆盖本前置的计划；app 侧 pac.at 半边与 cand5 验证维持有效 | blockers: 同 §10（owner 前置未交付） | next: user（①授权在 auto-ui 仓按其 Plan/worktree 规约新建最小计划交付该发射，或 ②自行/另会话交付后恢复 work）
 
+stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 2 | from: goal | to: user | status: drafting（簿记差异照旧） | outcome: waiting | worktree: D:/autostack/auto-blog（main，合同唯一检出） | commit: 本提交 | evidence: 复核（2026-11-04）：auto-ui HEAD 推进至 `6891edaa`（新提交=plan-043 T-01..06 交接、plan-044 T-04/T-05 receipts，均与本前置无关）；在飞 worktree `ui-043`/`ui-044` 的 vue.rs 均 0 处 `optimizeDeps`；仍无覆盖计划 | blockers: 同 §10（owner 前置未交付） | next: user（等待 2/3）
+
 ## 10. 待澄清事项
 
 本次规划没有待用户重新确认的产品方向。T-00 负责核实技术能力与实际 owner，决策稿必须先闭合再进入依赖实现。若探针显示必须改变目标、降低必需验收或扩大跨仓写入范围，报告具体证据并保留受影响任务未完成；不得用占位、跳过、API 预操作或历史总数替代必需用户任务。
@@ -138,3 +140,5 @@ stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 1 | from: goal | to
 **解除动作**：owner 交付后回到本计划 work——清 `gen/front/vue/node_modules/.vite`（冷缓存）→ `python tests/dual/verify_dual.py --profile vue-dev-rust` 至全绿 → 勾闭 T-02（B-02）、T-03（B-03）、T-04 转 green → T-05 execution_done → T-06 复审 → T-07 归档。交付前 dev 门保持诚实红，不以 build+preview 冒充。
 
 **等待复核（2026-11-04 goal round 1）**：auto-ui HEAD `89b30ed3` 仍未交付该前置（全 crates 无 `optimizeDeps`/`strictPort` 发射；vue.rs 现值 `7842103e`；auto-ui 侧无覆盖计划）。待用户决策解除路线：①授权本目标在 auto-ui 仓按其自身 Plan/worktree 规约新建最小计划交付该发射，随后恢复本计划 work；或 ②用户/另一会话自行交付，交付后本计划以同一目标恢复 work。连续三轮等待未决则按 cap 置 blocked。
+
+**等待复核（2026-11-04 goal round 2）**：auto-ui HEAD 推进至 `6891edaa`（新提交均系 plan-043/044，与本前置无关）；在飞 worktree `ui-043`/`ui-044` 的 vue.rs 均 0 处 `optimizeDeps`。阻塞不变，等待 2/3。
