@@ -35,6 +35,12 @@ store DraftStore {
         var frozen_view_hash str = ""
         var frozen_view_body str = ""
         var current_hash str = ""
+        // BLOG-005 T-02：写作面形态（用户引擎偏好）——从 author 页模型迁入
+        // 店面：页面重挂载会重播种页模型默认（use_engine=true），用户的
+        // 「切降级」偏好随即丢失（native 回放实录：reopened 会话切降级后
+        // 视图回弹引擎）。店跨页面重挂载存活（每 App 一份），偏好写这里。
+        var use_engine bool = true
+        var force_engine bool = false
     }
 
     msg {
@@ -43,7 +49,8 @@ store DraftStore {
         CoverEdit(str), FormatEdit(str),
         AddAssetRef(str, str), ComposeImport(str), PreviewCheck,
         AutosaveTick, ResolveKeepMine, ResolveKeepTheirs,
-        LoadPubs, DoPublish, ExportPkg(str), OpenSnap(str), CloseSnap
+        LoadPubs, DoPublish, ExportPkg(str), OpenSnap(str), CloseSnap,
+        EngineOn, ToggleEngine
     }
 
     on {
@@ -516,6 +523,24 @@ store DraftStore {
         }
         .ResolveKeepMine -> {
             .ForceSave()
+        }
+        // BLOG-005 T-02：写作面形态切制（从 author 页 msg 迁入店面——跨页面
+        // 重挂载存活）。语义与原页版逐字一致：引擎开→降级（正文非空才允许
+        // 切回引擎的 re-affirm 在 else 臂内）。
+        .EngineOn -> {
+            .use_engine = true
+            .force_engine = false
+        }
+        .ToggleEngine -> {
+            if .use_engine && (.body_was_empty == false || .force_engine) {
+                .use_engine = false
+                .force_engine = false
+            } else {
+                if .editing_body != "" {
+                    .use_engine = true
+                    .force_engine = true
+                }
+            }
         }
         .ResolveKeepTheirs -> {
             if .save_in_flight {

@@ -18,10 +18,9 @@ widget author {
     }
 
     model {
-        // 写作面形态（视图本地态，不落盘）：use_engine=用户引擎偏好；
-        // force_engine=空稿起稿后显式请求进入引擎（仅正文非空时可用）。
-        var use_engine bool = true
-        var force_engine bool = false
+        // BLOG-005 T-02：写作面形态（use_engine/force_engine）已迁入
+        // draft_store（页面重挂载会重播种页模型默认，用户「切降级」偏好
+        // 随即丢失——native 回放实录）。本页经 .store.use_engine 等引用。
         // T-02 输入缓冲（视图本地态）
         var asset_ref_input str = ""
         var asset_caption_input str = ""
@@ -213,7 +212,7 @@ widget author {
                                 }
                             }
                             if .store.editing_format == "markdown" {
-                                if .use_engine && (.store.body_was_empty == false || .force_engine) {
+                                if .store.use_engine && (.store.body_was_empty == false || .store.force_engine) {
                                     button "编辑器：引擎 · 切降级" {
                                         onclick: .ToggleEngine,
                                         style: "px-2 py-1 rounded border border-border text-xs text-muted-foreground"
@@ -232,7 +231,7 @@ widget author {
                                 }
                             }
                         }
-                        if .store.editing_format == "markdown" && .use_engine && (.store.body_was_empty == false || .force_engine) {
+                        if .store.editing_format == "markdown" && .store.use_engine && (.store.body_was_empty == false || .store.force_engine) {
                             autodown_editor {
                                 content: .store.editing_body,
                                 placeholder: "正文（Markdown；自动保存）",
@@ -410,13 +409,11 @@ widget author {
         }
         .GoNew -> {
             .store.NewDraft()
-            .use_engine = true
-            .force_engine = false
+            .store.EngineOn()
         }
         .GoOpen(id str) -> {
             .store.OpenDraft(id)
-            .use_engine = true
-            .force_engine = false
+            .store.EngineOn()
         }
         .GoDemo -> { router.push("/demo") }
         .TitleChanged(v str) -> { .store.TitleEdit(v) }
@@ -428,15 +425,7 @@ widget author {
         .KeepMine -> { .store.ResolveKeepMine() }
         .KeepTheirs -> { .store.ResolveKeepTheirs() }
         .ToggleEngine -> {
-            if .use_engine && (.store.body_was_empty == false || .force_engine) {
-                .use_engine = false
-                .force_engine = false
-            } else {
-                if .store.editing_body != "" {
-                    .use_engine = true
-                    .force_engine = true
-                }
-            }
+            .store.ToggleEngine()
         }
         .FormatText -> { .store.FormatEdit("text") }
         .FormatMd -> { .store.FormatEdit("markdown") }
