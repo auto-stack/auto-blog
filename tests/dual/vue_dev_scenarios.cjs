@@ -50,7 +50,8 @@ function record(name, ok, detail) {
       console.log(`DOMDEBUG[${tag}] ` + JSON.stringify(dump).slice(0, 1800));
     };
     await page.goto(URL + '/#/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 30000 });
+    // 首载 = vite 按需转换各页面模块（每轮冷进程），高负载机器上 30s 可超——60s 留裕量
+    await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 60000 });
 
     if (PHASE === 'pre') {
       // S1 种子非空 markdown 稿并打开——路由必须真实挂载且=引擎（区分性 oracle）
