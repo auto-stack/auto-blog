@@ -128,6 +128,8 @@ stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 1 | from: goal | to
 
 stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 2 | from: goal | to: user | status: drafting（簿记差异照旧） | outcome: waiting | worktree: D:/autostack/auto-blog（main，合同唯一检出） | commit: 本提交 | evidence: 复核（2026-11-04）：auto-ui HEAD 推进至 `6891edaa`（新提交=plan-043 T-01..06 交接、plan-044 T-04/T-05 receipts，均与本前置无关）；在飞 worktree `ui-043`/`ui-044` 的 vue.rs 均 0 处 `optimizeDeps`；仍无覆盖计划 | blockers: 同 §10（owner 前置未交付） | next: user（等待 2/3）
 
+stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 3 | from: goal | to: work（经 auto-ui 前置交付） | status: drafting（簿记差异照旧） | outcome: pass | worktree: D:/autostack/auto-blog（main） | commit: 本提交 | evidence: 复核（2026-11-04）：auto-ui HEAD `27b9c74a` 仍未交付（vue.rs `7842103e` 零发射、无覆盖计划）；**用户本轮显式授权路线 ①**：在 auto-ui 仓按其 Plan/worktree 规约新建最小计划交付 `optimizeDeps.include`+`strictPort` 发射，随后回本计划恢复 work 直至归档 | blockers: 无（阻塞解除路径已授权并开工） | next: work（先 auto-ui 前置交付，再回 BLOG-005：冷缓存 vue-dev-rust 至绿 → T-02/T-03/T-04 → T-05 → T-06 → T-07）
+
 ## 10. 待澄清事项
 
 本次规划没有待用户重新确认的产品方向。T-00 负责核实技术能力与实际 owner，决策稿必须先闭合再进入依赖实现。若探针显示必须改变目标、降低必需验收或扩大跨仓写入范围，报告具体证据并保留受影响任务未完成；不得用占位、跳过、API 预操作或历史总数替代必需用户任务。
@@ -142,3 +144,5 @@ stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 2 | from: goal | to
 **等待复核（2026-11-04 goal round 1）**：auto-ui HEAD `89b30ed3` 仍未交付该前置（全 crates 无 `optimizeDeps`/`strictPort` 发射；vue.rs 现值 `7842103e`；auto-ui 侧无覆盖计划）。待用户决策解除路线：①授权本目标在 auto-ui 仓按其自身 Plan/worktree 规约新建最小计划交付该发射，随后恢复本计划 work；或 ②用户/另一会话自行交付，交付后本计划以同一目标恢复 work。连续三轮等待未决则按 cap 置 blocked。
 
 **等待复核（2026-11-04 goal round 2）**：auto-ui HEAD 推进至 `6891edaa`（新提交均系 plan-043/044，与本前置无关）；在飞 worktree `ui-043`/`ui-044` 的 vue.rs 均 0 处 `optimizeDeps`。阻塞不变，等待 2/3。
+
+**授权落地（2026-11-04 goal round 3）**：用户拍板 **①**——授权本目标在 auto-ui 仓按其自身 Plan/worktree 规约新建最小计划交付 `vue.rs::generate_vite_config()` 的 `optimizeDeps.include`（pac.at npm_deps 键集透传）+ `server.strictPort`/host 发射，交付后回本计划恢复 work（冷缓存重跑 `vue-dev-rust` 至绿 → 闭合 T-02/T-03/T-04 → T-05 → T-06 → T-07）。本轮实测 auto-ui HEAD `27b9c74a` 仍未交付（vue.rs `7842103e` 零发射）；等待 cap 解除。
