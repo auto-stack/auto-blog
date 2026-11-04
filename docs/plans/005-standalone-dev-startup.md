@@ -124,6 +124,8 @@ stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: partial（T-01完�
 
 stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: blocked（T-02 配置发射半边=auto-ui owner 前置未交付；app 半边已交付；T-03 部分、T-04 构建完成并以诚实红执行，T-05 execution_done 不可声明） | worktree_path: D:/autostack/auto-blog（main，本仓合同唯一检出） | branch: main | base_commit: fa8feba | code_commit: 本提交（tests/dual/verify_dual.py：vue-dev-rust profile+端口漂移反控+pick_port 排除区修复；tests/dual/vue_dev_scenarios.cjs：B-02 区分性 oracle+fatal 传播；决策稿 §6c；计划簿记） | dependency_revisions: CLI 390e664e、tool 4d2198b8（冻结）；本轮实测 auto-ui HEAD 期间被 owner 会话推进（145d414→d43425c→e2ee696，另会话并行，本仓只读） | task_ids: T-03（◐ B-04 回放全绿；B-03 dev 腿 pending owner 前置）、T-04（✔ 构建完成；AC-04 红=dev 腿） | evidence: B-04 回放 vue 15/15、native 22/22、003 探针 16+5+8 全绿（t03/verify-*.log）；vue-dev-rust 13/14+pending EXIT=1 诚实红（冷缓存 dayjs CJS 复现）；expectation 注入 EXIT=1 具名 report.json；port 注入 RC=1×5 + CLI 具名 120s（E-10 分支行留 owner 验证）；假绿教训与 pick_port 修复见决策稿 §6c（E-9） | blockers: **T-02 dev 挂载闭合依赖 auto-ui owner 交付**：`auto-ui-tools/src/vue.rs::generate_vite_config()` 增发 `optimizeDeps.include = pac.at npm_deps 键集`（最小增量已逐字验证=cand5，app 侧 pac.at 声明已就绪；附带请 owner 评估 strictPort/host 发射以闭合 E-4a/b 端口静默） | next_responsible_role: user/owner（交付上述 auto-ui 最小前置后，本计划以同一目标恢复 work：清 gen/front/vue/node_modules/.vite 冷缓存重跑 vue-dev-rust 至绿 → 闭合 T-02/T-03/T-04 → T-05 execution_done → review → merge）
 
+stage: goal | plan_id: BLOG-005 | plan_revision: r1 | round: 1 | from: goal | to: user | status: drafting（frontmatter 未随 work receipt 推进，簿记差异照旧记录） | outcome: waiting | worktree: D:/autostack/auto-blog（main，合同唯一检出） | commit: 6769d6e | evidence: 阻塞复核（2026-11-04）：auto-ui HEAD `89b30ed3` 全 crates 无 `optimizeDeps`/`strictPort` 发射，vue.rs 现值 `7842103e`（plan-041/036/044 并行推进所致漂移）；auto-ui docs/plans 无覆盖本前置的计划；app 侧 pac.at 半边与 cand5 验证维持有效 | blockers: 同 §10（owner 前置未交付） | next: user（①授权在 auto-ui 仓按其 Plan/worktree 规约新建最小计划交付该发射，或 ②自行/另会话交付后恢复 work）
+
 ## 10. 待澄清事项
 
 本次规划没有待用户重新确认的产品方向。T-00 负责核实技术能力与实际 owner，决策稿必须先闭合再进入依赖实现。若探针显示必须改变目标、降低必需验收或扩大跨仓写入范围，报告具体证据并保留受影响任务未完成；不得用占位、跳过、API 预操作或历史总数替代必需用户任务。
@@ -134,3 +136,5 @@ stage: work | plan_id: BLOG-005 | plan_revision: 1 | outcome: blocked（T-02 配
 2. 附带评估 `server.strictPort`（+或 host 校验）发射以闭合 E-4a/E-4b 端口冲突静默改道。
 
 **解除动作**：owner 交付后回到本计划 work——清 `gen/front/vue/node_modules/.vite`（冷缓存）→ `python tests/dual/verify_dual.py --profile vue-dev-rust` 至全绿 → 勾闭 T-02（B-02）、T-03（B-03）、T-04 转 green → T-05 execution_done → T-06 复审 → T-07 归档。交付前 dev 门保持诚实红，不以 build+preview 冒充。
+
+**等待复核（2026-11-04 goal round 1）**：auto-ui HEAD `89b30ed3` 仍未交付该前置（全 crates 无 `optimizeDeps`/`strictPort` 发射；vue.rs 现值 `7842103e`；auto-ui 侧无覆盖计划）。待用户决策解除路线：①授权本目标在 auto-ui 仓按其自身 Plan/worktree 规约新建最小计划交付该发射，随后恢复本计划 work；或 ②用户/另一会话自行交付，交付后本计划以同一目标恢复 work。连续三轮等待未决则按 cap 置 blocked。
