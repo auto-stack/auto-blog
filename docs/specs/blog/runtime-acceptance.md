@@ -1,8 +1,18 @@
-# 双运行时运行验收合同（BLOG-004 固化）
+# 双运行时运行验收合同（BLOG-004 固化；BLOG-005 扩三 profile）
+
+> BLOG-005 SD-01 修订：永久门由两 profile 扩为**三 profile 分列**（dev/build+preview/
+> native 互不冒充），新增冷准备/工具身份/端口故障合同（详见 §1a/§6）。
 
 状态：current-state（BLOG-004 T-04..T-07 交付；2026-10-30）。本文件是 auto-blog 双运行时（Vue＋Rust 后端、原生 VM＋Rust 后端）运行与验收的统一合同；替代口口相传的探针用法。
 
 ## 1. 永久验收入口
+
+**BLOG-005 SD-01（三 profile 分列）**：`vue-dev-rust`（vite dev，官方 `auto run
+--server rust`）/ `vue-rust`（vite build + preview）/ `native-vm-rust`（`-r vm`）
+三 profile 分别验收、不得互为冒充——dev 挂载不得以 build+preview 冒充，
+build+preview 不得替代原生验收。三门由 `tests/dual/verify_dual.py` 管理；
+dev profile 的区分性 oracle=真实引擎挂载（`.autodown-editor`）、UI→API→磁盘
+三通道逐字、空稿起稿规则、缺资源降级与恢复（B-02/B-03）。
 
 ```
 python tests/dual/verify_dual.py --profile vue-rust        # Vue＋Rust 全链路（15 场景）
@@ -42,3 +52,21 @@ python tests/dual/verify_dual.py --profile native-vm-rust  # 原生 VM＋Rust �
 ## 5. 证据口径
 
 Plan 内记命令、退出码、关键结果、本地路径+内容 hash；原始日志/报告/截图留 `docs/plans/attachments/004/dual/`（不入库）。报告 `report.json` 的 executed/passed/failed/pending 与退出码必须自洽。负控轮的非零退出是 harness 灵敏度证据，与正控轮分开留存。
+
+
+## 6. 冷准备、工具身份与故障合同（BLOG-005 SD-01）
+
+- **冷准备**：无 target/gen 缓存的首轮准备有进度与就绪判定（localhost+127.0.0.1
+  双判据）；冷 scaffold 从 pac.at 重建并含全部 npm_deps（BLOG-005 实测 238s，
+  README「准备与启动」为正式文档路径）。
+- **工具身份**：`auto-ui-tool.exe` 发现顺序优先 `auto-man/target/debug/`；
+  CLI 重建或 auto-ui 交付后必须同步复制部署；身份不符=具名失败非零退出。
+- **端口/故障合同**：vite 配置发射 `host: '127.0.0.1'` + `strictPort: true`
+  （auto-ui PLAN-050）——端口被占=具名失败非零退出，禁止静默自增（可撞
+  后端端口呈 split-brain）与同端口跨协议栈静默绑定；坏 tool/构建错均具名
+  非零（120s 后端就绪上限）。失败传播：expectation 注入→EXIT=1 具名；
+  端口注入→RC=1+CLI 具名。
+- **缺引擎资源（B-03）**：引擎资源缺失=author 路由块不可达但失败可诊断
+  （console 错误），草稿保稿（API 读回逐字）；资源恢复后引擎重挂载、
+  续写保存入盘。「降级编辑 UI」需工具层懒加载 import 模式（auto-ui
+  owner 项，未实施——缺资源期间 author 块整体不可达）。
