@@ -37,6 +37,18 @@ function record(name, ok, detail) {
   try {
     const page = await browser.newPage();
     page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+    // RW_DEBUG_DOM=1：诊断转储（console + 指定时刻的 autodown DOM），不改变任何 oracle
+    const DEBUG_DOM = !!process.env.RW_DEBUG_DOM;
+    if (DEBUG_DOM) page.on('console', m => console.log(`CONSOLE[${m.type()}] ` + m.text().slice(0, 240)));
+    const dumpDom = async tag => {
+      if (!DEBUG_DOM) return;
+      const dump = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('[class*="autodown"]')).map(
+          e => `<${e.tagName} class="${e.className}"> ` + e.innerHTML.slice(0, 260)
+        )
+      ).catch(e => ['dump-err: ' + e.message]);
+      console.log(`DOMDEBUG[${tag}] ` + JSON.stringify(dump).slice(0, 1800));
+    };
     await page.goto(URL + '/#/', { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 30000 });
 
@@ -96,6 +108,8 @@ function record(name, ok, detail) {
       const hasPreview = await previewBtn.isVisible().catch(() => false);
       if (hasPreview) {
         await previewBtn.click();
+        await page.waitForTimeout(1200);
+        await dumpDom('preview');
         const rendered = await page.locator('.autodown h1, .autodown-editor h1, [class*="autodown"] h1').first()
           .isVisible().catch(() => false);
         record('dev.preview_renders', rendered, { rendered });
@@ -124,6 +138,7 @@ function record(name, ok, detail) {
         await page.keyboard.press('Control+End');
         await page.keyboard.type('\n\n重启后编辑', { delay: 25 });
         await page.waitForTimeout(4500);
+        await dumpDom('post-typed');
         const st2 = await api.get(`/api/drafts/${wid}`);
         const w2 = await st2.json().catch(() => ({}));
         record('dev.post_restart_next_save', st2.ok() && (w2.body || '').includes('重启后编辑'),

@@ -92,7 +92,7 @@ pub fn json_str(src str, key str) str {
     if i < 0 {
         return ""
     }
-    let start int = i + marker.len()
+    let start int = i + marker.length
     let end int = src.find("\"", start)
     if end < 0 || end <= start {
         return ""
@@ -110,8 +110,8 @@ pub fn bearer_token(meta str) str {
     if i < 0 {
         return ""
     }
-    let start int = i + marker.len()
-    if start >= meta.len() {
+    let start int = i + marker.length
+    if start >= meta.length {
         return ""
     }
     // Token ends at the closing quote (JSON form) or end of string (bare).
@@ -119,7 +119,7 @@ pub fn bearer_token(meta str) str {
     // (s[start..end]) — the one substring method unified across backends.
     let end int = meta.find("\"", start)
     if end < 0 {
-        return meta.slice(start, meta.len())
+        return meta.slice(start, meta.length)
     }
     if end <= start {
         return ""

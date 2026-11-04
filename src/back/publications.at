@@ -66,7 +66,7 @@ fn write_confirmed_p(path str, content str) bool {
 /// 探针串的出现计数折叠（字节差 ÷ 探针字节长，商取整）。
 pub fn content_hash(body str) str {
     var h int = 17
-    let n int = body.len()
+    let n int = body.length
     h = (h + n) * 31
     h = probe_fold(h, body, "\n")
     h = probe_fold(h, body, " ")
@@ -81,7 +81,7 @@ pub fn content_hash(body str) str {
 
 fn probe_fold(h int, body str, probe str) int {
     let removed str = body.replace(probe, "")
-    let cnt int = (body.len() - removed.len()) / probe.len()
+    let cnt int = (body.length - removed.length) / probe.length
     return (h + cnt) * 31
 }
 
@@ -174,7 +174,7 @@ fn index_add(root str, pub_id str) bool {
     if ids.find("\"" + pub_id + "\"") >= 0 {
         return true
     }
-    let cut int = ids.len() - 1
+    let cut int = ids.length - 1
     var next str = ids
     if ids == "[]" {
         next = "[\"" + pub_id + "\"]"
@@ -258,7 +258,7 @@ pub fn list_publications(work_id str) []Publication {
     let ids str = read_index(root)
     var out []Publication = []
     var i int = 0
-    let n int = ids.len()
+    let n int = ids.length
     while i < n {
         if ids.slice(i, i + 1) == "\"" {
             var j int = i + 1
@@ -402,7 +402,7 @@ pub fn publication_asset(pub_id str, asset_id str) str {
             rest = ""
         } else {
             line = rest.slice(0, nl)
-            rest = rest.slice(nl + 1, rest.len())
+            rest = rest.slice(nl + 1, rest.length)
         }
         if line != "" {
             let lid str = json_field_str(line, "asset_id")

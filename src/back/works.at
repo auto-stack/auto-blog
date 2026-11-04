@@ -111,7 +111,7 @@ fn hex4_from_cp(cp int) str {
 
 /// 解析 s[p..p+5] = uXXXX（p 指向 'u'）为码点；非法返回 -1。
 fn hex4_code(s str, p int) int {
-    if p + 5 > s.len() {
+    if p + 5 > s.length {
         return -1
     }
     let hex4 str = s.slice(p + 1, p + 5)
@@ -136,7 +136,7 @@ fn ufffd() str {
 pub fn json_unescape(s str) str {
     var out str = ""
     var i int = 0
-    let n int = s.len()
+    let n int = s.length
     while i < n {
         let rest str = s.slice(i, n)
         let bs int = rest.find("\\")
@@ -228,8 +228,8 @@ pub fn json_field_str(src str, key str) str {
     if i < 0 {
         return ""
     }
-    var j int = i + key_tok.len()
-    let n int = src.len()
+    var j int = i + key_tok.length
+    let n int = src.length
     while j < n {
         let c str = src.slice(j, j + 1)
         if c == " " || c == "\t" || c == "\n" || c == "\r" {
@@ -276,8 +276,8 @@ pub fn json_field_int(src str, key str) int {
     if i < 0 {
         return 0
     }
-    var j int = i + key_tok.len()
-    let n int = src.len()
+    var j int = i + key_tok.length
+    let n int = src.length
     while j < n {
         let c str = src.slice(j, j + 1)
         if c == " " || c == "\t" || c == "\n" || c == "\r" {
@@ -375,7 +375,7 @@ pub fn join_path(a str, b str) str {
     if b == "" {
         return a
     }
-    let al int = a.len()
+    let al int = a.length
     let last str = a.slice(al - 1, al)
     if last == "/" || last == "\\" {
         return a + b

@@ -16,6 +16,11 @@ store AuthStore {
 
     on {
         .Init -> {
+            // BLOG-005 T-02 防御重置：store 工厂（auto-ui plan-041 T-03 起）
+            // 对结构字面量模型默认值发射 `ref<any>(null)`——Init 首读
+            // `.me.token` 前先显式复位默认 User，不依赖生成器是否保留
+            // 初始化器（owner 修复后此行仍无害）。
+            .me = User { id: 0, email: "", username: "", bio: "", image: "", token: "" }
             .me = current_user("Bearer " + .me.token)
         }
         .Login(email str, password str) -> {

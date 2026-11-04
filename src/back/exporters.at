@@ -191,7 +191,7 @@ pub fn export_publication(pub_id str, format str) ExportResult {
             rest = ""
         } else {
             lines.push(rest.slice(0, nl))
-            rest = rest.slice(nl + 1, rest.len())
+            rest = rest.slice(nl + 1, rest.length)
         }
     }
     var ext_refs List<str> = List<str>.new([])
