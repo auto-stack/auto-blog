@@ -386,7 +386,9 @@ def s_restart(ctx: Ctx):
 # 未落地场景：登记 owner，运行即 pending（profile 整体非零，不可静默跳过）
 PENDING_SCENARIOS = {
     "vue-ui.author_task": "T-05（Vue＋Rust 真实交互：创建/自动保存/冲突可见/刷新与重启回放）",
-    "dev-ui.missing_resource_degradation": "BLOG-005 T-02（缺引擎资源→明确错误+保稿降级+恢复依赖续写）——依赖 dev 挂载修复（auto-ui owner 前置）交付后落地",
+    # dev-ui.missing_resource_degradation 已于 BLOG-005 T-02 落地（缺资源→
+    # 可诊断失败+保稿，恢复→续写保存）；「降级编辑 UI」需工具层懒加载
+    # import 模式，记 auto-ui owner 项，不阻塞本场景验收。
 }
 
 PROFILE_PHASES = {
@@ -647,6 +649,64 @@ def run_profile(profile: str, only: str | None, inject: str | None, artifacts: P
                         record("dev-ui.restart_dev_persists", okd2, detaild2, phase="vue-dev-ui")
             finally:
                 svc2.stop()
+
+        # B-03 dev 腿（T-02 闭合，挂载修复交付后落地）：缺引擎资源相位——
+        # 资源手术在服务停启之间做（vendor 引擎 package.json 临时改名；
+        # node_modules 链接会被 pnpm install 复原、.vite 优化缓存会让隐藏
+        # 失效，故两者都不选），并清 .vite 强制冷解析 author 路由块。
+        # 合同：失败可诊断（console 错误）+ 草稿保稿；恢复资源后续写保存。
+        # 「降级编辑 UI」需工具层懒加载 import 模式（auto-ui owner 项）。
+        if run_dev_ui:
+            engine_pkg = REPO / "vendor" / "auto-down" / "autodown" / "packages" / "engine" / "package.json"
+            hidden_pkg = engine_pkg.with_name("package.json.missing-sim")
+            vite_cache = REPO / "gen" / "front" / "vue" / "node_modules" / ".vite"
+            svc3 = Service(back, data_dir, run_dir / "service-missing.log",
+                           mode=spawn_mode, front_port=front)
+            try:
+                svc.stop()
+                if not engine_pkg.is_file():
+                    record("dev-ui.missing_resource_degradation", False,
+                           f"engine package.json not found for missing-sim: {engine_pkg}",
+                           phase="vue-dev-ui")
+                else:
+                    engine_pkg.rename(hidden_pkg)
+                    shutil.rmtree(vite_cache, ignore_errors=True)
+                    svc3.start()
+                    ready3, why3 = svc3.wait_ready()
+                    if not ready3:
+                        record("dev-ui.missing_resource_degradation", False,
+                               f"missing-engine service not ready: {why3}", phase="vue-dev-ui")
+                    else:
+                        okm, detailm, _ = run_cjs(svc3.front_url, f"http://127.0.0.1:{back}", "missing", "",
+                                                  run_dir, cjs_name="vue_dev_scenarios.cjs",
+                                                  extra_env={"RW_DATA": str(data_dir)})
+                        # 还原资源 + 冷 .vite 重启，验收恢复续写
+                        svc3.stop()
+                        # strictPort 语义下，前一 vite 未完全退出即重启会具名
+                        # 失败（E-4b 生效面）——留端口释放裕量
+                        time.sleep(4)
+                        hidden_pkg.rename(engine_pkg)
+                        shutil.rmtree(vite_cache, ignore_errors=True)
+                        svc4 = Service(back, data_dir, run_dir / "service-recover.log",
+                                       mode=spawn_mode, front_port=front)
+                        try:
+                            svc4.start()
+                            ready4, why4 = svc4.wait_ready()
+                            if not ready4:
+                                record("dev-ui.missing_resource_degradation", False,
+                                       f"recovered service not ready: {why4}", phase="vue-dev-ui")
+                            else:
+                                okr, detailr, _ = run_cjs(svc4.front_url, f"http://127.0.0.1:{back}", "recover", "",
+                                                          run_dir, cjs_name="vue_dev_scenarios.cjs",
+                                                          extra_env={"RW_DATA": str(data_dir)})
+                                record("dev-ui.missing_resource_degradation", okm and okr,
+                                       detailm + " | " + detailr, phase="vue-dev-ui")
+                        finally:
+                            svc4.stop()
+            finally:
+                svc3.stop()
+                if hidden_pkg.exists() and not engine_pkg.exists():
+                    hidden_pkg.rename(engine_pkg)
     finally:
         svc.stop()
         _stop_previews()

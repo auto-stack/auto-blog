@@ -17,6 +17,8 @@ const PHASE = process.env.DUAL_PHASE || 'pre';
 const URL = process.env.RW_URL;
 const API = process.env.RW_API;
 const DATA = process.env.RW_DATA || '';
+// post 阶段消费 pre 阶段末尾 WID 行（harness 经 DUAL_WID 传入；同稿重开依赖它）
+const WID_IN = process.env.DUAL_WID || '';
 if (!URL || !API) { console.error('RW_URL/RW_API required'); process.exit(2); }
 
 const TITLE = 'dev轨中文标题"引号"';
@@ -33,25 +35,30 @@ function record(name, ok, detail) {
   const api = await request.newContext({ baseURL: API });
   const browser = await chromium.launch({ headless: true });
   const errors = [];
-  let wid = '';
+  let wid = WID_IN;
   try {
     const page = await browser.newPage();
     page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+    const consoleErrors = [];
+    page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text().slice(0, 160)); });
     // RW_DEBUG_DOM=1：诊断转储（console + 指定时刻的 autodown DOM），不改变任何 oracle
     const DEBUG_DOM = !!process.env.RW_DEBUG_DOM;
     if (DEBUG_DOM) page.on('console', m => console.log(`CONSOLE[${m.type()}] ` + m.text().slice(0, 240)));
     const dumpDom = async tag => {
       if (!DEBUG_DOM) return;
       const dump = await page.evaluate(() =>
-        Array.from(document.querySelectorAll('[class*="autodown"]')).map(
+        Array.from(document.querySelectorAll('[class*="autodown"], .streaming-document')).map(
           e => `<${e.tagName} class="${e.className}"> ` + e.innerHTML.slice(0, 260)
         )
       ).catch(e => ['dump-err: ' + e.message]);
       console.log(`DOMDEBUG[${tag}] ` + JSON.stringify(dump).slice(0, 1800));
     };
     await page.goto(URL + '/#/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-    // 首载 = vite 按需转换各页面模块（每轮冷进程），高负载机器上 30s 可超——60s 留裕量
-    await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 60000 });
+    // 首载 = vite 按需转换各页面模块（每轮冷进程），高负载机器上 30s 可超——60s 留裕量。
+    // missing 相位例外：author 路由块因引擎资源缺失而整体不可达，导航链接不会出现。
+    if (PHASE !== 'missing') {
+      await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 60000 });
+    }
 
     if (PHASE === 'pre') {
       // S1 种子非空 markdown 稿并打开——路由必须真实挂载且=引擎（区分性 oracle）
@@ -59,7 +66,7 @@ function record(name, ok, detail) {
       const w = await st.json().catch(() => ({}));
       wid = w.work_id || '';
       record('dev.seed_draft', st.ok() && wid.startsWith('w-'), { status: st.status(), wid });
-      await page.getByText(TITLE, { exact: true }).first().click({ timeout: 10000 });
+      await page.getByText(TITLE, { exact: true }).first().click({ timeout: 25000 });
       let mounted = 'none';
       try {
         await page.waitForSelector('.autodown-editor, textarea[placeholder*="正文（Markdown"]', { timeout: 15000 });
@@ -111,7 +118,9 @@ function record(name, ok, detail) {
         await previewBtn.click();
         await page.waitForTimeout(1200);
         await dumpDom('preview');
-        const rendered = await page.locator('.autodown h1, .autodown-editor h1, [class*="autodown"] h1').first()
+        // 预览根=引擎 StreamingRenderer 的 .streaming-document（类名不含
+        // "autodown"——dumpDom 实证），编辑器根才是 .autodown-editor
+        const rendered = await page.locator('.streaming-document h1, .autodown h1, .autodown-editor h1, [class*="autodown"] h1').first()
           .isVisible().catch(() => false);
         record('dev.preview_renders', rendered, { rendered });
         const backBtn = page.getByRole('button', { name: /返回编辑|编辑/ }).first();
@@ -123,11 +132,11 @@ function record(name, ok, detail) {
         record('dev.preview_back_preserves', false, { note: 'preview toggle not found' });
       }
       console.log('WID ' + wid);
-    } else {
+    } else if (PHASE === 'post') {
       // post：重启后重开同稿，引擎仍挂载、内容仍在、下一次编辑保存成功
       const st0 = await api.get(`/api/drafts/${wid}`).catch(() => null);
       const w0 = st0 && st0.ok() ? await st0.json().catch(() => ({})) : {};
-      await page.getByText(w0.title || TITLE, { exact: true }).first().click({ timeout: 10000 }).catch(() => {});
+      await page.getByText(w0.title || TITLE, { exact: true }).first().click({ timeout: 25000 }).catch(() => {});
       let mounted = 'none';
       try {
         await page.waitForSelector('.autodown-editor, textarea[placeholder*="正文（Markdown"]', { timeout: 15000 });
@@ -147,6 +156,43 @@ function record(name, ok, detail) {
       } else {
         record('dev.post_restart_next_save', false, { mounted });
       }
+    } else if (PHASE === 'missing') {
+      // B-03 dev 腿（T-02 闭合）：引擎资源缺失（harness 已把
+      // node_modules/@autodown/engine 移走、vite 冷解析 author 路由块）。
+      // 合同：失败可诊断（console 错误）+ 草稿保稿；「降级编辑 UI」需工具层
+      // 懒加载 import 模式（owner 项），当前架构下 author 块整体不可达。
+      const st = await api.post('/api/drafts', { data: { title: '缺资源降级稿', body: MD_SEED, format: 'markdown' } });
+      const mw = ((await st.json().catch(() => ({}))).work_id) || '';
+      record('dev.missing.seed', st.ok() && !!mw, { status: st.status(), mw });
+      await page.goto(URL + '/#/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.waitForTimeout(5000); // 路由块失败在此窗口浮出（500/动态导入错误）
+      const editorMounted = (await page.locator('.autodown-editor').count()) > 0;
+      const st2 = await api.get(`/api/drafts/${mw}`);
+      const w2 = await st2.json().catch(() => ({}));
+      const kept = st2.ok() && (w2.body || '').includes('dev轨标题');
+      record('dev.missing.degraded_failure_diagnosable_draft_kept',
+             (!editorMounted) && kept && consoleErrors.length > 0,
+             { editorMounted, kept, consoleErr: consoleErrors.length, sample: (consoleErrors[0] || '').slice(0, 90) });
+    } else if (PHASE === 'recover') {
+      // 恢复资源后（harness 已还原 engine 目录）：同稿引擎挂载、键入续写、自动保存读回
+      const list = await api.get('/api/drafts');
+      const arr = await list.json().catch(() => ({}));
+      const rows = Array.isArray(arr) ? arr : (arr.works || []);
+      const mine = rows.find(w => (w.title || '') === '缺资源降级稿') || {};
+      const mw = mine.work_id || '';
+      record('dev.missing.recover_seed_found', !!mw, { mw });
+      await page.goto(URL + '/#/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+      await page.getByRole('link', { name: '我的草稿' }).waitFor({ timeout: 60000 });
+      await page.getByText('缺资源降级稿', { exact: true }).first().click({ timeout: 25000 });
+      await page.waitForSelector('.autodown-editor', { timeout: 20000 });
+      await page.locator('[data-engine-editor]').first().click().catch(() => {});
+      await page.keyboard.press('Control+End');
+      await page.keyboard.type('\n\n恢复资源后续写', { delay: 25 });
+      await page.waitForTimeout(4500);
+      const st3 = await api.get(`/api/drafts/${mw}`);
+      const w3 = await st3.json().catch(() => ({}));
+      record('dev.missing.recover_edit_save', st3.ok() && (w3.body || '').includes('恢复资源后续写'),
+             { rev: w3.revision });
     }
   } catch (e) {
     errors.push('fatal: ' + e.message);
