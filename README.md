@@ -13,7 +13,7 @@
 
 ## 当前后续计划
 
-[BLOG-005：普通开发启动与编辑器运行路径收口](docs/plans/005-standalone-dev-startup.md) 为 drafting/r1、0/8，**尚未实施**。复用004工具/调度器和002固定引擎，先对照当前dev/preview，再修真实责任接缝；不重做Rust生成器或编辑器。
+[BLOG-005：普通开发启动与编辑器运行路径收口](docs/plans/005-standalone-dev-startup.md) 已交付（T-01..T-05 全勾、终局全门 53/53：vue-dev-rust 16/16 + native-vm-rust 22/22 + vue-rust 15/15，2026-11-05）。普通 dev 启动即官方 `auto run --server rust`；修复链=auto-ui PLAN-050（optimizeDeps.include+strictPort 发射）+PLAN-051（店模型默认/main.ts 拼接/page-named dispatch）+本仓（back .at 字符数语义、auth 防御重置、引擎偏好迁店面）。
 
 ## 运行与验收
 
@@ -43,14 +43,15 @@ AUTO_BLOG_DATA=D:/tmp/blog-data auto run --server rust -F 17826 -B 17827 -d <rep
 
 端口17826/17827；数据目录`AUTO_BLOG_DATA`覆盖，缺省`~/.auto-blog/data`。StyleKit及AutoDown固定于vendor。
 
-原生正式入口：`auto run -r vm --server rust`。普通Vue dev入口`auto run --server rust`的引擎挂载F-2收口中（T-00已实证根因与最小修复配方：app侧依赖声明已交付，配置发射半边=auto-ui owner前置，见决策稿）；owner交付前**dev 路径引擎挂载为红，不得以 build＋preview 冒充 dev 验收**。Vue完整验收暂沿用build＋preview，由既有调度器管理：
+原生正式入口：`auto run -r vm --server rust`。普通Vue dev入口：`auto run --server rust`——引擎挂载已修复（auto-ui 发射 optimizeDeps.include+strictPort；app 侧 npm_deps 声明+auth/引擎偏好店面迁移），**dev 路径与 build＋preview 分别验收、不得互为冒充**。三 profile 永久门（BLOG-005 T-04 起随调度器管理）：
 
 ```sh
+python tests/dual/verify_dual.py --profile vue-dev-rust
 python tests/dual/verify_dual.py --profile vue-rust
 python tests/dual/verify_dual.py --profile native-vm-rust
 ```
 
-原生profile需`AUTO_UI_TOOL_BIN`指向匹配工具；调度器使用隔离数据目录，只管理本次进程。005拟新增的vue-dev-rust profile尚不可用。旧VM后端可用于诊断，不替代Rust/原生验收。UI数据错误、空白outlet、pending或零场景不计成功。
+原生profile需`AUTO_UI_TOOL_BIN`指向匹配工具；调度器使用隔离数据目录，只管理本次进程。旧VM后端可用于诊断，不替代Rust/原生验收。UI数据错误、空白outlet、pending或零场景不计成功。
 
 ## 规划、来源与开发
 
