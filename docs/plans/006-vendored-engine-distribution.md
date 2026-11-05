@@ -1,12 +1,12 @@
 ---
 plan_id: PLAN-006
-status: executing
+status: execution_done
 feature_name: 固定文档引擎发行包随 Git 交付
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-06
 plan_revision: 1
-current_step: 1
+current_step: 2
 total_steps: 3
 supersedes_spec_components: []
 new_spec_components: []
@@ -61,7 +61,7 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
 ## 8. 执行步骤
 
 - [x] T-01（work，AC-01）：ignore例外+登记固定dist，干净archive对账和正式构建。c7cc132中154文件已追踪，git archive包含全部154文件；干净archive正式auto build -r vue exit0，Vite10.41s。
-- [ ] T-02（work，依赖T-01，AC-02）：OS054八app Vue桌面3410实际作者/引擎/草稿恢复已通过（rev1→5，磁盘meta/body/current一致）。复审R006-01指出现行Spec §5还要求build+preview实际行为，待补生产预览的引擎编辑/自动保存/重开读回；不能以生产构建或dev成功替代。实现c7cc132不改，T-03待验证完成。
+- [x] T-02（work，依赖T-01，AC-02）：OS054八app Vue桌面3410实际作者/引擎/草稿恢复通过（rev1→5）。R006-01已补：clean archive生产产物Vite preview3411实际新建草稿、引擎h1真实逐字输入release-edit、自动保存/预览、全页reload后恢复，磁盘独立核对rev4/current/meta/body一致，浏览器error日志空。实现c7cc132不改，T-03待最终复审/交付。
 - [ ] T-03（review/merge，依赖T-02，AC-03/04）：同clone冻结复审、push、组合pin与归档。
 
 ## 9. 复审记录
@@ -73,6 +73,8 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
   AC-01 pass：154发行文件已入Git且clean archive构建绿；178个Git跟踪engine源文件、154个dist文件在clone/archive/本轮正式Notes同源重建之间逐项相同。最初直接rglob把开发clone两个被忽略vitest results.json缓存算进源输入而误报差异，已按规范Git源集合修正，源本身无差异（review-source-and-dist.json）。git diff --check唯一空格告警位于编译JS模板字符串的Markdown硬换行`return 两空格+换行`，与受信构建字节相等，不格式化产品语义。引擎src/package/pin与业务src/Spec diff均为空。
   AC-02 partial / R006-01：dev桌面真实作者/引擎键入/保存/预览/重开已有UI+独立磁盘证据；现行docs/specs/blog/editor-assets-preview.md §5明确dev和build+preview分别验收，不互为冒充。新增发行包直接影响production消费，因此仅clean生产build成功不能证明production引擎可用。关闭条件：同clean archive产物启动独立Vite preview，真实作者UI创建/编辑并自动保存、新加载恢复，独立磁盘oracle一致；Rust17827后端可复用同一未改业务源码，明确不将独立preview算054桌面任务。
   SD-01归一到实际canonical Spec；editor-assets-preview SHA0d271b533d2a66289475b51d3f5ddad19bdd575eaee58a3bf6c7d3ae86fac378，durable-drafts SHA660f2c4a935deb32507a7f29b09b97721978ffecfd9a9288328ef694e111b7e9；既有规则不改。T-02重开，其他前红后绿/源和发行身份/dev证据保留，不重跑无关旧门。AC-03/04与push/OS pin/归档pending。
+- stage: work | task_ids: T-02 | finding: R006-01 | outcome: closed by actual production consumer evidence | code: c7cc132 unchanged | next: review
+  同clean git archive的dist启动pnpm preview --host127.0.0.1 --port3411（session45781），复用未改源的Rust17827后端，仅本轮隔离数据。IAB tab2真正生产页新建U054-production-006，textarea起稿后切正式engine，真实contenteditable逐字追加release-edit、自动保存、本地预览、完整reload→点同草稿恢复。w-1793915349291-2/rev4；生产oracle meta SHA6396bb9ec2f00165bbcb1f123e534b643fba8c9787ba1fb7c636350e7559443b，body SHA7fc3838d3e14a3451c703ab0fa118aa6ca0b05f4eb46ee4cd7d9e5c1adf72117，current/rev4提交文件相等。dist index SHA4e60730d2999ba62125a51773ceaa066931ef327150ae027a177de102390aeea、author bundle SHAa409f0c43c3cdff22821d7bb37b7d1b768452149b3f11c1cebffc6f1de270522；生产重开截图SHAfbc3143187d72d0e8d82a2e185d0cd74072f17a403f9a75e1ec34f4b63873d87。raw production-oracle.json/production-reopened-dom.txt/jpg位于plan-006/auto-blog。浏览器error日志[]。该独立生产预览只关闭app规范消费门，不计054桌面新增通过。SDK、src/package/pin/dist均未漂移；未重跑其他既有完整门。
 ## 10. 待澄清事项
 
 无新增产品或依赖版本决策。工作与最终验收待执行。
