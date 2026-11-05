@@ -6,7 +6,7 @@ author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-06
 plan_revision: 1
-current_step: 1
+current_step: 2
 total_steps: 3
 supersedes_spec_components: []
 new_spec_components: []
@@ -60,13 +60,14 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
 
 ## 8. 执行步骤
 
-- [ ] T-01（work，AC-01）：ignore例外+登记固定dist，干净archive对账和正式构建。
+- [x] T-01（work，AC-01）：ignore例外+登记固定dist，干净archive对账和正式构建。c7cc132中154文件已追踪，git archive包含全部154文件；干净archive正式auto build -r vue exit0，Vite10.41s。
 - [ ] T-02（work，依赖T-01，AC-02）：OS054真实作者任务消费验证，提交execution_done。
 - [ ] T-03（review/merge，依赖T-02，AC-03/04）：同clone冻结复审、push、组合pin与归档。
 
 ## 9. 复审记录
 
 - drafting：已定位忽略规则，154发行文件与正式新构建逐项一致。next=work/T-01，尚未签任何AC。
+- work/T-01：c7cc132只补忽略例外与154固定发行文件（无engine源码/package/pin变化）。git archive到D:/autostack/plan-artifacts/plan-006/auto-blog/clean-source后正式auto build -r vue成功，TypeScript解析/作者页生产打包均通过，修复原TS2307。日志clean-vue-build.log SHA256 bf1c494fda5ed5e926e8602bdd09813a62ae5c07b3a1a42b22e88e98cd5afa52。编译工具auto-ui644d8366/auto-lang23f3a031a；只在scratch安装PM依赖/物化普通deps。T-02真实作者/草稿消费仍待验，未push、未更新OS gitlink、未签review。
 
 ## 10. 待澄清事项
 
