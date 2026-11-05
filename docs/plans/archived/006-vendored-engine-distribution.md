@@ -1,6 +1,6 @@
 ---
 plan_id: PLAN-006
-status: reviewed
+status: archived
 feature_name: 固定文档引擎发行包随 Git 交付
 author: [Codex]
 created_at: 2026-11-06
@@ -33,7 +33,7 @@ OS054干净组合的Blog Vue编译报TS2307（@autodown/engine类型不存在）
 
 ## 4. 需求分析与背景调查
 
-用户授权本轮修复阻塞并完成[auto-os PLAN-054](D:/autostack/auto-os/docs/plans/054-basic-apps-unified-assembly.md)，本项为其实际干净消费中发现的最小打包修复。基线832b71f、main clean。PROVENANCE.md声明c3464d0固定快照包含src+dist+package.json且无需消费方再编译，但git ls-files仅180个文件，无dist；git check-ignore指向.gitignore:25。开发clone有154个被忽略dist文件。
+用户授权本轮修复阻塞并完成[auto-os](D:/autostack/auto-os/README.md) 的 PLAN-054，本项为其实际干净消费中发现的最小打包修复。基线832b71f、main clean。PROVENANCE.md声明c3464d0固定快照包含src+dist+package.json且无需消费方再编译，但git ls-files仅180个文件，无dist；git check-ignore指向.gitignore:25。开发clone有154个被忽略dist文件。
 
 154个现有发行文件逐项SHA与本轮在OS054 scratch中正式构建的Notes同源engine产物完全相同（pnpm --filter @autodown/engine build exit0，生成器纯度/无Tiptap/editor-gen检查均通过）。双方.dist-stamp同为f46a2f188e86faab893e9b600519656487b270cdfc33a3120e3c9cfa5d980552；对账证据归OS054 t04/blog-dist-vs-built-notes-r132.json。不改src、package.json或pin，拒绝用另一版本包覆盖。
 
@@ -78,6 +78,10 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
 - stage: review | review_scope: final re-review | reviewer_identity/limitations: Codex，同实现上下文依原始artifact复核，未声称独立上下文 | plan_id: PLAN-006 | plan_revision: 1 | outcome: pass | worktree_path: D:/autostack/auto-blog（用户app clone策略） | branch: main | reviewed_commit: d75bd25a79d25e59f476b047663ad1fb5424df6a | base_commit: 832b71f | dependency_revisions: UI644d83666f6a178a57445e4a0d982714088296d5 / Lang23f3a031a684131864a3aa61b908b4fa71290d01 / Man03bb65ef7fb6181caa6a08d9752ac7d57c75516c | next: merge
   AC-01 pass沿用：review-source-and-dist对178 canonical source/154 dist逐项比对、Git archive身份与TypeScript/Vite正式build有效，55e21→本次HEAD的src/vendor/.gitignore diff为空，证据未失效。AC-02 pass：原dev桌面任务仍成立，R006-01用真正production preview完成引擎输入、自动保存、预览、全页重新载入恢复；重新读取磁盘prod oracle及current/revision文件一致，生产asset SHA绑定clean archive，不用dev结果替代。AC-03/SD-01 pass：既有Spec §5两消费面明确保留，source/pin/API/数据格式均未改，现仅修交付缺失，canonical Spec无需增量；supersedes/new为空。Spec SHA与前审一致，HEAD无dirty tracked实现。
   finding closure：R006-01 complete，未发现新产品缺陷；最初源码对账的ignored Vitest cache误报与编译JS字符串空格告警为探针/格式边界，均已有区分性说明，未删除源或改dist掩盖。pending_closeout_gates：AC-04/T-03 push、OS gitlink与归档尚未执行，独立app clone保留；054整体独立最终复审不由本条替代。实施写入继续冻结，交merge。
+- stage: merge | plan_id: PLAN-006 | plan_revision: 1 | checkpoint: prepared/landed/canonical_verified | completion_kind: delivered | review: d75bd25a79d25e59f476b047663ad1fb5424df6a final pass (same-context limitation retained) | delivery_commit: e613a681845e6c772bcbd55d64d10f89c9c0d6e2 | next: actual archive/push verification
+  用户app clone main流程：固定发行154文件/ignore精确例外与复审元数据均已main提交并push；origin/main实查e613a68，832b71f→delivery零merge commit且无历史重写。相对review只有元数据，没有src/vendor/.gitignore实施变化。SD-01=none，现行docs/specs/blog/editor-assets-preview.md blob0cf23af86d338d11aa9defd306b5c3c14bc69d75与审前一致；未新增/改写规则、旧ledger或索引。
+  干净无人写入的OS054子模块已fetch/detach交付e613，候选OS90662eb仅升本App与Database gitlink；健康gate exit0/27 repo/missing_pac_at0。固定发行包包含在新Git源码内，clean archive的build+preview真实闭环与dev桌面任务分别验收，未混算。app独立clone是保留开发目录，按用户规则不移除，不建任何链接。
+  hold OS054-BLOG006-CONSUMER：owner=auto-os/PLAN-054，scope=plan-artifacts/plan-006/auto-blog，原因=054验收和独立最终复审仍需固定源/production原证据；关闭=054完成对应gate并折入Plan后，停止本轮owned preview，no-follow摘该scope生成链接，删除该已登记子scope，更新registry。policy.json scopes/holds已登记。当前3411 preview（session45781）和3410宿主属054验证，不当生产部署；Main OS仍旧组合，独立clone未重建production-facing bundle，只scratch clean archive产物已构建并实测，部署观察项由054接手。归档commit/push/最终计数待下一checkpoint实查。
 ## 10. 待澄清事项
 
 无新增产品或依赖版本决策。工作与最终验收待执行。
