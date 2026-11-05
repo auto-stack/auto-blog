@@ -1,12 +1,12 @@
 ---
 plan_id: PLAN-006
-status: execution_done
+status: executing
 feature_name: 固定文档引擎发行包随 Git 交付
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-06
 plan_revision: 1
-current_step: 2
+current_step: 1
 total_steps: 3
 supersedes_spec_components: []
 new_spec_components: []
@@ -45,7 +45,7 @@ OS054干净组合的Blog Vue编译报TS2307（@autodown/engine类型不存在）
 
 | delta_id | add/modify/retire | target | before/after rule | rationale | acceptance IDs |
 |---|---|---|---|---|---|
-| SD-01 | none | vendor/auto-down/PROVENANCE.md | 原已要求固定发行包含dist，规则不变 | 补足已声明的产品依赖，无新能力 | AC-01/02 |
+| SD-01 | none | docs/specs/blog/editor-assets-preview.md §5 | 原已要求固定发行包含dist、dev与build+preview分别验收，规则不变 | 补足已声明的产品依赖，无新能力；PROVENANCE.md交叉核对 | AC-01/02 |
 
 ## 6. 测试设计
 
@@ -61,7 +61,7 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
 ## 8. 执行步骤
 
 - [x] T-01（work，AC-01）：ignore例外+登记固定dist，干净archive对账和正式构建。c7cc132中154文件已追踪，git archive包含全部154文件；干净archive正式auto build -r vue exit0，Vite10.41s。
-- [x] T-02（work，依赖T-01，AC-02）：OS054八app Vue桌面3410挂载真实作者页，创建中文草稿/自动保存→正式引擎h1 contenteditable键入→离线预览→任务栏关窗重开→选同草稿恢复→改标题再自动保存，rev1→5。独立磁盘meta/body/current与rev5提交文件一致，五个revision均有ok提交标记，正文含engine-edit、23.75与列表。实现冻结c7cc132，进入execution_done，T-03未执行。
+- [ ] T-02（work，依赖T-01，AC-02）：OS054八app Vue桌面3410实际作者/引擎/草稿恢复已通过（rev1→5，磁盘meta/body/current一致）。复审R006-01指出现行Spec §5还要求build+preview实际行为，待补生产预览的引擎编辑/自动保存/重开读回；不能以生产构建或dev成功替代。实现c7cc132不改，T-03待验证完成。
 - [ ] T-03（review/merge，依赖T-02，AC-03/04）：同clone冻结复审、push、组合pin与归档。
 
 ## 9. 复审记录
@@ -69,6 +69,10 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
 - drafting：已定位忽略规则，154发行文件与正式新构建逐项一致。next=work/T-01，尚未签任何AC。
 - work/T-01：c7cc132只补忽略例外与154固定发行文件（无engine源码/package/pin变化）。git archive到D:/autostack/plan-artifacts/plan-006/auto-blog/clean-source后正式auto build -r vue成功，TypeScript解析/作者页生产打包均通过，修复原TS2307。日志clean-vue-build.log SHA256 bf1c494fda5ed5e926e8602bdd09813a62ae5c07b3a1a42b22e88e98cd5afa52。编译工具auto-ui644d8366/auto-lang23f3a031a；只在scratch安装PM依赖/物化普通deps。T-02真实作者/草稿消费仍待验，未push、未更新OS gitlink、未签review。
 
+- stage: review | review_scope: final | reviewer_identity/limitations: Codex，同实现上下文artifact重核，未声称独立context | plan_id: PLAN-006 | plan_revision: 1 | outcome: needs_fix | worktree_path: D:/autostack/auto-blog | branch: main | reviewed_commit: 55e21f7977adf7b13dad3c2e71290ee4994e63c5 | base_commit: 832b71f | dependency_revisions: UI644d8366/Lang23f3a031a/Man03bb65e | next: work/T-02
+  AC-01 pass：154发行文件已入Git且clean archive构建绿；178个Git跟踪engine源文件、154个dist文件在clone/archive/本轮正式Notes同源重建之间逐项相同。最初直接rglob把开发clone两个被忽略vitest results.json缓存算进源输入而误报差异，已按规范Git源集合修正，源本身无差异（review-source-and-dist.json）。git diff --check唯一空格告警位于编译JS模板字符串的Markdown硬换行`return 两空格+换行`，与受信构建字节相等，不格式化产品语义。引擎src/package/pin与业务src/Spec diff均为空。
+  AC-02 partial / R006-01：dev桌面真实作者/引擎键入/保存/预览/重开已有UI+独立磁盘证据；现行docs/specs/blog/editor-assets-preview.md §5明确dev和build+preview分别验收，不互为冒充。新增发行包直接影响production消费，因此仅clean生产build成功不能证明production引擎可用。关闭条件：同clean archive产物启动独立Vite preview，真实作者UI创建/编辑并自动保存、新加载恢复，独立磁盘oracle一致；Rust17827后端可复用同一未改业务源码，明确不将独立preview算054桌面任务。
+  SD-01归一到实际canonical Spec；editor-assets-preview SHA0d271b533d2a66289475b51d3f5ddad19bdd575eaee58a3bf6c7d3ae86fac378，durable-drafts SHA660f2c4a935deb32507a7f29b09b97721978ffecfd9a9288328ef694e111b7e9；既有规则不改。T-02重开，其他前红后绿/源和发行身份/dev证据保留，不重跑无关旧门。AC-03/04与push/OS pin/归档pending。
 ## 10. 待澄清事项
 
 无新增产品或依赖版本决策。工作与最终验收待执行。
