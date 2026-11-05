@@ -6,7 +6,7 @@ author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-06
 plan_revision: 1
-current_step: 2
+current_step: 3
 total_steps: 3
 supersedes_spec_components: []
 new_spec_components: []
@@ -62,7 +62,7 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
 
 - [x] T-01（work，AC-01）：ignore例外+登记固定dist，干净archive对账和正式构建。c7cc132中154文件已追踪，git archive包含全部154文件；干净archive正式auto build -r vue exit0，Vite10.41s。
 - [x] T-02（work，依赖T-01，AC-02）：OS054八app Vue桌面3410实际作者/引擎/草稿恢复通过（rev1→5）。R006-01已补：clean archive生产产物Vite preview3411实际新建草稿、引擎h1真实逐字输入release-edit、自动保存/预览、全页reload后恢复，磁盘独立核对rev4/current/meta/body一致，浏览器error日志空。实现c7cc132不改，T-03待最终复审/交付。
-- [ ] T-03（review/merge，依赖T-02，AC-03/04）：同clone冻结复审、push、组合pin与归档。
+- [x] T-03（review/merge，依赖T-02，AC-03/04）：同clone冻结复审、push、组合pin与归档。
 
 ## 9. 复审记录
 
@@ -82,6 +82,8 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
   用户app clone main流程：固定发行154文件/ignore精确例外与复审元数据均已main提交并push；origin/main实查e613a68，832b71f→delivery零merge commit且无历史重写。相对review只有元数据，没有src/vendor/.gitignore实施变化。SD-01=none，现行docs/specs/blog/editor-assets-preview.md blob0cf23af86d338d11aa9defd306b5c3c14bc69d75与审前一致；未新增/改写规则、旧ledger或索引。
   干净无人写入的OS054子模块已fetch/detach交付e613，候选OS90662eb仅升本App与Database gitlink；健康gate exit0/27 repo/missing_pac_at0。固定发行包包含在新Git源码内，clean archive的build+preview真实闭环与dev桌面任务分别验收，未混算。app独立clone是保留开发目录，按用户规则不移除，不建任何链接。
   hold OS054-BLOG006-CONSUMER：owner=auto-os/PLAN-054，scope=plan-artifacts/plan-006/auto-blog，原因=054验收和独立最终复审仍需固定源/production原证据；关闭=054完成对应gate并折入Plan后，停止本轮owned preview，no-follow摘该scope生成链接，删除该已登记子scope，更新registry。policy.json scopes/holds已登记。当前3411 preview（session45781）和3410宿主属054验证，不当生产部署；Main OS仍旧组合，独立clone未重建production-facing bundle，只scratch clean archive产物已构建并实测，部署观察项由054接手。归档commit/push/最终计数待下一checkpoint实查。
+- stage: merge | plan_id: PLAN-006 | plan_revision: 1 | outcome: pass | checkpoint: archived/cleaned-with-named-hold | archive_commit: 82ed4ca7492f3a4c1949a773d1fbc6ae1fd388be (origin/main equal verified) | archive_path: docs/plans/archived/006-vendored-engine-distribution.md | completion_kind: delivered
+  实际archive已由Git追踪、active路径已移走、status archived、T-01..03计数3/3；唯一跨仓Markdown链接改指稳定AutoOS README并保留PLAN-054标识，实际路径可达，避免父Plan之后归档形成死链。review后仅证据/归档元数据变化，canonical Spec无漂移。默认分支线性提交与正常push已实查，无worktree/branch待删除（用户规定保留app独立clone main）；当前clean source，未知/他人文件未删除。具名hold OS054-BLOG006-CONSUMER已在policy.json登记owner/原因/关闭条件，保留是054未完成验收的依赖，不是历史材料保留配额。其释放与scratch安全清理由054最终closeout负责；当前已完成本app源码交付、规范验证、归档和有条件清理责任。Main OS实际部署/最终pin仍待054，相关旧产物观察项保留。
 ## 10. 待澄清事项
 
 无新增产品或依赖版本决策。工作与最终验收待执行。
