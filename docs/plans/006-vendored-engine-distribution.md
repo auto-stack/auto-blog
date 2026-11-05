@@ -1,6 +1,6 @@
 ---
 plan_id: PLAN-006
-status: execution_done
+status: reviewed
 feature_name: 固定文档引擎发行包随 Git 交付
 author: [Codex]
 created_at: 2026-11-06
@@ -75,6 +75,9 @@ V-01：保留OS054原干净snapshot的TS2307失败；git archive新提交到仓�
   SD-01归一到实际canonical Spec；editor-assets-preview SHA0d271b533d2a66289475b51d3f5ddad19bdd575eaee58a3bf6c7d3ae86fac378，durable-drafts SHA660f2c4a935deb32507a7f29b09b97721978ffecfd9a9288328ef694e111b7e9；既有规则不改。T-02重开，其他前红后绿/源和发行身份/dev证据保留，不重跑无关旧门。AC-03/04与push/OS pin/归档pending。
 - stage: work | task_ids: T-02 | finding: R006-01 | outcome: closed by actual production consumer evidence | code: c7cc132 unchanged | next: review
   同clean git archive的dist启动pnpm preview --host127.0.0.1 --port3411（session45781），复用未改源的Rust17827后端，仅本轮隔离数据。IAB tab2真正生产页新建U054-production-006，textarea起稿后切正式engine，真实contenteditable逐字追加release-edit、自动保存、本地预览、完整reload→点同草稿恢复。w-1793915349291-2/rev4；生产oracle meta SHA6396bb9ec2f00165bbcb1f123e534b643fba8c9787ba1fb7c636350e7559443b，body SHA7fc3838d3e14a3451c703ab0fa118aa6ca0b05f4eb46ee4cd7d9e5c1adf72117，current/rev4提交文件相等。dist index SHA4e60730d2999ba62125a51773ceaa066931ef327150ae027a177de102390aeea、author bundle SHAa409f0c43c3cdff22821d7bb37b7d1b768452149b3f11c1cebffc6f1de270522；生产重开截图SHAfbc3143187d72d0e8d82a2e185d0cd74072f17a403f9a75e1ec34f4b63873d87。raw production-oracle.json/production-reopened-dom.txt/jpg位于plan-006/auto-blog。浏览器error日志[]。该独立生产预览只关闭app规范消费门，不计054桌面新增通过。SDK、src/package/pin/dist均未漂移；未重跑其他既有完整门。
+- stage: review | review_scope: final re-review | reviewer_identity/limitations: Codex，同实现上下文依原始artifact复核，未声称独立上下文 | plan_id: PLAN-006 | plan_revision: 1 | outcome: pass | worktree_path: D:/autostack/auto-blog（用户app clone策略） | branch: main | reviewed_commit: d75bd25a79d25e59f476b047663ad1fb5424df6a | base_commit: 832b71f | dependency_revisions: UI644d83666f6a178a57445e4a0d982714088296d5 / Lang23f3a031a684131864a3aa61b908b4fa71290d01 / Man03bb65ef7fb6181caa6a08d9752ac7d57c75516c | next: merge
+  AC-01 pass沿用：review-source-and-dist对178 canonical source/154 dist逐项比对、Git archive身份与TypeScript/Vite正式build有效，55e21→本次HEAD的src/vendor/.gitignore diff为空，证据未失效。AC-02 pass：原dev桌面任务仍成立，R006-01用真正production preview完成引擎输入、自动保存、预览、全页重新载入恢复；重新读取磁盘prod oracle及current/revision文件一致，生产asset SHA绑定clean archive，不用dev结果替代。AC-03/SD-01 pass：既有Spec §5两消费面明确保留，source/pin/API/数据格式均未改，现仅修交付缺失，canonical Spec无需增量；supersedes/new为空。Spec SHA与前审一致，HEAD无dirty tracked实现。
+  finding closure：R006-01 complete，未发现新产品缺陷；最初源码对账的ignored Vitest cache误报与编译JS字符串空格告警为探针/格式边界，均已有区分性说明，未删除源或改dist掩盖。pending_closeout_gates：AC-04/T-03 push、OS gitlink与归档尚未执行，独立app clone保留；054整体独立最终复审不由本条替代。实施写入继续冻结，交merge。
 ## 10. 待澄清事项
 
 无新增产品或依赖版本决策。工作与最终验收待执行。
