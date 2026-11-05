@@ -28,6 +28,10 @@ __pycache__/
 *.log
 *.exe
 *.pdb
+
+# The pinned vendor package is a shipped product dependency, not build scratch.
+!vendor/auto-down/autodown/packages/engine/dist/
+!vendor/auto-down/autodown/packages/engine/dist/**
 /tmp/
 /test-results/
 /playwright-report/
