@@ -5,7 +5,7 @@ feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-07
-plan_revision: 3
+plan_revision: 4
 current_step: 1
 total_steps: 4
 base_branch: main
@@ -31,13 +31,13 @@ touched_goals: []
 
 ## 3. 依据与设计
 
-已读durable-drafts/snapshots-export现行合同、works/drafts/api/publications/exporters实际文本路径及当前语言vm/overview的Str.len字节/.length字符区分。将与find/slice相配的字符串范围/游标长度改用.len()；逐函数审计，非盲目全局替换。保留迁移键长度前缀的旧字符计量，保留publications content_hash/probe_fold全部既有计量（发布签名不得漂移）；计量用于切片的路径统一字节。JSON首匹配、非法代理U+FFFD、迁移校验零副作用、恢复/条件写顺序保持。转义/解析算法不另行标准化。
+已读durable-drafts/snapshots-export现行合同、works/drafts/api/publications/exporters实际文本路径及当前语言vm/overview的Str.len字节/.length字符区分。将与find/slice相配的字符串范围/游标长度改用.len()；逐函数审计，非盲目全局替换。保留迁移键长度前缀的旧字符计量，保留publications content_hash/probe_fold全部既有计量（发布签名不得漂移）；计量用于切片的路径统一字节。JSON首匹配、非法代理U+FFFD、迁移校验零副作用、恢复/条件写顺序保持。保留replace编码与单遍解码，落实既有合法控制字符往返，不引入解析库或改身份算法。
 
 ### 规范增量
 
 | delta_id | add/modify/retire | target | before/after rule | rationale | AC |
 |---|---|---|---|---|---|
-| SD01 | modify | docs/specs/blog/durable-drafts.md | 元数据解析/反转义/路径游标使用字节长度与find/slice一致；字符计量身份键保留；落实既有严格迁移JSON数字规则，整数段禁止前导0；字符串内未经转义的U+0000..001F必须在写入前拒绝 | 完整UTF8往返、零副作用拒绝及旧数据兼容 | AC01/02 |
+| SD01 | modify | docs/specs/blog/durable-drafts.md | 元数据解析/反转义/路径游标使用字节长度与find/slice一致；字符计量身份键保留；落实既有严格迁移JSON数字规则，整数段禁止前导0；字符串内未经转义的U+0000..001F必须在写入前拒绝；合法控制字符必须正确解码、以有效JSON重新编码并完整重读 | 完整UTF8往返、零副作用拒绝及旧数据兼容 | AC01/02 |
 | SD02 | modify | docs/specs/blog/snapshots-export.md | 现有文本切片边界按字节；既有content_hash和probe_fold输出不变 | 不截掉中文尾部且不重签旧发布 | AC01/02 |
 
 ## 4. 验证合同
@@ -116,3 +116,12 @@ F-BLOG-008-JSON-CONTROL → 原严格迁移JSON不变量：任何字段/嵌套�
 - evidence/reproduction: D:/autostack/plan-artifacts/plan-054/t07/blog-008/review/escaped-c0-sha1hjp3/result.json SHA256 a5db4d036802251d1a1472419615d3225fb9f66c85d310c496d1404aae3535fa. Each case copies current unmodified works.at/drafts.at, uses Python json.dumps of title `前`+chr(c)+`😀尾`,body `正文`+chr(c)+`完整` for c=0..31 into actual UTF8 files, fs.read_text passes payload to migrate_articles_batch in isolated AUTO_BLOG_DATA, then list_drafts/open_draft read values. Probe files0.at..31.at and logs preserve actual entrypoints. No generated replacement codec or mocked oracle. Independent core checks: review/migration-c0-z8_ds0z4/result.json and review/byte-text-s3i1n5wr/result.json.
 - diagnosis required before third final review: earlier69 checks established lexical acceptance/rejection and selected n/r/t/Unicode escapes; they did not complete valid-escaped-C0 decode→serialize→list/open for all32 values.32 invalid-input total cannot establish32 valid-escape value preservation. One-line raw rejection closes original admission defect but leaves shared encoder/decoder sibling paths unexamined. Work must record bounded codec invariant/design adjustment and permanent independent expected values, not merely add b/f sample exceptions; retain original raw32 rejection+zero side effects and legal Unicode/DEL/escaped controls, require valid JSON disk bytes and exact next read, and verify affected native/VM paths. Broader unrelated catalog remains unnecessary.
 - pending_closeout_gates/next: second final needs_fix, T01 reopened/current_step1/4,T00 retained. Repair same clone, commit then affected independent re-review after diagnosis/design adjustment; preserve original findings and raw receipts. T03 reviewed-source publish/candidate fetch,parent actualtasks,canonicalSpecs/finaldocs/push/pin/archive still pending, no final child delivery. No push/pin/archive by review; other child passes unchanged.
+
+
+### r4 第二次needs_fix后共同不变量诊断（第三次复审前）
+
+两次连续final needs_fix后，先明确遗漏根因再修复：第一轮仅验证UTF8字节游标与部分合法n/r/t、坏数字，未覆盖严格JSON的原始C0准入；第二轮已以全部32原始字节关闭准入，但合法对照仍只有LF/TAB，缺少已被validator接受的b/f与u00XX从解码到重新编码落盘的完整闭环。不是偶发重试或改预期：F-BLOG-008-JSON-CONTROL已闭合，F-BLOG-008-ESCAPED-C0为同一既有完整转义/合法JSON存储合同的另一环。旧编码器仅replace n/r/t，解码器将未知escape字符原样追加，导致b/f丢控制码、其余27合法decodedC0写出非法JSON。修复前真实模块全batch测试在c2eb输入同reviewer全32及literal反斜杠控制，实际出现前b😀尾（KeyError独立expected map），不把磁盘解析失败当唯一产品证明。
+
+设计/预言调整：保留replace的Unicode安全编码，先原样保留既有反斜杠/引号/n/r/t表达，再将其余C0替换为u00XX合法JSON转义；控制码由已有json.parse及hex4_from_cp产生，无逐字节拼接或源码非法转义。单遍json_unescape只新增b/f真实控制码解码，literal双反斜杠不得二次解码，原surrogate/首字段/所有身份与发布签名函数保持。受影响共同调用面为Work快照/current恢复、迁移journal/source/slugmaps、publication/export元数据，均共享works.json_escape；不改格式布局/ID/版本/事务顺序。已有有效反斜杠、引号、n/r/t、普通Unicode编码字节保持，新增转义仅原先不合法JSON的控制字节。
+
+永久tests/escaped_control_roundtrip.py复制完整生产works/drafts，原始UTF8文件传入全部32合法JSON控制与literal反斜杠b/f/u0001/n控制；真实migrate→list→open每值title/body精确，独立Python严格解析全部70JSON文件（含映射/journal/快照），同批幂等重试ID及全文件字节不变，33个作品继续条件save→open值完整、revision2。当前全部通过，receipt c0/escaped-c0-mne_69qd/result.json；原始32非法零写入与69辅助值/类型均再次通过，c0-r4.log/vm-r4.log。新works SHA661b8245b714903eb105b97b54c9b813e07112f6683d39b16126bca5186bb362。正式Rust/HTTP同族闭环与第三次独立affected复审仍pending，当前不申请复审或声称T01完成。

@@ -64,6 +64,14 @@ pub fn json_escape(s str) str {
     out = out.replace("\n", "\\n")
     out = out.replace("\r", "\\r")
     out = out.replace("\t", "\\t")
+    // Keep Unicode text intact and encode all remaining JSON control bytes.
+    var cp int = 0
+    while cp < 32 {
+        let escaped str = "\\u" + hex4_from_cp(cp)
+        let control str = json.parse("\"" + escaped + "\"").to_string()
+        out = out.replace(control, escaped)
+        cp = cp + 1
+    }
     return out
 }
 
@@ -208,7 +216,11 @@ pub fn json_unescape(s str) str {
                                     }
                                 }
                             } else {
-                                out = out + d
+                                if d == "b" || d == "f" {
+                                    out = out + json.parse("\"\\" + d + "\"").to_string()
+                                } else {
+                                    out = out + d
+                                }
                                 i = pos + 2
                             }
                         }
