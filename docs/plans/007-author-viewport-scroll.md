@@ -1,9 +1,9 @@
 ---
 plan_id: PLAN-007
-status: executing
+status: execution_done
 feature_name: 作者页有限窗口滚动可达性
 plan_revision: 1
-current_step: 0
+current_step: 2
 total_steps: 4
 author: [codex]
 created_at: 2026-11-06T02:00:00Z
@@ -48,8 +48,8 @@ touched_goals: [AutoOS-PLAN-054]
 - AC-04 (owner_stage=merge)：推送app交付，干净无人写入的OS候选submodule消费固定SHA并复核；归档计划保留回执。
 
 ## 8. 执行步骤
-- [ ] T-01 (owner_stage=work; AC-01/02; src/front/app.at)：标准滚动视口、正式生成/实际原生和Vue验证；源与所测产物身份一致。
-- [ ] T-02 (owner_stage=work; AC-01/02; SD-01)：关闭重开/下一次操作与窄屏检查，更新canonical Spec、README与真实回执。
+- [x] T-01 (owner_stage=work; AC-01/02; src/front/app.at)：标准滚动视口、正式生成/实际原生和Vue验证；源与所测产物身份一致。
+- [x] T-02 (owner_stage=work; AC-01/02; SD-01)：关闭重开/下一次操作与窄屏检查，更新canonical Spec、README与真实回执。
 - [ ] T-03 (owner_stage=review; AC-03)：按最终提交复审，缺项具名，不将queued或截图空壳算通过。
 - [ ] T-04 (owner_stage=merge; AC-04)：app推送/OS pin消费、归档与恢复信息。
 
@@ -66,3 +66,9 @@ stage: new | plan_id: PLAN-007 | plan_revision: 1 | outcome: pass | next: work/T
 - stage: work | plan_id: PLAN-007 | plan_revision: 1 | round: 2 | outcome: AC02 web tasks passed; AC01 native viewport bridge pending
   Formal Vue build exit0/Vite14.78s. Real headless Playwright against dev3412 and production preview3413, each1280x800 then375x812: UI new draft, title/body input, idle autosave, real wheel to visible footer, Preview/return, reload same draft, engine shown then fallback edit/save/preview. Final dev workw-1793931838780-1/rev3, previeww-1793931846831-2/rev3; exact body SHA1e875413897e25ae160cbbd5401303f4f5f7d018b4fe88333b177560c61a175e; both pageerrors[]. Footer bounding boxes within viewport, real click accepted. Four screenshots visually inspected (Chinese preview/body/list preserved; normal view shows return control). Oracle D:/autostack/plan-artifacts/plan-054/t04/blog007-web-oracle-r148.json, test log blog007-web-test-r148.log, helper blog007-web-r148.py terminal0. AC02 verified, no native completion inferred.
   UI0606f00f375 fixed native paragraph local transform (real regression13passed). Owner007 native child rebuilt SDK6f, SHA c2b9ef9b30b32085fbf985b9368773fa0912bc1bd8b0b487ec6c003bac31260e. Actual wheel now moves text correctly, but child still lays out1280x800 despite decorated WM client being shorter; bottom footer remains unreachable at max scroll. Existing protocol Frame Resize is ignored in child and not sent by desktop broker. UI060 same-outcome repair now connects actual WM client dimensions; no app padding workaround/offscreen preview injection. Current host28824/wid2 retained during text fix; user manually restored, no Windows autoactivation. OS pin922d0b1 unchanged; source767b1da remains unpushed pending native AC01 and final review. T01..04 remain open.
+
+
+- stage: work | plan_id: PLAN-007 | plan_revision: 1 | round: 3 | outcome: pass | status: execution_done | next: review
+  AC01 actual native author task passed on UI SDK/hostc0359fabe519dcc8d27ff45be07e596f8e3a362d. Official host build exit0/24.32s, child build exit0/33.44s; published/receipt/Cargo artifact AF84579576944A2821978638EBC3AE80468A7EEB01D41BA2B8FD53A274A09DDB, generator v9/tool2023faf8 (unchanged generator source dfa61f39). New host24164 visible; actual scroll at sidebar whitespace320,650 reaches footer. Visible Preview click977,655→preview and Return965,692→edit. No direct nested Preview message or backend prewrite. Exact existing workw-1793927770702-1 selected from populated list, title/body edited with actual pointer/key events. CharTyped newline characters are filtered by iced; initial helper correctly failed exact-body assertion (native-edit-r149). Replayed with real Enter key events13 between lines; exact multiline Chinese/decimal body persisted revision10 and previewed. This is input-fixture correction, not permission to flatten expected content.
+  Normal close wid1 made verified live child24400 exit0; normal reopen wid2/child18652 restored same work/title/multiline body. Next edit title U054-原生重开继续保存-r149 and appended 重开后的下一次编辑。; idle save revision13, visible Save click advanced14. Disk meta/current/revisions/rev14.body all agree, body SHAa1b551d23ce69d4c95804dea5c6b5928c94923828a4c3917ae055bba8a8e8315. Final oracle D:/autostack/plan-artifacts/plan-054/t04/blog007-native-final-oracle-r149.json SHA8bc814192945887e603569a36582b43becd14bf29798968644cb2b5f2f2c6073. Visually inspected actual footer screenshot blog007-native-reopen-next-save-r149.png SHA f397a3ba42e4e844b1546f6933354604f9e49747c202ef09722796542730d404 and next preview f62e48828944388bdeb7c91978ad3375d2f04f4860983c678c2d7456b3f243ca. Return/preview source scope unchanged.
+  AC02 dev/production and375px evidence from round2 remains source-identical; four images inspected. T01/T02 complete, canonical Spec/README prepared. No backend, editor engine, API, dependency-version or product-scope source changes; only root scroll wrapper. Source commit767b1da plus canonical docs commit to follow. Independent clone retained, no app worktree. Owner extra-ID test is not OS054 fixed-pin final consumer; pin remains922d0b1 until reviewed delivery. Same-context app review limitation expressly retained; independent parent054 review and T05..09 still required.

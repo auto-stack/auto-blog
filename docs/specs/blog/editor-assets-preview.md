@@ -36,6 +36,15 @@
 - **窄屏**：主行响应式 `flex-col md:flex-row`（375px 纵排：草稿列表全宽在上、编辑区全宽 343px；资产行 flex-wrap）；VM 轨 class 惰性（桌面窗口布局不变）。
 - **保存纪律（001 承续）**：cover/format 并入全字段快照 + 读回确认（R-24 扩展）；资产追加/导入与保存共用 `save_in_flight` 互斥；导入在 dirty 时显式 `save_before_import` 拒绝。
 
+作者页面外层使用标准纵向滚动视口，导航与作者内容一起滚动；内容高度不以
+`min-h-screen` 撑满滚动子树。在有限原生窗口和 Vue 窄屏中，底部“预览 / 保存”
+及预览后的“返回编辑”必须能够滚动到可见位置并点击。关闭窗口重开同稿后，
+标题、正文和 revision 从持久化数据恢复，仍可再次编辑保存。
+
+BLOG-007 实测包括原生1280×800、Vue开发版和正式构建版的1280×800及375×812。
+原生消费匹配的 AutoUI 桌面客户区尺寸通知和文本滚动变换修复；旧 SDK 忽略尺寸
+通知时仍可能裁掉底部，不以离屏输入或加固定空白代替正常滚动。
+
 ## 5. 引擎依赖（vendor）
 
 - `vendor/auto-down/autodown/packages/engine` = @autodown/engine 固定副本（pin c3464d0，src+dist；PROVENANCE.md 记录来源与更新规则）；pac.at `npm_deps: file:../../../vendor/...`。
