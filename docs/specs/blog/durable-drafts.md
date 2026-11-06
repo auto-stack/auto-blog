@@ -103,3 +103,9 @@
 | D-04 | ~~纯 rust 后端门禁未闭：a2r 生成物编译失败 59 errors~~ **已关闭（BLOG-004 T-02/T-05，2026-10-29）**：auto-lang/PLAN-885（交付 `dacd00184`）修复生成器/runtime 四组根因（time 路径/字符串借用/int 宽度签名/模块类型路径）后，纯 .at 冷生成→编译 exit 0，59 errors 归零 | 经版本绑定证据关闭：CLI 重建（`da0558e7`，链 auto-lang master 交付面）后正式入口 `auto service --server rust` 下 13/13 API 电池（创建/列表/打开/条件保存/陈旧 rev 冲突/迁移幂等/5 负例）+ `AUTO_BLOG_DATA` 隔离 + 重启持久化全绿（`verify_dual.py --profile vue-rust` 15/15，含 Vue 全交互） |
 | D-05 | demo smoke 子集（T1–T6/T9–T10/T12–T14）红 | 与 r3 基线同类（seed/auth/detail 异步）；非 BLOG-001 AC |
 | D-06 | ~~原生 `auto run -r vm` UI 窗口本环境不可交互驱动~~ **已关闭（BLOG-004 T-03/T-06，2026-10-30）**：链式修复 auto-ui/PLAN-003（原生控制夹具）→ BLOG-004 T-03（app.at 多 store 裸调用歧义限定，plan-446 A1）→ auto-ui/PLAN-015（VM 路由页动态加载静默失败，交付 `df39593`）后，原生窗口可完整驱动 | 经版本绑定证据关闭：`auto run -r vm --server rust` 真实窗口"博客"经 MCP 完成作者任务（创建/3s 自动保存/外部抢写冲突保稿/保留本机恢复）、正常 q 退出与强制杀树均回收、重开数据逐字节一致（`verify_dual.py --profile native-vm-rust` 22/22 EXIT=0，两次独立会话复现） |
+
+## 当前 SDK 兼容确认（2026-11-07）
+
+元数据解析、反转义与路径游标的范围计量使用字节长度，与 find/slice 的 UTF-8 字节偏移一致；迁移身份键的既有字符计量保持不变。严格迁移 JSON 的整数段禁止前导零；字符串内未经转义的 U+0000..U+001F 必须在任何迁移写入前拒绝。合法转义控制字符须正确解码，以有效 JSON 转义重新编码，并在下一次打开时保留完整逻辑文本；字面反斜杠不得被二次解码。存储格式、稳定 ID、revision、映射和恢复/条件写顺序保持不变。
+
+来源：[本次交付计划](../../plans/archived/008-byte-offset-text-roundtrip.md)；沿独立复审冻结的规范增量落地。

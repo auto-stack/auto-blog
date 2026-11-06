@@ -75,3 +75,9 @@ exports/<pid>/index.html           # （可选）采集 HTML 附加工件（F-12
 | F-13 | auto-ui 生成器按**纯名字**在使用点分类变量：store 模型字段与 handler 局部变量同名时，局部使用点被发成 `<name>.value`（运行时=undefined，JSON.stringify 静默丢字段→后端 422；vue-tsc 以 TS2551 形式可检） | T-03 曾因模型字段 `snap_body/snap_rev` 撞 R-24 局部名触发（004 统一门 `vue-ui.author_task` 逮住）；已修复=模型字段改名 `frozen_view_*` 与局部 `snap_*` 彻底分离；命名纪律入 SD-01：**store 模型字段禁与 handler 局部同名**；生成器按名分类属跨仓提案素材 |
 
 验收证据（命令/退出码）见计划 §9 与任务行；电池：`probe_export_md.py`（16/16）、`export_offline_t04.py`（5/5）、`pub_history_t03.cjs`（vue UI 8/8）、回归 `probe_pub_api.py`（7/7）、`probe_t02_api.py`（7/7）、统一门 `verify_dual.py` 双 profile。
+
+## 当前 SDK 兼容确认（2026-11-07）
+
+既有文本切片边界采用 UTF-8 字节偏移及对应字节长度。既有 content_hash 与 probe_fold 保留原字符计量与输出，不重签旧发布；稳定身份、发布签名和导出布局保持不变。共享 JSON 编码器须为合法控制字符生成有效 JSON 转义，持久元数据与下一次重读保留原逻辑值。
+
+来源：[本次交付计划](../../plans/archived/008-byte-offset-text-roundtrip.md)；沿独立复审冻结的规范增量落地。
