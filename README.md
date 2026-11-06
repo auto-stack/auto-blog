@@ -2,7 +2,7 @@
 
 本地博客写作应用，使用AutoLang / AutoUI开发。更新：2026-10-31。
 
-当前SDK字节游标兼容修复见 [BLOG-008](docs/plans/008-byte-offset-text-roundtrip.md)，
+当前SDK字节游标兼容修复见 [BLOG-008](docs/plans/archived/008-byte-offset-text-roundtrip.md)，
 为父 [AutoOS PLAN-054](../auto-os/docs/plans/054-basic-apps-unified-assembly.md) 的必要前置。
 
 ## 已交付能力

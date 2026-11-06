@@ -1,12 +1,12 @@
 ---
 plan_id: BLOG-008
-status: reviewed
+status: archived
 feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-07
 plan_revision: 4
-current_step: 3
+current_step: 4
 total_steps: 4
 base_branch: main
 base_commit: 3ead087723dff0ea36df4f9abb64a942a92beeb6
@@ -54,7 +54,7 @@ touched_goals: []
 - [x] T00 owner_stage=work：冻结反例和全部同因字节游标/保留字符合同清单。
 - [x] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
 - [x] T02 owner_stage=review：同clone独立上下文复审源码/Spec/证据。
-- [ ] T03 owner_stage=merge：通过独立源码/Spec及全部work后，先push具名已审源码阶段，父候选fetch/detach验证；随后父实际任务/规范/最终文档push/archive，源码等价Doc后继再更新父正式pin。阶段发布不代表最终交付通过；全部AC保留。
+- [x] T03 owner_stage=merge：通过独立源码/Spec及全部work后，先push具名已审源码阶段，父候选fetch/detach验证；随后父实际任务/规范/最终文档push/archive，源码等价Doc后继再更新父正式pin。阶段发布不代表最终交付通过；全部AC保留。
 
 ## 6. 记录
 
@@ -150,3 +150,8 @@ F-BLOG-008-JSON-CONTROL → 原严格迁移JSON不变量：任何字段/嵌套�
   Independent final source/Spec pass retained from recorded review; this successor changes only approved canonical documentation and Plan bookkeeping. Parent054 actual SDK195 Vue/iced both8required8pass0fail, all6nativev15 formally rebuilt/18artifactbindings/67inputhashes. Current task/reopen/next native andVue independent receipts are in D:/autostack/plan-artifacts/plan-054/t04; native blog oracle and canonical-vue-blog-oracle-r195.json bind full current consumer behavior. Notes id9rev3 fullChinese, Calendar ev4delete/allversionsabsent/reopen/generationg-new/rev11→12/ev5next/oldev3exact, Todo id1edit/done1/reopen/nextedit, Blog workw-1793988759935-1fulltitle/multiline/reopen/nextSave/current+revision8; relevant app behavior is verified, not substituted by API prewrite. Blog oldnativework titles remain complete; sourcephase unchanged.
   Parent permanentpacket gates: icedSHA cd232e671e0aa7a3c1e0637a5a98e055eb9343345756faf231ca442e1e2cc042; VueSHA 9c91aadc95570bc78e24251bfa44939b99b7c12fed25cd096de55360eb09db1d. Each current validator actual8/8exit0; Vue description-only metadata corrected from copied194label without changingcases/SDK/data/frames. Work source tree 64065c0ddbb858186dbec13f60e914527f244875 / pacblob 44fca8a44eecbf71ad0fee3c7558c05c33eba91a frozen for final Doc descendant check. No wholecatalog rerun. Canonical delta matches reviewed proposal; Todo no-impact Spec conclusion retained because privatecleanup result annotation only and all6callers ignore result.
   Permanent independent app clone is retained per user policy. Foreign untracked WIP is untouched. Shared raw evidence remains protected by active parent054 for its finalreview, not a separate archived-child raw scope or indefinite hold. Final push/archive and parentfinalpin are not yet claimed.
+
+
+- stage:merge | completion_kind:delivered | checkpoints:landed/canonical_verified/archived/cleaned | delivery_commit:1aa301ced1985af058f0909f687080fd1b087d12 | outcome:pass | archive:docs/plans/archived/008-byte-offset-text-roundtrip.md
+  Independent merge-document audit /root/review_app_sdk passed this exact prepared commit: approved canonical delta accurate, src/pac byte-equivalent to reviewedsource, actualparent195Vue/native V03 complete, no new source/Specgap. Current canonical hashes {"docs\\specs\\blog\\durable-drafts.md": "32eecc3eda073eefc9e06bad7f6bc1612ce051c025286285a8a555dc32a1bffb", "docs\\specs\\blog\\snapshots-export.md": "c12433039898f70cdf2bd580a2315f3793bc9f0781fedadb7a4b0066c5fe0af3"}. Permanentclone retained by explicit user app rule; no temporary appworktree toremove. Foreign untracked WIP preserved, not mislabeled clean; allPlan-owned tracked changes committed. Sharedraw stays inside activeparent054scope until its own finalreview/cleanup, no duplicatechildscope/legacyledger/index write. FinalREADME/source links resolve to actualarchivedPlan.
+  Production-facing artifact observation (landing is documentation/source publication, not deployment): parent fixedSDK195 candidate formally rebuilt and actually ran this app on bothtracks. Permanentclone local generated executables were not redeployed by this docs-only closeout: rust-workspace\auto-blog-9876a458\bin\debug\realworld.exe modified 2026-11-06T10:52:58.090335. They must be regenerated through the standard current SDK before standalone production use; no foreignservice restart.
