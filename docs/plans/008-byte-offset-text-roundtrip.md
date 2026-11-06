@@ -1,12 +1,12 @@
 ---
 plan_id: BLOG-008
-status: executing
+status: execution_done
 feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
-updated_at: 2026-11-06
+updated_at: 2026-11-07
 plan_revision: 2
-current_step: 0
+current_step: 2
 total_steps: 4
 base_branch: main
 base_commit: 3ead087723dff0ea36df4f9abb64a942a92beeb6
@@ -51,8 +51,8 @@ touched_goals: []
 
 ## 5. 步骤与发布顺序
 
-- [ ] T00 owner_stage=work：冻结反例和全部同因字节游标/保留字符合同清单。
-- [ ] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
+- [x] T00 owner_stage=work：冻结反例和全部同因字节游标/保留字符合同清单。
+- [x] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
 - [ ] T02 owner_stage=review：同clone独立上下文复审源码/Spec/证据。
 - [ ] T03 owner_stage=merge：通过独立源码/Spec及全部work后，先push具名已审源码阶段，父候选fetch/detach验证；随后父实际任务/规范/最终文档push/archive，源码等价Doc后继再更新父正式pin。阶段发布不代表最终交付通过；全部AC保留。
 
@@ -69,3 +69,11 @@ touched_goals: []
 ## 7. 待澄清
 
 无新增用户语义决定。尚未实施/复审；原始Blog失败保留。父当前六项Vue任务成功不替Blog或最终Native任务。
+
+
+- stage:work | revision:r2 | outcome:execution_done2/4 | code_commit:6bd7d3f5f0d652e689ba91f28ea4f8b091f99ae6 | next:independent same-clone source/Spec review
+  Permanent tests/byte_text_roundtrip.py copies actual production works.at and extracts exact private production helpers with quote/comment-aware brace matching; actual frozenSDK194 VM executes independent expected values. Initial18-case real red returned truncated Unicode, wrong surrogate suffixes, missing fields/integers and duplicateUnicodepath separator (vm-red.log). Final36/36pass (vm-final-green.log): previous18 plus JSON object/nesting/invalid lexical guards, unchanged migration keys and unsupported empty-batch policy control. Prefix/body/identity semantics are checked, no copied replacement parser. DirectSource function bodies of migrate_key/content_hash/probe_fold are exactly3ead bytes, retaining five character-length operations; code-region audit classifies74 total occurrences,69 cursor operations converted. Audit SHA7e2da01d8f0de3d61b400e04cac3de9a2e9dce188802872080278380ae3a8d15.
+  A first expanded32-case run honestly failed two expectations: private root gate rejects[] (empty migration is not regular JSON grammar acceptance) and genuine numeric01 acceptance contrary to original strict number rule. Corrected control to[{}] without changing empty policy; r2 adds only integer leadingzero guard with zero/-zero/fraction/exponent/malformedneighbors. No expected product failure relabelledgreen or old IDs/signatures changed. Current full36 actual bool/string/int types allchecked.
+  Formal currentSDK clone service --server rust --dir D:/autostack/auto-blog -B18927 compiled release backend naturally (6m08s; legacy clone lock/config differs from prior candidate debug cache, no binary reused). CARGO_TARGET_DIR is existing producer-owned c2e02416-vue-final-r187, separate from foreign observer's C2/debug mappedexe. Langf032/UI1dba/Man2a9/Webc36/OSfa93 selected; sourceHEAD6bd held unchanged until actual service exited. Real HTTP create/open/conditional-save/open verifies full Chinese/emoji/quote/backslash title, multilinebody, longsummary/tags, stableID andpositivecreated_at; current/revision/body/metabytes agree. Read doesnot change committedbytes. Two actual invalid migration APIrequests (leadingzero andbad escape) return0 and allfilehashes unchanged, not positive zero-case acceptance. Receipt http-result.json SHA7645603e962043502f40b3e8e160107d66c04d719e6d42d50efce4f348465925.
+  Captured service17140/Cargo11736/34788/backend7240/wrapper13644 all actualnormalexit0 after development shutdown202, allreaped/18927released; controlled_leaf_cancel=false. ForeignBlog47236 creation10:15:07 and C2/debugimage unchanged; no broadkill or OSinput. stop-result.json SHA57718c2cad21d51e7a3542fb637e2f42c3d45a169d391fb4ebdb663c8d8eb766. Readonly ownAPI/file tests donot replace parent Vue/native usertasks, parent sameSDK actualGUI reopen/nextsave stillpending. Actual published/generated/cargo/runtime root evidence remains external namedparent scratch, notGit.
+  FinalVM log SHAea684849f2c78a733f3bdb283ffa68a3659f8925219e5c9208b5b24fff5f69e6; initialVM red SHA308592fd012322cb528c978e8f8bf205192c2e70070e5c9b0334b9210d33d13f; formalHTTP checklog SHA468838fb1a8d5e8e962dd57a09aba5bdace4ecf4bdbfb258c319fa4aca9027bb. SDK194 CLI909eb9c1d14f06fb42c805a0510f22c1b03e434f96cf0e4da3c456fb01824cbe. No source phasepush/OSpin/canonicalSpec/archive yet.
