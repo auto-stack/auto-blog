@@ -1,12 +1,12 @@
 ---
 plan_id: BLOG-008
-status: executing
+status: execution_done
 feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-07
 plan_revision: 4
-current_step: 1
+current_step: 2
 total_steps: 4
 base_branch: main
 base_commit: 3ead087723dff0ea36df4f9abb64a942a92beeb6
@@ -52,7 +52,7 @@ touched_goals: []
 ## 5. 步骤与发布顺序
 
 - [x] T00 owner_stage=work：冻结反例和全部同因字节游标/保留字符合同清单。
-- [ ] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
+- [x] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
 - [ ] T02 owner_stage=review：同clone独立上下文复审源码/Spec/证据。
 - [ ] T03 owner_stage=merge：通过独立源码/Spec及全部work后，先push具名已审源码阶段，父候选fetch/detach验证；随后父实际任务/规范/最终文档push/archive，源码等价Doc后继再更新父正式pin。阶段发布不代表最终交付通过；全部AC保留。
 
@@ -125,3 +125,9 @@ F-BLOG-008-JSON-CONTROL → 原严格迁移JSON不变量：任何字段/嵌套�
 设计/预言调整：保留replace的Unicode安全编码，先原样保留既有反斜杠/引号/n/r/t表达，再将其余C0替换为u00XX合法JSON转义；控制码由已有json.parse及hex4_from_cp产生，无逐字节拼接或源码非法转义。单遍json_unescape只新增b/f真实控制码解码，literal双反斜杠不得二次解码，原surrogate/首字段/所有身份与发布签名函数保持。受影响共同调用面为Work快照/current恢复、迁移journal/source/slugmaps、publication/export元数据，均共享works.json_escape；不改格式布局/ID/版本/事务顺序。已有有效反斜杠、引号、n/r/t、普通Unicode编码字节保持，新增转义仅原先不合法JSON的控制字节。
 
 永久tests/escaped_control_roundtrip.py复制完整生产works/drafts，原始UTF8文件传入全部32合法JSON控制与literal反斜杠b/f/u0001/n控制；真实migrate→list→open每值title/body精确，独立Python严格解析全部70JSON文件（含映射/journal/快照），同批幂等重试ID及全文件字节不变，33个作品继续条件save→open值完整、revision2。当前全部通过，receipt c0/escaped-c0-mne_69qd/result.json；原始32非法零写入与69辅助值/类型均再次通过，c0-r4.log/vm-r4.log。新works SHA661b8245b714903eb105b97b54c9b813e07112f6683d39b16126bca5186bb362。正式Rust/HTTP同族闭环与第三次独立affected复审仍pending，当前不申请复审或声称T01完成。
+
+
+- stage:work | plan_id:BLOG-008 | revision:r4 | outcome:execution_done2/4 | code_commit:c8d50cd | readiness:both lexical/control codec findings closed in work, no open work-owned gap | next:third final affected independent source/Spec review
+  Before third review the two-failure diagnosis/design/oracle adjustment above was implemented and verified, not merely restated. Permanent33legal migrate/list/open→strict70JSON→idempotent exactbytes→33continuedsave/open all pass; raw32zero+validLF/TABmigration and prior69value/type/identity controls all pass oncurrentcode. Exact oldbaseline c2eb permanentreplay red retained escaped-baseline-red.log; old原始C0baseline f973 retained. New common encoding is a bounded replace extension plusb/f singledecode; oldnormalUnicode/nrt/quote/backslash controls andsurrogate/identity bodies preserved. No fullJSONparser/library/protocolrewrite.
+  Actual public clone service --server rust -B18927 regenerated all source and naturally compiled release11.67s/exit0; immutableSDK194 and sourcec8d50cd unchanged. HTTP oracle verify-http-r4.py passes originalfullUnicodecreate/open/save/open,34malformedzero-write,33legalcontrol+literalbackslash migration/list/open withindependent exactexpectedvalues and strict allJSONfileparse, retry33sameidentities/fullfilemapunchanged, all33nextconditionalsave/open exactrevision2. http-result-r4.json SHAd002218723ba52f4c4f965a243d380f410803eec7f697f18ea1df60677a28380; generated assembly fingerprintd812f919a4c25013. No browser task/API prewrite confusion: thisis explicit isolated cloneHTTPtest, parent actualVue/iced stillpending.
+  Shutdown202 captures root33156/Cargo29212+18172/backend40392/wrapper11996 allnatural0/reaped,port18927absent,foreign47236unchanged, controlled_leaf_cancel=false. Exactstop-result-r4.json/service-r4.log/raw tests external underparent namedblog-008 scope. T02/T03review/merge pending; no sourcephasepush, parentBlogpin, canonicalSpec/archive yet. Thirdreview is cap-aware affectedclosure over explicitstrictJSONString/UTF8storagecontract; no furtherautomatic unbounded repair loop authorized bythisreceipt.
