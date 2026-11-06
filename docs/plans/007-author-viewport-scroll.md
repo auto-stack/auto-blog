@@ -1,6 +1,6 @@
 ---
 plan_id: PLAN-007
-status: drafting
+status: executing
 feature_name: 作者页有限窗口滚动可达性
 plan_revision: 1
 current_step: 0

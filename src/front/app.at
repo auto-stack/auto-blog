@@ -42,8 +42,10 @@ widget App {
     }
 
     view {
+        scroll {
+            style: "h-screen w-full"
         col {
-            style: "min-h-screen font-serif text-foreground"
+            style: "font-serif text-foreground"
             // Top nav
             row {
                 style: "w-full border-b border-border px-4 py-3 max-w-3xl mx-auto items-center gap-4"
@@ -76,6 +78,7 @@ widget App {
             col {
                 outlet
             }
+        }
         }
     }
 
