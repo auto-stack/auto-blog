@@ -1,12 +1,12 @@
 ---
 plan_id: BLOG-008
-status: execution_done
+status: executing
 feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-07
 plan_revision: 3
-current_step: 2
+current_step: 1
 total_steps: 4
 base_branch: main
 base_commit: 3ead087723dff0ea36df4f9abb64a942a92beeb6
@@ -52,7 +52,7 @@ touched_goals: []
 ## 5. 步骤与发布顺序
 
 - [x] T00 owner_stage=work：冻结反例和全部同因字节游标/保留字符合同清单。
-- [x] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
+- [ ] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
 - [ ] T02 owner_stage=review：同clone独立上下文复审源码/Spec/证据。
 - [ ] T03 owner_stage=merge：通过独立源码/Spec及全部work后，先push具名已审源码阶段，父候选fetch/detach验证；随后父实际任务/规范/最终文档push/archive，源码等价Doc后继再更新父正式pin。阶段发布不代表最终交付通过；全部AC保留。
 
@@ -104,3 +104,15 @@ F-BLOG-008-JSON-CONTROL → 原严格迁移JSON不变量：任何字段/嵌套�
 - stage:work | plan_id:BLOG-008 | revision:r3 | outcome:execution_done2/4 | code_commit:30cc50f | finding:F-BLOG-008-JSON-CONTROL closed in work | next:affected independent source/Spec re-review
   Current frozenSDK194 actual release Rust backend generated/compiled8.43s/exit0, runtime19888/port18927 source30cc50f held unchanged until normal stop. RealHTTP create/open/save/open fullUnicode/emoji/summary/tags, current/revision/meta/body and original timestamp all agree. 34 malformed migration requests (all32 rawC0, leadingzero andbad escape) each return0, full preexisting file-hash map unchanged afterevery request. http-result-r3.json SHA2fafdc1b5b128f247ca39c60c2dcb4d04132527dc67257c911052c2e386539fd. Accurate file-fed baseline red and current VM32zero+valid1/69exact cases above remain passing; no code edits after frozen source. HTTP first readiness probe beforebuild completed was connectionrefused and performed no mutations; terminal ready then fulloracle passed, not silently counted early failure as success.
   Development shutdown202 naturally reaped CLI548/Cargo32968+27020/backend19888/wrapper41856 all0; controlled_leaf_cancel=false, portabsenttrue, foreignBlog47236 unchanged. stop-result-r3.json andservice-r3.log preserve provenance. T01 complete/T02independentreviewpending, no sourcephasepush/pin/canonicalSpecs/archive yet. AC03 actual parent Vue/iced and T03 closeout remain merge-ownedpending; unchanged scope is not waived. Plan r3 SD01 now explicit original rawC0 rejection before effects, SD02 unchanged.
+
+
+### Independent affected re-review r3 — second final review
+
+- stage:review | review_scope:final (affected repair and legitimate sibling paths) | reviewer_identity:independent Codex context /root/review_app_sdk, no implementation performed | plan_id:BLOG-008 | plan_revision:3 | outcome:needs_fix | worktree_path:D:/autostack/auto-blog | branch:main | reviewed_commit:2b0b7855fae6eec216dc8596ee778a88685b75f5 | source_commit:30cc50f8bfd95c00a920c730cd23f518d752c346 | base_commit:3ead087723dff0ea36df4f9abb64a942a92beeb6. Frozen HEAD/clean tracked source reconfirmed. SDK194/dependency roots and canonical Spec inputs unchanged from first review; current proposed SD01/SD02 block SHA256 551cacdafc94a5331a9d0a317fe892fe9bb43fcd4e137f1c10dcf2183e7e569f. Canonical Specs/legacy ledger untouched.
+- F-BLOG-008-JSON-CONTROL CLOSED: production diff adds only nonempty single-byte slice < space rejection in scan_json_string; empty slices inside multibyte UTF8 are exempted correctly. Independently reran actual full-module file-fed `tests/json_control_rejection.py --auto D:/autostack/plan-artifacts/plan-054/t04/frozen-sdk-r194/auto.exe --scratch D:/autostack/plan-artifacts/plan-054/t07/blog-008/review`:32 rawC0 rejected/zero files, valid LF/TAB+Unicode migration1 with exact title/body. Independent byte_text_roundtrip69/69 values/types green; old identity/signature bodies retained. Exact file-fed baseline-red record inspected; corrected literal-based input qualification is appropriate. Additional rawC0 in object key,nested object,array and later object after a valid first migration object all rejected before any files; rawDEL legitimate control migrated successfully.
+- acceptance_results: AC01/AC02 remain partial because valid-escape roundtrip finding below; earlier UTF8/cursor/nativeHTTP/raw-admission checks retained. AC03 parent actual Vue/iced tasks remains pending; AC04/source-stage approval not granted. Formal r3 current SDK release8.43s actualHTTP34 malformed requests0/unchanged files and fullUnicode save/reopen proof inspected; all recorded http-data-r3 file hashes independently rechecked. http-result-r3.json SHA2562fafdc1b5b128f247ca39c60c2dcb4d04132527dc67257c911052c2e386539fd; service ready assembly1d58df325b337340, normal shutdown202/owned5 exits0/portfree/foreign observer unchanged. No new service,Cargo,process or unrelated-suite work by reviewer.
+- F-BLOG-008-ESCAPED-C0 | P1 | AC01/AC02,T01 | existing requirement gap (not caused by raw-rejection guard):合法 JSON 转义与文本完整往返 must preserve values through migration/list/open/storage. File-fed valid JSON title `前\b😀尾`,body `正文\b完整` migrates1 but list/open title becomes `前b😀尾`,body `正文b完整`; valid `\f` likewise becomes literal f. Actual full works/drafts production modules on frozenSDK194, exit0. This is observed runtime data loss, not only strict external JSON parsing or an expanded parser feature.
+- related same-codec invariant: all32 valid escaped C0 values were independently passed through migration→list→open.30 preserve runtime value;8/12 fail as above. For27 others (0..7,11,14..31), json_escape emits raw C0 into persisted meta.json, which strict json.loads rejects as invalid JSON. LF/CR/TAB remain escaped correctly. Existing direct production code establishes causes:json_unescape falls back to literal d for valid b/f escapes; json_escape replaces selected characters but lacks the other rawC0 serializations. Original three identity/signature bodies are unaffected. Minimum invariant is correct logical decode plus valid escaped persistent metadata, with exact Unicode/controls retained on next real open.
+- evidence/reproduction: D:/autostack/plan-artifacts/plan-054/t07/blog-008/review/escaped-c0-sha1hjp3/result.json SHA256 a5db4d036802251d1a1472419615d3225fb9f66c85d310c496d1404aae3535fa. Each case copies current unmodified works.at/drafts.at, uses Python json.dumps of title `前`+chr(c)+`😀尾`,body `正文`+chr(c)+`完整` for c=0..31 into actual UTF8 files, fs.read_text passes payload to migrate_articles_batch in isolated AUTO_BLOG_DATA, then list_drafts/open_draft read values. Probe files0.at..31.at and logs preserve actual entrypoints. No generated replacement codec or mocked oracle. Independent core checks: review/migration-c0-z8_ds0z4/result.json and review/byte-text-s3i1n5wr/result.json.
+- diagnosis required before third final review: earlier69 checks established lexical acceptance/rejection and selected n/r/t/Unicode escapes; they did not complete valid-escaped-C0 decode→serialize→list/open for all32 values.32 invalid-input total cannot establish32 valid-escape value preservation. One-line raw rejection closes original admission defect but leaves shared encoder/decoder sibling paths unexamined. Work must record bounded codec invariant/design adjustment and permanent independent expected values, not merely add b/f sample exceptions; retain original raw32 rejection+zero side effects and legal Unicode/DEL/escaped controls, require valid JSON disk bytes and exact next read, and verify affected native/VM paths. Broader unrelated catalog remains unnecessary.
+- pending_closeout_gates/next: second final needs_fix, T01 reopened/current_step1/4,T00 retained. Repair same clone, commit then affected independent re-review after diagnosis/design adjustment; preserve original findings and raw receipts. T03 reviewed-source publish/candidate fetch,parent actualtasks,canonicalSpecs/finaldocs/push/pin/archive still pending, no final child delivery. No push/pin/archive by review; other child passes unchanged.
