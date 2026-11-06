@@ -13,7 +13,7 @@
 
 ## 当前后续计划
 
-作者页使用标准纵向滚动，在原生窗口及网页窄屏中可滚到“预览 / 保存”，预览后可返回编辑；关闭重开同稿后可继续保存。当前验证与交付记录见本仓 BLOG-007，界面合同见[编辑预览](docs/specs/blog/editor-assets-preview.md)。
+作者页使用标准纵向滚动，在原生窗口及网页窄屏中可滚到“预览 / 保存”，预览后可返回编辑；关闭重开同稿后可继续保存。当前验证与交付记录见[BLOG-007](docs/plans/archived/007-author-viewport-scroll.md)，界面合同见[编辑预览](docs/specs/blog/editor-assets-preview.md)。
 
 [BLOG-005：普通开发启动与编辑器运行路径收口](docs/plans/005-standalone-dev-startup.md) 已交付（T-01..T-05 全勾、终局全门 53/53：vue-dev-rust 16/16 + native-vm-rust 22/22 + vue-rust 15/15，2026-11-05）。普通 dev 启动即官方 `auto run --server rust`；修复链=auto-ui PLAN-050（optimizeDeps.include+strictPort 发射）+PLAN-051（店模型默认/main.ts 拼接/page-named dispatch）+本仓（back .at 字符数语义、auth 防御重置、引擎偏好迁店面）。
 

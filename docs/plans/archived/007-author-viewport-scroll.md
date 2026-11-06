@@ -1,9 +1,9 @@
 ---
 plan_id: PLAN-007
-status: reviewed
+status: archived
 feature_name: 作者页有限窗口滚动可达性
 plan_revision: 1
-current_step: 3
+current_step: 4
 total_steps: 4
 author: [codex]
 created_at: 2026-11-06T02:00:00Z
@@ -51,7 +51,7 @@ touched_goals: [AutoOS-PLAN-054]
 - [x] T-01 (owner_stage=work; AC-01/02; src/front/app.at)：标准滚动视口、正式生成/实际原生和Vue验证；源与所测产物身份一致。
 - [x] T-02 (owner_stage=work; AC-01/02; SD-01)：关闭重开/下一次操作与窄屏检查，更新canonical Spec、README与真实回执。
 - [x] T-03 (owner_stage=review; AC-03)：按最终提交复审，缺项具名，不将queued或截图空壳算通过。
-- [ ] T-04 (owner_stage=merge; AC-04)：app推送/OS pin消费、归档与恢复信息。
+- [x] T-04 (owner_stage=merge; AC-04)：app推送/OS pin消费、归档与恢复信息。
 
 ## 9. 复审记录
 stage: new | plan_id: PLAN-007 | plan_revision: 1 | outcome: pass | next: work/T-01。范围与OS054授权一致；当前仅草案，尚无实现/验收通过。
@@ -79,3 +79,10 @@ stage: new | plan_id: PLAN-007 | plan_revision: 1 | outcome: pass | next: work/T
 - stage: review | review_scope: final | reviewer_identity/limitations: Codex implementation context, artifact reconstruction; explicitly not independent | plan_id: PLAN-007 | plan_revision: 1 | outcome: pass | worktree_path: D:/autostack/auto-blog (authorized independent app clone) | branch: main | reviewed_commit: d16401c48d2f6253df40087ddc1fda125fe56158 | base_commit: 922d0b1255ba8e49da065f2b8ed55de0e121a5f1 | dependency_revisions: UIc0359fabe519dcc8d27ff45be07e596f8e3a362d/Lang23f3a031/Man03bb65ef | next: merge
   Reconstructed from committed diff, actual generation input hashes13/13, three-way artifactAF845795, web dev/production oracle and visible screenshots, actual native multiline preview/return/reopen/nextsave oracle8bc81419, corrected second close receiptExitCode0. Head/implementation clean. AC01 pass: real finite native scroll and visible controls, retained CJK/multiline data, close/reopen and nextsave14; existing NewDraft creation/store semantics unchanged from parent actual r143 creation evidence, current007 layout paths separately exercised. AC02 pass: official Vue build + live dev/preview normal375 tasks, no page errors, visible footer boxes/clicks and reload data. AC03 pass: source diff only app root standard scroll/removal of content min-height, all backend/store/editor assets unchanged; SD01 canonical Spec reviewed SHA773becf204174eed2af70dec07228bafb8c6980e7be82d508c883cab295a3f41. Existing broader001..006 security/storage behavior evidence not rerun for shell layout; no new storage/security promise.
   Documentation-only correction d16401c fixes inaccurate first close exit0 wording; actual second close0 now available. No open code/acceptance findings. Native screenshot has existing raw Markdown fallback message, covered existing preview contract; not a claim of rich Markdown support expansion. AC04/T04 pending merge-owned: push, clean OS candidate consumption, archive/version-control receipts and artifact hold. Original app source and generated layouts unchanged since verified build; no redundant full app/API regression required for docs descendant. Parent054 final independent review remains required and is not discharged by this app verdict.
+
+
+- stage: merge | plan_id: PLAN-007 | plan_revision: 1 | outcome: pass | completion_kind: delivered | reviewed_commit: d16401c48d2f6253df40087ddc1fda125fe56158 | delivery_commit: e9216a2dff2808cdb40193aab35001be17ae7189 | archive: docs/plans/archived/007-author-viewport-scroll.md
+  prepared/landed: app workflow expressly requires independent clone/main; no temporary app branch/worktree. All implementation/spec changes already committed linearly on main; fetch confirmed origin/main ancestor, push origin main succeeded922d0b1→e9216a2. No force push, default history rewrite or submodule development. Review-record-only descendant e9216a2 has identical implementation/dependencies/spec to reviewed d16401c.
+  canonical_verified: docs/specs/blog/editor-assets-preview.md SHA773becf204174eed2af70dec07228bafb8c6980e7be82d508c883cab295a3f41 on main and clean OS candidate composition match; src/front/app.at SHAd8b5cdb70535cb9e34f88322a9040f71143caade150cec34df23d3ca6836d83f. Candidate D:/autostack/.wt/os-054/auto-os/apps/auto-blog was clean/unwritten, fetched actual product remote and detached e9216a2; source/back/spec diff empty and hashes equal. AC04 app-to-composition source delivery verified; parent054 actual fixed-pin consumer task/gate remains distinct, pending its own build. Archive bookkeeping descendant will be pushed and composition pin advanced before parent candidate commit.
+  archived/cleaned: all4tasks complete, final same-context review limitation explicit; archive path/version-control and links checked at commit. Independent app clone intentionally retained under user app workflow, no app worktree/branch exists to remove; no wt-guard/removal claim. No separate plan007 scratch scope exists: this repair evidence is in active parent054/t04 and has been folded above; parent in-flight scope must not be deleted here. Named hold OS054-BLOG007-CONSUMER ownerauto-os/PLAN054 retains owner-generated rust-workspace/gen and active test services until fixed-pin consumer/full gate+independent final review, folding, normal service stop and no-follow cleanup. Registry holds refreshed; no cache-deletion bypass.
+  artifact observation: official Vue dist built/source tested dev+preview; native debug binaryAF845795 and host2c21ca06 tested, three-way publish equality; no app release-profile binary built or production deployment claimed. Native framework prerequisites UI060c0359fab and Lang94923f3a031 are still pending their separate final review/landing under parent054, not falsely reported upstream-delivered. Parent054 and whole Goal remain active.
