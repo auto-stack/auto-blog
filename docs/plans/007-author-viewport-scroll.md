@@ -1,9 +1,9 @@
 ---
 plan_id: PLAN-007
-status: execution_done
+status: reviewed
 feature_name: 作者页有限窗口滚动可达性
 plan_revision: 1
-current_step: 2
+current_step: 3
 total_steps: 4
 author: [codex]
 created_at: 2026-11-06T02:00:00Z
@@ -50,7 +50,7 @@ touched_goals: [AutoOS-PLAN-054]
 ## 8. 执行步骤
 - [x] T-01 (owner_stage=work; AC-01/02; src/front/app.at)：标准滚动视口、正式生成/实际原生和Vue验证；源与所测产物身份一致。
 - [x] T-02 (owner_stage=work; AC-01/02; SD-01)：关闭重开/下一次操作与窄屏检查，更新canonical Spec、README与真实回执。
-- [ ] T-03 (owner_stage=review; AC-03)：按最终提交复审，缺项具名，不将queued或截图空壳算通过。
+- [x] T-03 (owner_stage=review; AC-03)：按最终提交复审，缺项具名，不将queued或截图空壳算通过。
 - [ ] T-04 (owner_stage=merge; AC-04)：app推送/OS pin消费、归档与恢复信息。
 
 ## 9. 复审记录
@@ -74,3 +74,8 @@ stage: new | plan_id: PLAN-007 | plan_revision: 1 | outcome: pass | next: work/T
   AC02 dev/production and375px evidence from round2 remains source-identical; four images inspected. T01/T02 complete, canonical Spec/README prepared. No backend, editor engine, API, dependency-version or product-scope source changes; only root scroll wrapper. Source commit767b1da plus canonical docs commit to follow. Independent clone retained, no app worktree. Owner extra-ID test is not OS054 fixed-pin final consumer; pin remains922d0b1 until reviewed delivery. Same-context app review limitation expressly retained; independent parent054 review and T05..09 still required.
 
   Round3 evidence correction during artifact reconstruction: first close24400 WaitForExit returned true but its serialized exit code is null, so the earlier exit0 wording is withdrawn; it was observed terminated after actual Close, not a captured code0. Replayed normal Close on verified live reopened18652 with process handle acquired before requesting close; WaitForExit true/ExitCode0, receipt blog007-native-close2-r149.json. Reopened again as wid3; data remains revision14. This closes the exit-code oracle gap without changing source or weakening close/reopen acceptance. Initial review helper correctly rejected null; corrected it to require actual second receipt0. Implementation863e9a4 unchanged; documentation correction is the only new baseline delta. This is not an additional failed final review; no verdict had yet been issued.
+
+
+- stage: review | review_scope: final | reviewer_identity/limitations: Codex implementation context, artifact reconstruction; explicitly not independent | plan_id: PLAN-007 | plan_revision: 1 | outcome: pass | worktree_path: D:/autostack/auto-blog (authorized independent app clone) | branch: main | reviewed_commit: d16401c48d2f6253df40087ddc1fda125fe56158 | base_commit: 922d0b1255ba8e49da065f2b8ed55de0e121a5f1 | dependency_revisions: UIc0359fabe519dcc8d27ff45be07e596f8e3a362d/Lang23f3a031/Man03bb65ef | next: merge
+  Reconstructed from committed diff, actual generation input hashes13/13, three-way artifactAF845795, web dev/production oracle and visible screenshots, actual native multiline preview/return/reopen/nextsave oracle8bc81419, corrected second close receiptExitCode0. Head/implementation clean. AC01 pass: real finite native scroll and visible controls, retained CJK/multiline data, close/reopen and nextsave14; existing NewDraft creation/store semantics unchanged from parent actual r143 creation evidence, current007 layout paths separately exercised. AC02 pass: official Vue build + live dev/preview normal375 tasks, no page errors, visible footer boxes/clicks and reload data. AC03 pass: source diff only app root standard scroll/removal of content min-height, all backend/store/editor assets unchanged; SD01 canonical Spec reviewed SHA773becf204174eed2af70dec07228bafb8c6980e7be82d508c883cab295a3f41. Existing broader001..006 security/storage behavior evidence not rerun for shell layout; no new storage/security promise.
+  Documentation-only correction d16401c fixes inaccurate first close exit0 wording; actual second close0 now available. No open code/acceptance findings. Native screenshot has existing raw Markdown fallback message, covered existing preview contract; not a claim of rich Markdown support expansion. AC04/T04 pending merge-owned: push, clean OS candidate consumption, archive/version-control receipts and artifact hold. Original app source and generated layouts unchanged since verified build; no redundant full app/API regression required for docs descendant. Parent054 final independent review remains required and is not discharged by this app verdict.
