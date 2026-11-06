@@ -5,7 +5,7 @@ feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-06
-plan_revision: 1
+plan_revision: 2
 current_step: 0
 total_steps: 4
 base_branch: main
@@ -59,6 +59,12 @@ touched_goals: []
 ## 6. 记录
 
 - stage:new | revision:r1 | outcome:pass→work | authorization:父054解决全部必要阻塞并完成原8app/双端的既有授权；属于原文本持久与重开合同修复，无新功能/预算/支持收窄。计划材料唯一具名父scope D:/autostack/plan-artifacts/plan-054/t07/blog-008，不另建撞号plan-008目录。SDK194 Langf032/UI1dba/Webc36/Man2a9/OSfa93；不改这些框架源码。
+
+### r2 有界邻面修订
+
+真实模块18用例先复现截断/错误路径/字段整数缺失；字节对齐后18/18。扩展到原迁移校验邻面时另发现已存在数字语法口：01/-01被scan_json_number当有效整数，违反durable-drafts原有严格数字校验规则。r2仅补整数段首0守卫，非新解析器或RFC支持扩张；零、负零、小数和指数邻面保留，原4任务/AC/布局不变。最初将空数组[]当普通JSON有效的测试预期不适用于该私有“批内需对象”门，改用[{}]空对象控制，不修改既有空批策略或把它列成产品缺陷。原source-map长度编码及发布签名三个函数体与3ead基线逐字节一致，未替换其5处字符长度；代码区共74处.length中其余69处为find/slice字节游标配对，审计清单在具名scratch，非字符串/注释盲替换。
+
+新增守卫属于落实原严格迁移数字规则，SD01同时记录该既有拒绝规则；不改变有效存量文件格式、旧身份键或签名。永久真实模块/生产函数提取36/36实际VM通过，含中文/emoji/转义/代理、长字段后整数、Unicode键/路径、迁移键、嵌套JSON及坏数字控制。正式Rust/HTTP构建与独立复审仍待完成。
 
 ## 7. 待澄清
 

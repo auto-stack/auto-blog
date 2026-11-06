@@ -372,12 +372,12 @@ fn write_index(root str, arr str) bool {
 /// 简易 JSON 字符串数组解析：返回拼接串，元素用 \n 分隔。
 fn parse_id_array(arr str) str {
     var s str = arr
-    if s.length >= 2 && s.slice(0, 1) == "[" {
-        s = s.slice(1, s.length - 1)
+    if s.len() >= 2 && s.slice(0, 1) == "[" {
+        s = s.slice(1, s.len() - 1)
     }
     var out str = ""
     var i int = 0
-    let n int = s.length
+    let n int = s.len()
     while i < n {
         let c str = s.slice(i, i + 1)
         if c == "\"" {
@@ -402,7 +402,7 @@ fn ids_to_json(ids str) str {
     var out str = "["
     var first bool = true
     var i int = 0
-    let n int = ids.length
+    let n int = ids.len()
     while i < n {
         var j int = i
         while j < n && ids.slice(j, j + 1) != "\n" {
@@ -489,7 +489,7 @@ pub fn list_drafts() []Work {
     let ids str = parse_id_array(read_index(root))
     var out []Work = []
     var i int = 0
-    let n int = ids.length
+    let n int = ids.len()
     while i < n {
         var j int = i
         while j < n && ids.slice(j, j + 1) != "\n" {
@@ -577,8 +577,8 @@ fn map_put(obj str, key str, val str) str {
     let marker str = "\"" + ek + "\":\""
     let hit int = obj.find(marker)
     if hit >= 0 {
-        let vstart int = hit + marker.length
-        let n int = obj.length
+        let vstart int = hit + marker.len()
+        let n int = obj.len()
         var j int = vstart
         while j < n {
             let c str = obj.slice(j, j + 1)
@@ -662,8 +662,8 @@ fn source_map_claims(root str, work_id str) bool {
         if hit < 0 {
             scanning = false
         } else {
-            rest = rest.slice(hit + 1, rest.length)
-            let m int = rest.length
+            rest = rest.slice(hit + 1, rest.len())
+            let m int = rest.len()
             var j int = 0
             while j < m && rest.slice(j, j + 1) != "\"" {
                 j = j + 1
@@ -762,7 +762,7 @@ pub fn migrate_article(slug str, p_title str, p_description str, p_body str, p_t
     return work_id
 }
 fn map_str_strip_close(s str) str {
-    let n int = s.length
+    let n int = s.len()
     if n >= 1 && s.slice(n - 1, n) == "}" {
         return s.slice(0, n - 1)
     }
@@ -773,7 +773,7 @@ fn map_str_strip_close(s str) str {
 fn skip_json_string(s str, start int) int {
     // start 指向开引号之后
     var j int = start
-    let n int = s.length
+    let n int = s.len()
     while j < n {
         let c str = s.slice(j, j + 1)
         if c == "\\" {
@@ -792,7 +792,7 @@ fn skip_json_string(s str, start int) int {
 /// 跳过空白；返回下一个非空白下标。
 fn skip_ws(s str, i int) int {
     var j int = i
-    let n int = s.length
+    let n int = s.len()
     while j < n {
         let c str = s.slice(j, j + 1)
         if c == " " || c == "\t" || c == "\n" || c == "\r" {
@@ -806,7 +806,7 @@ fn skip_ws(s str, i int) int {
 
 /// 校验 JSON 字符串与转义（R-27）；start 指向开引号，返回闭引号后下标，非法 -1。
 fn scan_json_string(s str, start int) int {
-    let n int = s.length
+    let n int = s.len()
     var j int = start + 1
     while j < n {
         let c str = s.slice(j, j + 1)
@@ -842,11 +842,12 @@ fn scan_json_string(s str, start int) int {
 
 /// 校验 JSON 数字（-? 整数 [. 分数] [eE 指数]）；返回结束下标，非法 -1。
 fn scan_json_number(s str, start int) int {
-    let n int = s.length
+    let n int = s.len()
     var j int = start
     if j < n && s.slice(j, j + 1) == "-" {
         j = j + 1
     }
+    let integer_start int = j
     var digits int = 0
     while j < n {
         let c str = s.slice(j, j + 1)
@@ -858,6 +859,9 @@ fn scan_json_number(s str, start int) int {
         }
     }
     if digits == 0 {
+        return -1
+    }
+    if digits > 1 && s.slice(integer_start, integer_start + 1) == "0" {
         return -1
     }
     if j < n && s.slice(j, j + 1) == "." {
@@ -909,7 +913,7 @@ fn scan_json_number(s str, start int) int {
 /// 失败即整体拒绝（零副作用）。
 fn json_array_valid(items str) bool {
     var s str = items.trim()
-    let n int = s.length
+    let n int = s.len()
     if n < 2 {
         return false
     }
@@ -927,9 +931,9 @@ fn json_array_valid(items str) bool {
                 return false
             }
             let c str = s.slice(i, i + 1)
-            let top str = stack.slice(stack.length - 1, stack.length)
+            let top str = stack.slice(stack.len() - 1, stack.len())
             // 根数组元素必须是对象（迁移合同类型检查）
-            if stack.length == 1 && c != "{" {
+            if stack.len() == 1 && c != "{" {
                 return false
             }
             if c == "[" {
@@ -942,7 +946,7 @@ fn json_array_valid(items str) bool {
                     expect = "key"
                 } else {
                     if c == "]" && top == "A" {
-                        stack = stack.slice(0, stack.length - 1)
+                        stack = stack.slice(0, stack.len() - 1)
                         i = i + 1
                         expect = "after"
                     } else {
@@ -953,10 +957,10 @@ fn json_array_valid(items str) bool {
                             }
                             i = e
                             if top == "A" {
-                                stack = stack.slice(0, stack.length - 1) + "a"
+                                stack = stack.slice(0, stack.len() - 1) + "a"
                             } else {
                                 if top == "K" {
-                                    stack = stack.slice(0, stack.length - 1) + "o"
+                                    stack = stack.slice(0, stack.len() - 1) + "o"
                                 }
                             }
                             expect = "after"
@@ -968,10 +972,10 @@ fn json_array_valid(items str) bool {
                                 }
                                 i = e
                                 if top == "A" {
-                                    stack = stack.slice(0, stack.length - 1) + "a"
+                                    stack = stack.slice(0, stack.len() - 1) + "a"
                                 } else {
                                     if top == "K" {
-                                        stack = stack.slice(0, stack.length - 1) + "o"
+                                        stack = stack.slice(0, stack.len() - 1) + "o"
                                     }
                                 }
                                 expect = "after"
@@ -991,10 +995,10 @@ fn json_array_valid(items str) bool {
                                 }
                                 i = i + lit
                                 if top == "A" {
-                                    stack = stack.slice(0, stack.length - 1) + "a"
+                                    stack = stack.slice(0, stack.len() - 1) + "a"
                                 } else {
                                     if top == "K" {
-                                        stack = stack.slice(0, stack.length - 1) + "o"
+                                        stack = stack.slice(0, stack.len() - 1) + "o"
                                     }
                                 }
                                 expect = "after"
@@ -1010,9 +1014,9 @@ fn json_array_valid(items str) bool {
                     return false
                 }
                 let c str = s.slice(i, i + 1)
-                let top str = stack.slice(stack.length - 1, stack.length)
+                let top str = stack.slice(stack.len() - 1, stack.len())
                 if c == "}" && top == "K" {
-                    stack = stack.slice(0, stack.length - 1)
+                    stack = stack.slice(0, stack.len() - 1)
                     i = i + 1
                     expect = "after"
                 } else {
@@ -1048,7 +1052,7 @@ fn json_array_valid(items str) bool {
                         return false
                     }
                     let c str = s.slice(i, i + 1)
-                    let top str = stack.slice(stack.length - 1, stack.length)
+                    let top str = stack.slice(stack.len() - 1, stack.len())
                     if c == "," {
                         if top == "a" {
                             expect = "value"
@@ -1065,17 +1069,17 @@ fn json_array_valid(items str) bool {
                             if top != "A" && top != "a" {
                                 return false
                             }
-                            stack = stack.slice(0, stack.length - 1)
+                            stack = stack.slice(0, stack.len() - 1)
                             i = i + 1
                             expect = "after"
                             // 闭合一层后父容器记为已有元素
                             if stack != "" {
-                                let pt str = stack.slice(stack.length - 1, stack.length)
+                                let pt str = stack.slice(stack.len() - 1, stack.len())
                                 if pt == "A" {
-                                    stack = stack.slice(0, stack.length - 1) + "a"
+                                    stack = stack.slice(0, stack.len() - 1) + "a"
                                 } else {
                                     if pt == "K" {
-                                        stack = stack.slice(0, stack.length - 1) + "o"
+                                        stack = stack.slice(0, stack.len() - 1) + "o"
                                     }
                                 }
                             }
@@ -1084,16 +1088,16 @@ fn json_array_valid(items str) bool {
                                 if top != "K" && top != "o" {
                                     return false
                                 }
-                                stack = stack.slice(0, stack.length - 1)
+                                stack = stack.slice(0, stack.len() - 1)
                                 i = i + 1
                                 expect = "after"
                                 if stack != "" {
-                                    let pt str = stack.slice(stack.length - 1, stack.length)
+                                    let pt str = stack.slice(stack.len() - 1, stack.len())
                                     if pt == "A" {
-                                        stack = stack.slice(0, stack.length - 1) + "a"
+                                        stack = stack.slice(0, stack.len() - 1) + "a"
                                     } else {
                                         if pt == "K" {
-                                            stack = stack.slice(0, stack.length - 1) + "o"
+                                            stack = stack.slice(0, stack.len() - 1) + "o"
                                         }
                                     }
                                 }
@@ -1117,8 +1121,8 @@ fn json_field_value_kind(obj str, key str) int {
     if i < 0 {
         return 0
     }
-    var j int = i + key_tok.length
-    let n int = obj.length
+    var j int = i + key_tok.len()
+    let n int = obj.len()
     while j < n {
         let c str = obj.slice(j, j + 1)
         if c == " " || c == "\t" || c == "\n" || c == "\r" {
@@ -1152,11 +1156,11 @@ fn json_field_value_kind(obj str, key str) int {
 /// → 整批拒绝（在任何迁移副作用之前）。
 fn batch_fields_valid(items str) bool {
     var s str = items.trim()
-    if s.length >= 2 && s.slice(0, 1) == "[" {
-        s = s.slice(1, s.length - 1)
+    if s.len() >= 2 && s.slice(0, 1) == "[" {
+        s = s.slice(1, s.len() - 1)
     }
     var i int = 0
-    let n int = s.length
+    let n int = s.len()
     while i < n {
         let c str = s.slice(i, i + 1)
         if c == "\"" {
@@ -1208,11 +1212,11 @@ pub fn migrate_articles_batch(items_json str) int {
     }
     var count int = 0
     var s str = items_json.trim()
-    if s.length >= 2 && s.slice(0, 1) == "[" {
-        s = s.slice(1, s.length - 1)
+    if s.len() >= 2 && s.slice(0, 1) == "[" {
+        s = s.slice(1, s.len() - 1)
     }
     var i int = 0
-    let n int = s.length
+    let n int = s.len()
     while i < n {
         let c str = s.slice(i, i + 1)
         if c == "\"" {
@@ -1352,7 +1356,7 @@ pub fn compose_from_sources(items_json str) Work {
     // 错位 → count=0 空返回，登记 F-8）。对象值含 "{" 或 "}" 时该对象不
     // 可靠——envelope 契约字段为纯文本，此类输入被跳过（边界写入 spec）。
     // count==0 时在任何写副作用之前返回空（拒绝零写入）。
-    let tn int = items_json.length
+    let tn int = items_json.len()
     if tn < 2 {
         return blank_work("")
     }
@@ -1368,13 +1372,13 @@ pub fn compose_from_sources(items_json str) Work {
         if lb < 0 {
             break
         }
-        let tail str = rest.slice(lb + 1, rest.length)
+        let tail str = rest.slice(lb + 1, rest.len())
         let rb int = tail.find("}")
         if rb < 0 {
             break
         }
         let obj str = tail.slice(0, rb)
-        rest = tail.slice(rb + 1, tail.length)
+        rest = tail.slice(rb + 1, tail.len())
         let producer str = json_field_str(obj, "producer")
         let sbody str = json_field_str(obj, "body")
         if producer != "" && sbody != "" {
@@ -1485,7 +1489,7 @@ pub fn add_asset_b64(work_id str, b64 str, sha256 str, mime str, caption str, ex
         return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "bad_b64" }
     }
     // sha256 为 hex 声明（纯 ASCII，len 可靠；深校验由导出电池解码复算承担）
-    if sha256.length != 64 {
+    if sha256.len() != 64 {
         return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "bad_sha256" }
     }
     fs.create_dir(assets_dir(root))
@@ -1495,7 +1499,7 @@ pub fn add_asset_b64(work_id str, b64 str, sha256 str, mime str, caption str, ex
         return SaveResult { ok: false, work_id: work_id, revision: cur.revision, conflict: false, error: "asset_write_failed" }
     }
     let sref str = "assets/" + asset_id + ".b64"
-    let blen int = b64.length
+    let blen int = b64.len()
     var entry str = "{\"asset_id\":\"" + json_escape(asset_id) + "\",\"kind\":\"image\",\"storage_ref\":\"" + json_escape(sref) + "\",\"caption\":\"" + json_escape(caption) + "\",\"mime\":\"" + json_escape(mime) + "\",\"sha256\":\"" + json_escape(sha256) + "\",\"size\":" + blen.to_string() + ",\"mode\":\"copy\"}"
     // JSON Lines 追加（零索引；F-8 同源纪律）
     var refs str = cur.asset_refs
@@ -1570,7 +1574,7 @@ pub fn asset_check_report(work_id str) str {
             rest = ""
         } else {
             line = rest.slice(0, nl)
-            rest = rest.slice(nl + 1, rest.length)
+            rest = rest.slice(nl + 1, rest.len())
         }
         if line != "" {
             total = total + 1

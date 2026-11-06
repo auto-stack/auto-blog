@@ -174,7 +174,7 @@ fn index_add(root str, pub_id str) bool {
     if ids.find("\"" + pub_id + "\"") >= 0 {
         return true
     }
-    let cut int = ids.length - 1
+    let cut int = ids.len() - 1
     var next str = ids
     if ids == "[]" {
         next = "[\"" + pub_id + "\"]"
@@ -258,7 +258,7 @@ pub fn list_publications(work_id str) []Publication {
     let ids str = read_index(root)
     var out []Publication = []
     var i int = 0
-    let n int = ids.length
+    let n int = ids.len()
     while i < n {
         if ids.slice(i, i + 1) == "\"" {
             var j int = i + 1
@@ -402,7 +402,7 @@ pub fn publication_asset(pub_id str, asset_id str) str {
             rest = ""
         } else {
             line = rest.slice(0, nl)
-            rest = rest.slice(nl + 1, rest.length)
+            rest = rest.slice(nl + 1, rest.len())
         }
         if line != "" {
             let lid str = json_field_str(line, "asset_id")

@@ -2,6 +2,9 @@
 
 本地博客写作应用，使用AutoLang / AutoUI开发。更新：2026-10-31。
 
+当前SDK字节游标兼容修复见 [BLOG-008](docs/plans/008-byte-offset-text-roundtrip.md)，
+为父 [AutoOS PLAN-054](../auto-os/docs/plans/054-basic-apps-unified-assembly.md) 的必要前置。
+
 ## 已交付能力
 
 - [001个人草稿](docs/plans/archived/001-durable-drafts.md)：稳定ID、自动保存、冲突保稿与重启恢复；`/demo`仍为RealWorld演示社区。
