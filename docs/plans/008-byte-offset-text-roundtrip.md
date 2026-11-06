@@ -1,12 +1,12 @@
 ---
 plan_id: BLOG-008
-status: executing
+status: execution_done
 feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-07
 plan_revision: 3
-current_step: 1
+current_step: 2
 total_steps: 4
 base_branch: main
 base_commit: 3ead087723dff0ea36df4f9abb64a942a92beeb6
@@ -52,7 +52,7 @@ touched_goals: []
 ## 5. 步骤与发布顺序
 
 - [x] T00 owner_stage=work：冻结反例和全部同因字节游标/保留字符合同清单。
-- [ ] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
+- [x] T01 owner_stage=work：有界修复、永久反例/邻面、实际Rust编译/HTTP验证，提交工作完成。
 - [ ] T02 owner_stage=review：同clone独立上下文复审源码/Spec/证据。
 - [ ] T03 owner_stage=merge：通过独立源码/Spec及全部work后，先push具名已审源码阶段，父候选fetch/detach验证；随后父实际任务/规范/最终文档push/archive，源码等价Doc后继再更新父正式pin。阶段发布不代表最终交付通过；全部AC保留。
 
@@ -99,3 +99,8 @@ F-BLOG-008-JSON-CONTROL → 原严格迁移JSON不变量：任何字段/嵌套�
 永久tests/json_control_rejection.py复制完整真实works/drafts模块并调用migrate_articles_batch：32原始控制字符应全部return0且零文件，另合法转义LF/TAB和中文emoji迁移1并独立读取完整title/body。为防语言字符串源码不识别部分JSON式Unicode转义，输入以原始UTF8文件写入，再通过fs.read_text进入生产函数；相同入口也用于永久byte_text_roundtrip的69个独立预期，旧36及新增32原始控制+1合法转义全部通过。早期json.dumps直接嵌入语言源码的输入不能代表全部32原始字节，原日志保留但不计32控制证明；一次误用fs.read读到字节数组的失败已纠正为fs.read_text，不将其算产品失败。
 
 准确file-fed测试在隔离scratch中以git show f973的未修改模块实际回放，exit1，32非法请求全部被迁移并落盘，证明原缺陷；当前修复版exit0，32拒绝且无任何文件，合法转义迁移1/title/body完整（c0/migration-c0-x7sc3vs9/result.json）。辅助69/69完整值及类型通过（c0/byte-text-4t7v20zz/result.json），旧三个身份/签名函数体仍与3ead逐字节一致。根scratch D:/autostack/plan-artifacts/plan-054/t07/blog-008。正式Rust/HTTP控制字符零写入验证、源码冻结复审仍pending；T01尚未完成。
+
+
+- stage:work | plan_id:BLOG-008 | revision:r3 | outcome:execution_done2/4 | code_commit:30cc50f | finding:F-BLOG-008-JSON-CONTROL closed in work | next:affected independent source/Spec re-review
+  Current frozenSDK194 actual release Rust backend generated/compiled8.43s/exit0, runtime19888/port18927 source30cc50f held unchanged until normal stop. RealHTTP create/open/save/open fullUnicode/emoji/summary/tags, current/revision/meta/body and original timestamp all agree. 34 malformed migration requests (all32 rawC0, leadingzero andbad escape) each return0, full preexisting file-hash map unchanged afterevery request. http-result-r3.json SHA2fafdc1b5b128f247ca39c60c2dcb4d04132527dc67257c911052c2e386539fd. Accurate file-fed baseline red and current VM32zero+valid1/69exact cases above remain passing; no code edits after frozen source. HTTP first readiness probe beforebuild completed was connectionrefused and performed no mutations; terminal ready then fulloracle passed, not silently counted early failure as success.
+  Development shutdown202 naturally reaped CLI548/Cargo32968+27020/backend19888/wrapper41856 all0; controlled_leaf_cancel=false, portabsenttrue, foreignBlog47236 unchanged. stop-result-r3.json andservice-r3.log preserve provenance. T01 complete/T02independentreviewpending, no sourcephasepush/pin/canonicalSpecs/archive yet. AC03 actual parent Vue/iced and T03 closeout remain merge-ownedpending; unchanged scope is not waived. Plan r3 SD01 now explicit original rawC0 rejection before effects, SD02 unchanged.
