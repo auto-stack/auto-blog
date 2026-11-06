@@ -5,7 +5,7 @@ feature_name: 当前SDK字节切片下的完整文本往返
 author: [Codex]
 created_at: 2026-11-06
 updated_at: 2026-11-07
-plan_revision: 2
+plan_revision: 3
 current_step: 1
 total_steps: 4
 base_branch: main
@@ -37,7 +37,7 @@ touched_goals: []
 
 | delta_id | add/modify/retire | target | before/after rule | rationale | AC |
 |---|---|---|---|---|---|
-| SD01 | modify | docs/specs/blog/durable-drafts.md | 元数据解析/反转义/路径游标使用字节长度与find/slice一致；字符计量身份键保留；落实既有严格迁移JSON数字规则，整数段禁止前导0 | 完整UTF8往返、零副作用拒绝及旧数据兼容 | AC01/02 |
+| SD01 | modify | docs/specs/blog/durable-drafts.md | 元数据解析/反转义/路径游标使用字节长度与find/slice一致；字符计量身份键保留；落实既有严格迁移JSON数字规则，整数段禁止前导0；字符串内未经转义的U+0000..001F必须在写入前拒绝 | 完整UTF8往返、零副作用拒绝及旧数据兼容 | AC01/02 |
 | SD02 | modify | docs/specs/blog/snapshots-export.md | 现有文本切片边界按字节；既有content_hash和probe_fold输出不变 | 不截掉中文尾部且不重签旧发布 | AC01/02 |
 
 ## 4. 验证合同
@@ -91,3 +91,11 @@ touched_goals: []
 - evidence: unique parent scope D:/autostack/plan-artifacts/plan-054/t07/blog-008/review; holdout-3r6d_5sn/result.json SHA256 f1dfaa7dae5b3e2bc5b242b516170b74ecc8de58cb026e815b0ec7358f8a4e94; migration-control-s92wkai5/result.json SHA256 d5032be5e42824bcec04dadbe50de1205b9c083e75f77565bd4769115888b1f1. Permanent VM replay `python tests/byte_text_roundtrip.py --auto D:/autostack/plan-artifacts/plan-054/t04/frozen-sdk-r194/auto.exe --scratch D:/autostack/plan-artifacts/plan-054/t07/blog-008/review` →36/36; raw result byte-text-7lmefm_g/result.json. Counterexample and accepted-control inputs/expected/observed above are durable for reconstruction.
 - minimal closing oracle: reject representative raw U+0000..001F string controls before migration effects (whole-batch return0 and unchanged/absent files), retain legal escaped equivalents and actual Unicode text, earlier number controls,36 existing cases and new Unicode cursor controls. Cover actual production validator/entry with independent expectations; re-review affected lexical path and valid siblings, do not rerun unrelated full catalog. Work decides implementation, commits repair in same clone. T01 reopened/current_step1/4; T00 remains complete.
 - pending_closeout_gates/next: work repair F-BLOG-008-JSON-CONTROL then independent affected re-review. T03 named reviewed-source push→candidate fetch→parent actual tasks→Spec/final docs/push/archive sequence is self-consistent and does not waive ACs, but this needs_fix blocks source-stage approval. Prior Notes/Calendar/Todo source passes unchanged.
+
+### r3 复审修复诊断与当前验证
+
+F-BLOG-008-JSON-CONTROL → 原严格迁移JSON不变量：任何字段/嵌套字符串的原始C0字符必须在全批任何写入前拒绝，合法转义及UTF8保持。唯一共同入口scan_json_string原来只处理引号/反斜杠，放过原始控制字符；新增非空单字节切片 < 空格的守卫，排除多字节内部返回空切片。没有重写转义/身份键/发布签名算法。r3只明确既有严格JSON规则及永久输入覆盖，原4任务/AC/支持范围不变。
+
+永久tests/json_control_rejection.py复制完整真实works/drafts模块并调用migrate_articles_batch：32原始控制字符应全部return0且零文件，另合法转义LF/TAB和中文emoji迁移1并独立读取完整title/body。为防语言字符串源码不识别部分JSON式Unicode转义，输入以原始UTF8文件写入，再通过fs.read_text进入生产函数；相同入口也用于永久byte_text_roundtrip的69个独立预期，旧36及新增32原始控制+1合法转义全部通过。早期json.dumps直接嵌入语言源码的输入不能代表全部32原始字节，原日志保留但不计32控制证明；一次误用fs.read读到字节数组的失败已纠正为fs.read_text，不将其算产品失败。
+
+准确file-fed测试在隔离scratch中以git show f973的未修改模块实际回放，exit1，32非法请求全部被迁移并落盘，证明原缺陷；当前修复版exit0，32拒绝且无任何文件，合法转义迁移1/title/body完整（c0/migration-c0-x7sc3vs9/result.json）。辅助69/69完整值及类型通过（c0/byte-text-4t7v20zz/result.json），旧三个身份/签名函数体仍与3ead逐字节一致。根scratch D:/autostack/plan-artifacts/plan-054/t07/blog-008。正式Rust/HTTP控制字符零写入验证、源码冻结复审仍pending；T01尚未完成。

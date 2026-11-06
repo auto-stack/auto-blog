@@ -94,9 +94,17 @@ cases = [
     ('json_array_valid', ['[{"n":1e}]'], False),
     ('json_array_valid', ['[{"n":NaN}]'], False),
 ]
-program = 'use works\n' + inline + '\n'
-for function, args, _ in cases:
-    rendered = ', '.join(json.dumps(v, ensure_ascii=False) for v in args)
+cases.extend(('json_array_valid', ['[{"title":"bad' + chr(c) + 'raw"}]'], False)
+             for c in range(32))
+cases.append(('json_array_valid', [r'[{"title":"escaped\n\t\u0001中文😀"}]'], True))
+program = 'use works\nuse fs\n' + inline + '\n'
+for case_index, (function, args, _) in enumerate(cases):
+    rendered_args = []
+    for arg_index, value in enumerate(args):
+        fixture = run / f'input-{case_index}-{arg_index}.txt'
+        fixture.write_bytes(value.encode('utf-8'))
+        rendered_args.append('fs.read_text(' + json.dumps(fixture.as_posix()) + ')')
+    rendered = ', '.join(rendered_args)
     call = function if function in inline_names else 'works.' + function
     program += f'print(Json.encode({call}({rendered})))\n'
 (run / 'probe.at').write_text(program, encoding='utf-8')
@@ -118,3 +126,4 @@ assert actual == expected, json.dumps(receipt, ensure_ascii=False)
 assert all(type(x) is type(y) for x, y in zip(actual, expected))
 print(json.dumps({'cases': len(cases), 'source_sha256': receipt['source_sha256'],
                   'receipt': str(run / 'result.json')}, ensure_ascii=False))
+

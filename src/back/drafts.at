@@ -810,6 +810,10 @@ fn scan_json_string(s str, start int) int {
     var j int = start + 1
     while j < n {
         let c str = s.slice(j, j + 1)
+        // A byte slice inside UTF-8 can be empty; only actual raw C0 bytes are invalid.
+        if c != "" && c < " " {
+            return -1
+        }
         if c == "\"" {
             return j + 1
         }
