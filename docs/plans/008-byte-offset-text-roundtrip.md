@@ -37,7 +37,7 @@ touched_goals: []
 
 | delta_id | add/modify/retire | target | before/after rule | rationale | AC |
 |---|---|---|---|---|---|
-| SD01 | modify | docs/specs/blog/durable-drafts.md | 元数据解析/反转义/路径游标使用字节长度与find/slice一致；字符计量身份键保留 | 完整UTF8往返及旧数据兼容 | AC01/02 |
+| SD01 | modify | docs/specs/blog/durable-drafts.md | 元数据解析/反转义/路径游标使用字节长度与find/slice一致；字符计量身份键保留；落实既有严格迁移JSON数字规则，整数段禁止前导0 | 完整UTF8往返、零副作用拒绝及旧数据兼容 | AC01/02 |
 | SD02 | modify | docs/specs/blog/snapshots-export.md | 现有文本切片边界按字节；既有content_hash和probe_fold输出不变 | 不截掉中文尾部且不重签旧发布 | AC01/02 |
 
 ## 4. 验证合同
